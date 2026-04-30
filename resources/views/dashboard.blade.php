@@ -1,108 +1,69 @@
-@extends('layouts.app')
-
-@section('content')
-<div class="max-w-6xl mx-auto px-4">
-    
-    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <h1 class="text-4xl font-extrabold text-gray-900 leading-tight">Hola, Presidenta 👋</h1>
-            <p class="text-gray-500 font-medium mt-1 uppercase tracking-widest text-xs">Hoy es {{ \Carbon\Carbon::now()->translatedFormat('l d \d\e F') }}</p>
-        </div>
-
-        {{-- FILTRO DE MES --}}
-        <form action="{{ route('dashboard') }}" method="GET" class="flex items-center gap-2 bg-white p-2 rounded-2xl shadow-sm border border-gray-200">
-            <input type="month" name="month" value="{{ $selectedMonth }}" onchange="this.form.submit()" 
-                   class="border-0 focus:ring-0 font-bold text-gray-700 cursor-pointer">
-            <span class="text-gray-300 pr-2">|</span>
-            <svg class="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-        </form>
-    </div>
-
-    {{-- Tarjeta de Ingresos del Mes --}}
-    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl shadow-xl p-8 mb-10 text-white flex items-center justify-between overflow-hidden relative">
-        <div class="relative z-10">
-            <p class="text-blue-100 font-bold text-sm mb-1 uppercase tracking-widest">
-                Ingresos de {{ \Carbon\Carbon::parse($selectedMonth.'-01')->translatedFormat('F Y') }}
-            </p>
-            <h2 class="text-6xl font-black italic tracking-tighter">${{ number_format($monthlyIncome, 0, ',', '.') }}</h2>
-        </div>
-        <div class="bg-white/10 p-6 rounded-full rotate-12 absolute -right-4 top-0 scale-150">
-            <svg class="w-24 h-24 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        </div>
-    </div>
-
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
-        {{-- Clases de Hoy --}}
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-8 bg-gray-50 border-b border-gray-100 flex items-center justify-between">
-                <h2 class="text-xl font-black text-gray-800 uppercase tracking-tight">Clases para Hoy</h2>
-                <span class="bg-blue-100 text-blue-700 text-[10px] font-black px-3 py-1 rounded-full">{{ $todaysClasses->count() }} CLASES</span>
-            </div>
+<x-app-layout>
+    <div class="py-12 bg-zinc-50 min-h-screen">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
             
-            <div class="p-4 space-y-3">
-                @forelse($todaysClasses as $session)
-                    <div class="flex items-center justify-between bg-white p-5 rounded-3xl border-2 border-gray-50 hover:border-blue-200 transition-all group">
-                        <div class="flex items-center gap-4">
-                            <div class="text-center bg-blue-50 px-3 py-2 rounded-xl group-hover:bg-blue-600 transition">
-                                <span class="text-xs font-black text-blue-600 block group-hover:text-white">{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}</span>
-                            </div>
-                            <div>
-                                <span class="text-lg font-bold text-gray-800 block leading-tight">{{ $session->workshop->name }}</span>
-                                <span class="text-[10px] font-black text-gray-400 uppercase tracking-widest">{{ $session->workshop->trainer ?? 'Sin instructor' }}</span>
-                            </div>
-                        </div>
-                        <a href="{{ route('sessions.show', $session->id) }}" class="bg-gray-900 hover:bg-blue-600 text-white font-black py-3 px-6 rounded-2xl text-xs uppercase transition shadow-md">
-                            Pasar Lista
-                        </a>
-                    </div>
-                @empty
-                    <div class="text-center py-12">
-                        <p class="text-gray-400 italic">No hay clases programadas para hoy.</p>
-                    </div>
-                @endforelse
+            <div>
+                <h2 class="text-3xl font-bold tracking-tight text-zinc-800">
+                    Hola, {{ explode(' ', Auth::user()->name)[0] }} 👋
+                </h2>
+                <p class="mt-2 text-lg text-zinc-500 font-light">
+                    Tu espacio, tu movimiento. Aquí tienes el resumen de tu actividad.
+                </p>
             </div>
-        </div>
 
-        {{-- Pagos Pendientes (Lógica basada en asistencia sin pago) --}}
-        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-8 bg-red-50/50 border-b border-red-100 flex items-center justify-between">
-                <h2 class="text-xl font-black text-red-900 uppercase tracking-tight">Deudas por Cobrar</h2>
-                <div class="bg-red-500 text-white p-2 rounded-xl shadow-lg shadow-red-200">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <div class="col-span-1 md:col-span-2 bg-white rounded-2xl border border-zinc-200/60 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+                    <div class="p-6 md:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                        <div class="space-y-2">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
+                                Próxima Reserva
+                            </span>
+                            <h3 class="text-2xl font-semibold text-zinc-800">Telas Aéreas - Nivel Intermedio</h3>
+                            <p class="text-zinc-500 flex items-center gap-2">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                Estudio Gravedad Zero
+                            </p>
+                            <p class="text-zinc-600 font-medium">Hoy, 19:00 hrs</p>
+                        </div>
+                        
+                        <div class="w-full sm:w-auto">
+                            <button class="w-full inline-flex justify-center items-center px-6 py-3 border border-zinc-200 text-sm font-medium rounded-xl text-zinc-600 bg-zinc-50 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none transition-all duration-200">
+                                Ver Detalles
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-rose-50/50 rounded-2xl border border-rose-100 p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-medium text-rose-700 uppercase tracking-wide">Pendiente de Pago</h3>
+                            <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </div>
+                        <p class="mt-4 text-4xl font-bold text-rose-900">$15.000</p>
+                        <p class="mt-1 text-sm text-rose-600/80">1 clase(s) por regularizar</p>
+                    </div>
+                    <button class="mt-6 w-full inline-flex justify-center items-center px-4 py-3 text-sm font-medium rounded-xl text-white bg-rose-600 hover:bg-rose-700 focus:outline-none transition-all duration-200">
+                        Pagar ahora
+                    </button>
                 </div>
             </div>
 
-            <div class="divide-y divide-gray-50 max-h-[500px] overflow-y-auto pr-1">
-                @forelse($unpaidAttendances as $attendance)
-                    <div class="p-6 flex justify-between items-center hover:bg-red-50/30 transition-colors group">
-                        <div class="flex-1">
-                            <p class="font-black text-gray-900 text-lg leading-tight">{{ $attendance->student->name }}</p>
-                            <p class="text-[10px] font-black text-red-500 uppercase mt-1 tracking-wider">
-                                Asistió el {{ \Carbon\Carbon::parse($attendance->classSession->date)->translatedFormat('d \d\e F') }}
-                            </p>
-                            <p class="text-xs font-bold text-gray-400 mt-0.5 italic">
-                                Taller: {{ $attendance->classSession->workshop->name }}
-                            </p>
-                        </div>
-                        <div class="flex flex-col items-end gap-2">
-                            <a href="{{ route('sessions.show', $attendance->class_session_id) }}" 
-                               class="text-[10px] font-black bg-red-600 text-white px-4 py-2 rounded-xl shadow-md hover:bg-gray-900 transition uppercase tracking-tighter">
-                                Cobrar Ahora &rarr;
-                            </a>
-                            <a href="{{ route('students.calendar', $attendance->student_id) }}" class="text-[9px] font-bold text-gray-400 hover:text-blue-600 underline uppercase">Ver Perfil</a>
-                        </div>
+            <div class="mt-12 bg-zinc-900 rounded-3xl overflow-hidden relative shadow-lg">
+                <div class="absolute inset-0 opacity-[0.15] bg-[url('https://images.unsplash.com/photo-1547153760-18fc86324498?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center"></div>
+                
+                <div class="relative p-8 md:p-12 lg:p-16 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-8">
+                    <div class="max-w-2xl text-white space-y-4">
+                        <h3 class="text-3xl font-semibold tracking-tight">¿Lista para probar algo nuevo?</h3>
+                        <p class="text-zinc-400 text-lg font-light">Descubre estudios de danza, telas, lira y más disciplinas cerca de ti.</p>
                     </div>
-                @empty
-                    <div class="p-16 text-center">
-                        <div class="bg-green-100 text-green-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                        </div>
-                        <p class="text-gray-500 font-black uppercase text-sm tracking-widest">¡Finanzas al día!</p>
-                    </div>
-                @endforelse
+                    <a href="#" class="shrink-0 inline-flex items-center px-8 py-4 text-lg font-medium rounded-xl text-zinc-900 bg-white hover:bg-zinc-100 active:scale-95 transition-all duration-200 shadow-md">
+                        Explorar Clases
+                    </a>
+                </div>
             </div>
+
         </div>
     </div>
-</div>
-@endsection
+</x-app-layout>

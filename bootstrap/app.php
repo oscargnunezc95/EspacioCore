@@ -11,7 +11,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Registramos el alias para usarlo en web.php como 'identify.studio'
+        $middleware->alias([
+            'identify.studio' => \App\Http\Middleware\IdentifyStudio::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

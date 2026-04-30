@@ -1,52 +1,96 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Auth\GoogleController;
+use App\Http\Controllers\ExploreController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\TrainingMonthController;
-use App\Http\Controllers\PaymentController;
-use App\Http\Controllers\AttendanceController;
-use App\Http\Controllers\ClassSessionController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\WorkshopController;
+use App\Http\Controllers\TrainingMonthController;
+use App\Http\Controllers\ClassSessionController;
+use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\StudioController; // Deberás crearlo para gestionar tus locales
 
-Route::get('/', function () {
-    return redirect('/dashboard');
+/*
+|--------------------------------------------------------------------------
+| 1. RUTAS DE SUBDOMINIO (El Software de Gestión)
+|--------------------------------------------------------------------------
+*/
+// Extraemos de forma segura solo el dominio limpio (ej: espaciocore.test) sin el http://
+$baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'espaciocore.test';
+
+Route::domain('{subdomain}.' . $baseDomain)->group(function () {
+    
+    Route::middleware(['auth', 'identify.studio'])->group(function () {
+        
+        // Dashboard del Estudio
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+        // Módulo Alumnas
+        Route::prefix('students')->group(function () {
+            Route::get('/', [StudentController::class, 'index'])->name('students.index');
+            Route::post('/', [StudentController::class, 'store'])->name('students.store');
+            Route::put('/{student}', [StudentController::class, 'update'])->name('students.update');
+            Route::delete('/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
+            Route::patch('/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
+            Route::delete('/{id}/force', [StudentController::class, 'forceDelete'])->name('students.force_delete');
+            Route::get('/{student}/calendar/{month?}', [StudentController::class, 'calendar'])->name('students.calendar');
+        });
+
+        // Módulo Talleres
+        Route::resource('workshops', WorkshopController::class);
+
+        // Módulo Entrenamientos (Planificación)
+        Route::get('/entrenamientos', [TrainingMonthController::class, 'index'])->name('entrenamientos.index');
+        Route::post('/entrenamientos', [TrainingMonthController::class, 'store'])->name('entrenamientos.store');
+        Route::get('/entrenamientos/{month}', [TrainingMonthController::class, 'show'])->name('entrenamientos.show');
+        Route::delete('/entrenamientos/{month}', [TrainingMonthController::class, 'destroyMonth'])->name('entrenamientos.destroyMonth');
+
+        // Sesiones y Asistencias
+        Route::get('/sessions/{session}', [ClassSessionController::class, 'show'])->name('sessions.show');
+        Route::patch('/sessions/{session}/cancel', [ClassSessionController::class, 'cancel'])->name('sessions.cancel');
+        Route::post('/sessions/{session}/infrequent', [ClassSessionController::class, 'storeInfrequent'])->name('sessions.infrequent');
+        Route::post('/sessions/{session}/attendance/{student}', [AttendanceController::class, 'toggle'])->name('attendance.toggle');
+
+        // Pagos
+        Route::post('/students/{student}/payments', [PaymentController::class, 'store'])->name('payments.store');
+        Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+        Route::get('/api/students/{student}/available-sessions', [PaymentController::class, 'getAvailableSessions']);
+    });
 });
 
-Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+/*
+|--------------------------------------------------------------------------
+| 2. RUTAS CENTRALES (Landing, Login y Selección de Estudio)
+|--------------------------------------------------------------------------
+*/
 
-// Asistencias y Clases
-Route::post('/sessions/{session}/attendance/{student}', [AttendanceController::class, 'toggle'])->name('attendance.toggle');
-Route::get('/sessions/{session}', [ClassSessionController::class, 'show'])->name('sessions.show');
-Route::patch('/sessions/{session}/cancel', [ClassSessionController::class, 'cancel'])->name('sessions.cancel');
-// NUEVA RUTA: Invitadas de Clase Única
-Route::post('/sessions/{session}/guest', [ClassSessionController::class, 'storeGuest'])->name('sessions.guest');
 
-// Pagos
-Route::get('/students/{student}/payments/create', [PaymentController::class, 'create'])->name('payments.create');
-Route::post('/students/{student}/payments', [PaymentController::class, 'store'])->name('payments.store');
-Route::get('/api/students/{student}/available-sessions', [PaymentController::class, 'getAvailableSessions']);
-Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
+// ANTES (Mala práctica en producción):
+// Route::get('/', function () { return view('welcome'); });
 
-// Alumnas (Directorio y Calendario)
-Route::get('/students', [StudentController::class, 'index'])->name('students.index');
-Route::post('/students', [StudentController::class, 'store'])->name('students.store');
-Route::put('/students/{student}', [StudentController::class, 'update'])->name('students.update');
-Route::delete('/students/{student}', [StudentController::class, 'destroy'])->name('students.destroy');
-Route::patch('/students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
-Route::delete('/students/{id}/force-delete', [StudentController::class, 'forceDelete'])->name('students.force_delete');
-Route::get('/students/{student}/calendar/{month?}', [StudentController::class, 'calendar'])->name('students.calendar');
+// AHORA (Estándar Senior):
+Route::get('/', [HomeController::class, 'index'])->name('home');
+Route::get('/explorar', [ExploreController::class, 'index'])->name('explore');
 
-// Talleres (Configuración)
-Route::get('/classes', [WorkshopController::class, 'index'])->name('workshops.index');
-Route::post('/workshops', [WorkshopController::class, 'store'])->name('workshops.store');
-Route::put('/workshops/{workshop}', [WorkshopController::class, 'update'])->name('workshops.update');
-Route::delete('/workshops/{workshop}', [WorkshopController::class, 'destroy'])->name('workshops.destroy');
+Route::middleware('auth')->group(function () {
+    // Selección y Creación de Estudios
+    Route::get('/mis-estudios', [StudioController::class, 'index'])->name('studios.index');
+    Route::post('/mis-estudios', [StudioController::class, 'store'])->name('studios.store');
 
-// Meses y Entrenamientos
-Route::get('/entrenamientos', [TrainingMonthController::class, 'index'])->name('entrenamientos.index');
-Route::post('/entrenamientos/generar', [TrainingMonthController::class, 'store'])->name('entrenamientos.store');
-Route::get('/entrenamientos/mes/{monthId}', [TrainingMonthController::class, 'show'])->name('entrenamientos.show');
-Route::delete('/entrenamientos/mes/{monthId}', [TrainingMonthController::class, 'destroyMonth'])->name('entrenamientos.destroyMonth');
+    // Perfil General
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
 
-Route::post('/sessions/{session}/infrequent', [ClassSessionController::class, 'storeInfrequent'])->name('sessions.infrequent');
+// OAuth
+Route::middleware('guest')->group(function () {
+    Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');
+    Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
+});
+
+require __DIR__.'/auth.php';
