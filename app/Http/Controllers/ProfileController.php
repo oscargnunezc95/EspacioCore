@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\View\View;
+use App\Models\Student; // IMPORTAMOS EL MODELO
 
 class ProfileController extends Controller
 {
@@ -26,13 +27,24 @@ class ProfileController extends Controller
      */
     public function update(ProfileUpdateRequest $request): RedirectResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        
+        $user->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
+
+        // MAGIA DE SINCRONIZACIÓN
+        // Si el usuario cambió su correo exitosamente, actualizamos ese correo 
+        // en todas sus fichas de alumna/oen los distintos estudios.
+        if ($user->wasChanged('email')) {
+            Student::where('user_id', $user->id)->update([
+                'email' => $user->email
+            ]);
+        }
 
         return Redirect::route('profile.edit')->with('status', 'profile-updated');
     }
@@ -50,6 +62,8 @@ class ProfileController extends Controller
 
         Auth::logout();
 
+        // Al eliminar el usuario, la restricción nullOnDelete() de la base de datos 
+        // desvinculará automáticamente las fichas de Student sin borrar la data del estudio.
         $user->delete();
 
         $request->session()->invalidate();

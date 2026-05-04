@@ -2,50 +2,21 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Scopes\StudioScope;
+use App\Traits\BelongsToStudio;
 
 class ClassSession extends Model
 {
+    use HasFactory, BelongsToStudio;
+
     protected $fillable = [
-        'studio_id', // <- Clave Multi-Tenant
         'workshop_id',
         'date',
         'start_time',
-        'is_cancelled'
+        'is_cancelled',
     ];
 
-    protected $casts = [
-        'is_cancelled' => 'boolean',
-    ];
-
-    /**
-     * ==========================================
-     * LÓGICA MULTI-TENANT (Aislamiento)
-     * ==========================================
-     */
-    protected static function booted()
-    {
-        static::addGlobalScope(new StudioScope);
-
-        static::creating(function ($model) {
-            if (session()->has('current_studio_id')) {
-                $model->studio_id = session('current_studio_id');
-            }
-        });
-    }
-
-    public function studio(): BelongsTo
-    {
-        return $this->belongsTo(Studio::class);
-    }
-
-    /**
-     * ==========================================
-     * RELACIONES DE NEGOCIO
-     * ==========================================
-     */
     public function workshop()
     {
         return $this->belongsTo(Workshop::class);
@@ -56,10 +27,16 @@ class ClassSession extends Model
         return $this->hasMany(Attendance::class);
     }
 
+    // Relación a través de la tabla pivote que creaste (class_session_payment)
     public function payments()
     {
         return $this->belongsToMany(Payment::class, 'class_session_payment')
                     ->withPivot('student_id')
                     ->withTimestamps();
+    }
+    public function students()
+    {
+        // Las alumnas que reservaron/se inscribieron a esta clase
+        return $this->belongsToMany(Student::class, 'class_session_student')->withTimestamps();
     }
 }

@@ -1,68 +1,87 @@
 <x-app-layout>
-    <div class="py-12 bg-zinc-50 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    
+    <x-slot name="header">
+        
+        <!-- 1. Pestañas en la parte superior -->
+        <x-studio-tabs />
+
+        <!-- 2. Header (Migajas, Título y Botones) separado hacia abajo -->
+        <div class="mt-8">
+            <x-studio-header 
+                title="Dashboard principal" 
+                :breadcrumbs="[
+                    ['name' => 'Panel principal']
+                ]"
+            >
+            </x-studio-header>
+        </div>
+        
+    </x-slot>
+    
+    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <!-- Tarjeta de Bienvenida -->
+        <div class="bg-white shadow-sm border border-zinc-200 rounded-3xl mb-8 overflow-hidden">
+            <div class="p-8 md:p-10 flex items-center justify-between">
+                <div>
+                    <h3 class="text-2xl font-bold mb-1 text-zinc-900">¡Hola, {{ explode(' ', Auth::user()->name)[0] }}!</h3>
+                    <p class="text-zinc-500 font-medium text-lg">
+                        Bienvenida al panel de gestión de <span class="font-bold text-zinc-800">{{ $currentStudio->name }}</span>.
+                    </p>
+                </div>
+                <div class="hidden md:flex h-16 w-16 bg-zinc-50 border border-zinc-100 text-zinc-900 rounded-2xl items-center justify-center font-bold text-2xl shadow-inner">
+                    👋
+                </div>
+            </div>
+        </div>
+
+        <!-- Tarjetas de Módulos (Grid) -->
+        <!-- Observa la limpieza en los route(), ya no necesitan el array del subdominio -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             
-            <div>
-                <h2 class="text-3xl font-bold tracking-tight text-zinc-800">
-                    Hola, {{ explode(' ', Auth::user()->name)[0] }} 👋
-                </h2>
-                <p class="mt-2 text-lg text-zinc-500 font-light">
-                    Tu espacio, tu movimiento. Aquí tienes el resumen de tu actividad.
-                </p>
-            </div>
+            <!-- Módulo alumnas/os -->
+            <a href="{{ route('students.index') }}" class="group bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                    </div>
+                    <span class="text-4xl font-black text-zinc-900 tracking-tighter">{{ $studentsCount ?? 0 }}</span>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-zinc-900 group-hover:text-zinc-600 transition-colors duration-200">Directorio de alumnas/os</h4>
+                    <p class="text-sm text-zinc-500 mt-2 font-medium">Gestiona inscripciones, créditos y perfiles.</p>
+                </div>
+            </a>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                
-                <div class="col-span-1 md:col-span-2 bg-white rounded-2xl border border-zinc-200/60 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
-                    <div class="p-6 md:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                        <div class="space-y-2">
-                            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-zinc-100 text-zinc-600">
-                                Próxima Reserva
-                            </span>
-                            <h3 class="text-2xl font-semibold text-zinc-800">Telas Aéreas - Nivel Intermedio</h3>
-                            <p class="text-zinc-500 flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                Estudio Gravedad Zero
-                            </p>
-                            <p class="text-zinc-600 font-medium">Hoy, 19:00 hrs</p>
-                        </div>
-                        
-                        <div class="w-full sm:w-auto">
-                            <button class="w-full inline-flex justify-center items-center px-6 py-3 border border-zinc-200 text-sm font-medium rounded-xl text-zinc-600 bg-zinc-50 hover:bg-zinc-100 hover:text-zinc-900 focus:outline-none transition-all duration-200">
-                                Ver Detalles
-                            </button>
-                        </div>
+            <!-- Módulo Clases -->
+            <a href="{{ route('workshops.index') }}" class="group bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-3 bg-indigo-50 text-indigo-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    </div>
+                    <span class="text-4xl font-black text-zinc-900 tracking-tighter">{{ $workshopsCount ?? 0 }}</span>
+                </div>
+                <div>
+                    <h4 class="text-xl font-bold text-zinc-900 group-hover:text-zinc-600 transition-colors duration-200">Configurar Clases</h4>
+                    <p class="text-sm text-zinc-500 mt-2 font-medium">Crea talleres, define horarios y cupos.</p>
+                </div>
+            </a>
+
+            <!-- Módulo Planificación -->
+            <a href="{{ route('entrenamientos.index') }}" class="group bg-white rounded-3xl p-6 border border-zinc-200 shadow-sm hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between">
+                <div class="flex justify-between items-start mb-6">
+                    <div class="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform duration-300">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                    </div>
+                    <div class="text-amber-500">
+                        <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
                     </div>
                 </div>
-
-                <div class="bg-rose-50/50 rounded-2xl border border-rose-100 p-6 flex flex-col justify-between">
-                    <div>
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-medium text-rose-700 uppercase tracking-wide">Pendiente de Pago</h3>
-                            <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <p class="mt-4 text-4xl font-bold text-rose-900">$15.000</p>
-                        <p class="mt-1 text-sm text-rose-600/80">1 clase(s) por regularizar</p>
-                    </div>
-                    <button class="mt-6 w-full inline-flex justify-center items-center px-4 py-3 text-sm font-medium rounded-xl text-white bg-rose-600 hover:bg-rose-700 focus:outline-none transition-all duration-200">
-                        Pagar ahora
-                    </button>
+                <div>
+                    <h4 class="text-xl font-bold text-zinc-900 group-hover:text-zinc-600 transition-colors duration-200">Planificación Mensual</h4>
+                    <p class="text-sm text-zinc-500 mt-2 font-medium">Genera el calendario y toma asistencia.</p>
                 </div>
-            </div>
-
-            <div class="mt-12 bg-zinc-900 rounded-3xl overflow-hidden relative shadow-lg">
-                <div class="absolute inset-0 opacity-[0.15] bg-[url('https://images.unsplash.com/photo-1547153760-18fc86324498?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center"></div>
-                
-                <div class="relative p-8 md:p-12 lg:p-16 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-8">
-                    <div class="max-w-2xl text-white space-y-4">
-                        <h3 class="text-3xl font-semibold tracking-tight">¿Lista para probar algo nuevo?</h3>
-                        <p class="text-zinc-400 text-lg font-light">Descubre estudios de danza, telas, lira y más disciplinas cerca de ti.</p>
-                    </div>
-                    <a href="#" class="shrink-0 inline-flex items-center px-8 py-4 text-lg font-medium rounded-xl text-zinc-900 bg-white hover:bg-zinc-100 active:scale-95 transition-all duration-200 shadow-md">
-                        Explorar Clases
-                    </a>
-                </div>
-            </div>
+            </a>
 
         </div>
     </div>

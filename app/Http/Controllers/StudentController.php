@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use App\Models\Student;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\DB;
@@ -10,32 +11,57 @@ use Carbon\Carbon;
 
 class StudentController extends Controller
 {
-    public function index()
+    public function index($subdomain)
     {
-        // Limpiamos el directorio de los "Fantasmas"
-        $students = Student::where('is_guest', false)->orderBy('name', 'asc')->get();
-        $inactiveStudents = Student::onlyTrashed()->where('is_guest', false)->orderBy('name', 'asc')->get();
+        $students = Student::where('is_guest', false)
+            ->orderBy('first_name', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->get();
+            
+        $inactiveStudents = Student::onlyTrashed()
+            ->where('is_guest', false)
+            ->orderBy('first_name', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->get();
         
         return view('students.index', compact('students', 'inactiveStudents'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, $subdomain)
     {
         $request->validate([
-            'rut' => 'required|string|unique:students,rut',
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                // El correo debe ser único dentro de este estudio específico
+                Rule::unique('students', 'email')->where(function ($query) {
+                    return $query->where('studio_id', session('current_studio_id'));
+                })
+            ],
             'phone' => 'nullable|string'
         ]);
 
         Student::create($request->all());
-        return back()->with('success', 'Alumna creada correctamente.');
+        return back()->with('success', 'alumna/ocreada correctamente.');
     }
 
-    public function update(Request $request, Student $student)
+    public function update(Request $request, $subdomain, Student $student)
     {
         $request->validate([
-            'rut' => 'required|string|unique:students,rut,' . $student->id,
-            'name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'email' => [
+                'required',
+                'email',
+                // Ignoramos el ID de esta alumna/oal validar la unicidad del correo
+                Rule::unique('students', 'email')
+                    ->ignore($student->id)
+                    ->where(function ($query) {
+                        return $query->where('studio_id', session('current_studio_id'));
+                    })
+            ],
             'phone' => 'nullable|string'
         ]);
 
@@ -43,30 +69,29 @@ class StudentController extends Controller
         return back()->with('success', 'Datos actualizados.');
     }
 
-    public function destroy(Student $student)
+    public function destroy($subdomain, Student $student)
     {
         $student->delete();
-        return back()->with('success', 'Alumna desactivada. Podrás encontrarla en la pestaña de Inactivas.');
+        return back()->with('success', 'alumna/odesactivada. Podrás encontrarla en la pestaña de Inactivas.');
     }
 
-    public function restore($id)
+    public function restore($subdomain, $id)
     {
-        Student::withTrashed()->find($id)->restore();
-        return back()->with('success', 'Alumna reactivada correctamente.');
+        $student = Student::withTrashed()->findOrFail($id);
+        $student->restore();
+        return back()->with('success', 'alumna/oreactivada correctamente.');
     }
 
-    public function forceDelete($id)
+    public function forceDelete($subdomain, $id)
     {
-        Student::withTrashed()->find($id)->forceDelete();
-        return back()->with('success', 'Alumna eliminada permanentemente del sistema.');
+        $student = Student::withTrashed()->findOrFail($id);
+        $student->forceDelete();
+        return back()->with('success', 'alumna/oeliminada permanentemente del sistema.');
     }
 
-    // CALENDARIO DE ASISTENCIAS: Ahora funciona con Pagos por Fechas
-    public function calendar($studentId, $month = null) // Cambiamos Student por $studentId
+    public function calendar($subdomain, $studentId, $month = null)
     {
-        // Buscamos a la alumna incluyendo las deshabilitadas (fantasmas/no frecuentes)
         $student = Student::withTrashed()->findOrFail($studentId);
-
         $monthDate = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
 
         $allAttendances = Attendance::with('classSession.workshop')
@@ -76,13 +101,11 @@ class StudentController extends Controller
                 return $att->classSession->date . ' ' . $att->classSession->start_time;
             });
 
-        // 1. Buscamos todas las clases que esta alumna YA PAGÓ
         $paidSessionIds = DB::table('class_session_payment')
             ->where('student_id', $student->id)
             ->pluck('class_session_id')
             ->toArray();
 
-        // 2. Comparamos sus asistencias. Si asistió a una clase que NO está pagada, la marcamos de rojo.
         $unpaidIds = [];
         foreach ($allAttendances as $att) {
             if (!in_array($att->class_session_id, $paidSessionIds)) {

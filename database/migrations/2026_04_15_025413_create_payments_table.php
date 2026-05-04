@@ -10,6 +10,7 @@ return new class extends Migration
     {
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('studio_id')->constrained()->cascadeOnDelete(); // Consolidado
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('workshop_id')->constrained()->cascadeOnDelete();
             $table->string('payment_type');

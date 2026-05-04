@@ -6,23 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('training_notes', function (Blueprint $table) {
             $table->id();
-            $table->string('title'); // Título del entrenamiento o planificación
+            $table->foreignId('studio_id')->constrained()->cascadeOnDelete(); // Consolidado
+            $table->string('title');
             $table->longText('content')->nullable();
             $table->date('training_date')->after('title')->nullable();
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('training_notes');

@@ -5,85 +5,96 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ClassSession;
 use App\Models\Student;
-use App\Models\Payment;
 use Carbon\Carbon;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
 
 class ClassSessionController extends Controller
 {
-    public function show(ClassSession $session)
+    public function show($subdomain, ClassSession $session)
     {
-        $session->load(['workshop', 'attendances']);
+        $session->load('attendances');
         
-        // Alumnas Activas para la lista principal
-        $students = Student::where('is_guest', false)->orderBy('name', 'asc')->get();
+        // Obtenemos los IDs de quienes ya pagaron esta sesión
+        $paidStudentIds = DB::table('class_session_payment')
+            ->where('class_session_id', $session->id)
+            ->pluck('student_id')
+            ->toArray();
+
+        // Regla de Seguridad: Si alguien pagó, debemos asegurar que esté en la lista de inscritas y presente.
+        foreach ($paidStudentIds as $paidId) {
+            $session->students()->syncWithoutDetaching([$paidId]);
+            $session->attendances()->firstOrCreate(['student_id' => $paidId]);
+        }
         
-        // Alumnas Inactivas (Deshabilitadas) para el nuevo modal
-        $inactiveStudents = Student::onlyTrashed()->orderBy('name', 'asc')->get();
+        // LA ÚNICA FUENTE DE VERDAD: Alumnas inscritas en esta sesión específica
+        $students = $session->students()
+            ->orderBy('first_name', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->get();
+
+        $enrolledIds = $students->pluck('id')->toArray();
+
+        // Alumnas del estudio que AÚN NO se inscriben en esta clase (Para el Modal)
+        $otherStudents = Student::where('is_guest', false)
+            ->whereNotIn('id', $enrolledIds)
+            ->orderBy('first_name', 'asc')
+            ->orderBy('last_name', 'asc')
+            ->get();
         
         $monthId = Carbon::parse($session->date)->format('Y-m');
         
-        return view('sessions.show', compact('session', 'students', 'inactiveStudents', 'monthId'));
+        return view('sessions.show', compact('session', 'students', 'otherStudents', 'paidStudentIds', 'monthId'));
     }
 
-    public function cancel(ClassSession $session)
+    public function cancel($subdomain, ClassSession $session)
     {
         $session->update(['is_cancelled' => !$session->is_cancelled]);
         $status = $session->is_cancelled ? 'cancelada' : 'restaurada';
         return back()->with('success', "Clase $status correctamente.");
     }
 
-    // NUEVO MÉTODO: Registrar alumna no frecuente (Deshabilitada)
-    public function storeInfrequent(Request $request, ClassSession $session)
+    // Renombramos de storeInfrequent a enrollStudent
+    public function enrollStudent(Request $request, $subdomain, ClassSession $session)
     {
         $request->validate([
-            'infrequent_mode' => 'required|in:existing,new',
-            'student_id' => 'required_if:infrequent_mode,existing|nullable|exists:students,id',
-            'rut' => 'required_if:infrequent_mode,new|nullable|string|unique:students,rut',
-            'name' => 'required_if:infrequent_mode,new|nullable|string|max:255',
-            // Ahora amount y receipt son opcionales (nullable)
-            'amount' => 'nullable|numeric|min:0',
-            'receipt' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240'
+            'enroll_mode' => 'required|in:existing,new',
+            'student_id' => 'required_if:enroll_mode,existing|nullable|exists:students,id',
+            'first_name' => 'required_if:enroll_mode,new|nullable|string|max:255',
+            'last_name' => 'nullable|string|max:255',
+            'email' => [
+                'required_if:enroll_mode,new',
+                'nullable',
+                'email',
+                Rule::unique('students', 'email')->where(function ($query) {
+                    return $query->where('studio_id', session('current_studio_id'));
+                })
+            ]
         ], [
-            'rut.unique' => 'Este RUT ya está registrado. Búscala en la opción "Buscar Existente".',
             'student_id.required_if' => 'Debes seleccionar una alumna de la lista.',
-            'rut.required_if' => 'Debes ingresar el RUT.',
-            'name.required_if' => 'Debes ingresar el nombre.'
+            'first_name.required_if' => 'Debes ingresar el nombre de la alumna.',
+            'email.required_if' => 'Debes ingresar un correo para crear la ficha.',
+            'email.unique' => 'Este correo ya está registrado en tu estudio. Búscala en la pestaña "Buscar en Estudio".'
         ]);
 
-        if ($request->infrequent_mode === 'existing') {
-            $student = Student::withTrashed()->findOrFail($request->student_id);
+        if ($request->enroll_mode === 'existing') {
+            $student = Student::findOrFail($request->student_id);
         } else {
+            // Crea la alumna a nivel de Estudio
             $student = Student::create([
-                'rut' => $request->rut,
-                'name' => $request->name,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'is_guest' => false
             ]);
-            $student->delete();
         }
 
-        // 1. Manejo condicional del comprobante
-        $path = null;
-        if ($request->hasFile('receipt')) {
-            $path = $request->file('receipt')->store('receipts', 'public');
-        }
-
-        // 2. Solo registramos el pago si se ingresó un monto
-        // Si no hay monto, la alumna simplemente queda con la asistencia marcada
-        if ($request->filled('amount')) {
-            $payment = Payment::create([
-                'student_id' => $student->id,
-                'workshop_id' => $session->workshop_id,
-                'payment_type' => 'single',
-                'amount' => $request->amount,
-                'receipt_path' => $path
-            ]);
-
-            // Vincular el pago a esta clase específica
-            $payment->classSessions()->attach($session->id, ['student_id' => $student->id]);
-        }
+        // 1. La Inscribimos en la clase
+        $session->students()->syncWithoutDetaching([$student->id]);
         
-        // 3. La asistencia se marca SIEMPRE, haya pagado o no
+        // 2. La marcamos como presente (Asumiendo que si la profe la agrega a mano en el momento, es porque llegó)
         $session->attendances()->firstOrCreate(['student_id' => $student->id]);
 
-        return back()->with('success', 'Alumna no frecuente procesada correctamente.');
+        return back()->with('success', 'Alumna inscrita en la clase y marcada como presente.');
     }
 }

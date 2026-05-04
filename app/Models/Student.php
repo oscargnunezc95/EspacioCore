@@ -2,65 +2,67 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Scopes\StudioScope;
+use App\Traits\BelongsToStudio;
 
 class Student extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes, BelongsToStudio;
 
     protected $fillable = [
-        'studio_id', // <- Clave para aislar los datos
-        'rut',
-        'name',
+        'user_id',          // Llave foránea del Usuario Global
+        'first_name',       // Obligatorio
+        'last_name',        // Opcional
+        'email',            // Para el Match
         'phone',
         'is_guest'
     ];
 
-    /**
-     * ==========================================
-     * LÓGICA MULTI-TENANT (Aislamiento)
-     * ==========================================
-     */
+    // MAGIA 1: Mantener compatibilidad con el frontend ($student->name)
+    public function getNameAttribute()
+    {
+        return trim("{$this->first_name} {$this->last_name}");
+    }
+
+    // MAGIA 2: Sincronización Automática (Lado del Estudio)
     protected static function booted()
     {
-        // 1. Aplica el filtro automáticamente: Nadie verá alumnas de otro estudio
-        static::addGlobalScope(new StudioScope);
-
-        // 2. Al crear una alumna nueva, Laravel le asigna el estudio automáticamente
-        static::creating(function ($model) {
-            if (session()->has('current_studio_id')) {
-                $model->studio_id = session('current_studio_id');
+        // Se ejecuta justo antes de crear o actualizar una alumna/oen la BD
+        static::saving(function ($student) {
+            // Si el correo fue modificado o es nuevo, y no está vacío
+            if ($student->isDirty('email') && !empty($student->email)) {
+                
+                // Buscamos si existe un usuario registrado con ese correo
+                $user = User::where('email', $student->email)->first();
+                
+                // Si existe, lo vinculamos. Si no, lo dejamos null (a la espera)
+                $student->user_id = $user ? $user->id : null;
             }
         });
     }
 
-    // Relación: Una alumna le pertenece a un Estudio
-    public function studio(): BelongsTo
+    // --- RELACIONES ---
+
+    public function user()
     {
-        return $this->belongsTo(Studio::class);
+        return $this->belongsTo(User::class);
     }
 
-
-    /**
-     * ==========================================
-     * RELACIONES DE NEGOCIO
-     * ==========================================
-     */
-     
-    // Relación original con los talleres
-    public function workshops()
+    public function attendances()
     {
-        return $this->belongsToMany(Workshop::class)
-                    ->withPivot('credits_available')
-                    ->withTimestamps();
+        return $this->hasMany(Attendance::class);
     }
 
-    // Una alumna tiene muchos pagos
     public function payments()
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function workshops()
+    {
+        return $this->belongsToMany(Workshop::class, 'student_workshop')
+                    ->withTimestamps();
     }
 }

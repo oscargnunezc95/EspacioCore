@@ -10,6 +10,7 @@ class StudioScope implements Scope
 {
     public function apply(Builder $builder, Model $model)
     {
+        // Si hay un estudio en sesión, agregamos automáticamente "WHERE studio_id = X"
         if (session()->has('current_studio_id')) {
             $builder->where($model->getTable() . '.studio_id', session('current_studio_id'));
         }

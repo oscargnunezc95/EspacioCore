@@ -2,19 +2,39 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Studio extends Model
 {
-    protected $fillable = ['name', 'subdomain', 'user_id'];
+    use HasFactory;
 
-    public function owner(): BelongsTo
+    protected $fillable = [
+        'user_id',
+        'name',
+        'logo_path',
+        'address',
+        'latitude',
+        'longitude',
+        'city',
+        'region',
+        'country',
+    ];
+
+    public function user()
     {
-        return $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo(User::class);
     }
 
-    public function students(): HasMany { return $this->hasMany(Student::class); }
-    public function workshops(): HasMany { return $this->hasMany(Workshop::class); }
+    public function students()
+    {
+        return $this->hasMany(Student::class);
+    }
+
+    public function workshops()
+    {
+        return $this->hasMany(Workshop::class);
+    }
+
+    // Puedes agregar las demás relaciones (payments, classSessions, etc) si las necesitas
 }

@@ -1,18 +1,21 @@
-@extends('layouts.app')
-
-@section('content')
+<x-app-layout>
 <div class="max-w-7xl mx-auto px-4">
     
-    {{-- Navegación --}}
-    <div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <a href="{{ route('students.index') }}" class="text-blue-600 font-bold flex items-center gap-2 mb-3 hover:text-blue-800 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
-                Volver al Directorio
-            </a>
-            <h1 class="text-4xl font-extrabold text-gray-900 tracking-tight">Historial de <span class="text-blue-600">{{ $student->name }}</span></h1>
+    
+    <x-slot name="header">
+        <x-studio-tabs />
+        <div class="mt-8">
+        
+            <x-studio-header 
+                title="Perfil de Alumna" 
+                :breadcrumbs="[
+                    ['name' => 'alumnas/os', 'url' => route('students.index')],
+                    ['name' => $student->name]
+                ]"
+            >
+            </x-studio-header>
         </div>
-    </div>
+    </x-slot>
 
     {{-- Controles del Mes --}}
     @php
@@ -107,7 +110,7 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-gray-100 italic">
-                    {{-- Obtenemos los pagos de la alumna ordenados del más reciente al más antiguo --}}
+                    {{-- Obtenemos los pagos de la alumna/oordenados del más reciente al más antiguo --}}
                     @forelse($student->payments()->latest()->get() as $payment)
                         <tr class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4 text-sm font-bold text-gray-900">
@@ -140,11 +143,11 @@
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="5" class="p-10 text-center text-gray-400">Esta alumna aún no tiene pagos registrados.</td></tr>
+                        <tr><td colspan="5" class="p-10 text-center text-gray-400">Esta alumna/oaún no tiene pagos registrados.</td></tr>
                     @endforelse
                 </tbody>
             </table>
         </div>
     </div>
 </div>
-@endsection
+</x-app-layout>

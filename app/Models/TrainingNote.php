@@ -2,41 +2,23 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use App\Models\Scopes\StudioScope;
+use App\Traits\BelongsToStudio;
 
 class TrainingNote extends Model
 {
+    use HasFactory, BelongsToStudio;
+
     protected $fillable = [
-        'studio_id', // <- Clave Multi-Tenant
         'title',
+        'content',
         'training_date',
-        'content'
     ];
 
+    // Opcional, pero recomendado: Castear la fecha para poder usar métodos de Carbon
+    // directamente en tus vistas de Blade (ej: $note->training_date->format('d/m/Y'))
     protected $casts = [
         'training_date' => 'date',
     ];
-
-    /**
-     * ==========================================
-     * LÓGICA MULTI-TENANT (Aislamiento)
-     * ==========================================
-     */
-    protected static function booted()
-    {
-        static::addGlobalScope(new StudioScope);
-
-        static::creating(function ($model) {
-            if (session()->has('current_studio_id')) {
-                $model->studio_id = session('current_studio_id');
-            }
-        });
-    }
-
-    public function studio(): BelongsTo
-    {
-        return $this->belongsTo(Studio::class);
-    }
 }

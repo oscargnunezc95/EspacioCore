@@ -14,7 +14,7 @@
     @include('layouts.navigation') 
     
     <div class="flex-1 flex w-full">
-        @yield('content')
+        {{ $slot }}
     </div>
 </body>
 </html>

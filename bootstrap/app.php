@@ -15,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'identify.studio' => \App\Http\Middleware\IdentifyStudio::class,
         ]);
+
+        // ¡ESTA ES LA LÍNEA MÁGICA QUE FALTA!
+        // Le dice a Laravel que redirija a los usuarios logueados al Lobby, no al dashboard genérico.
+        $middleware->redirectUsersTo('/mis-estudios');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

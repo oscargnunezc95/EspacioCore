@@ -1,343 +1,512 @@
-@extends('layouts.guest')
-
-@section('content')
-<div class="flex flex-col lg:flex-row w-full">
-    
-    <div class="flex flex-col justify-center flex-1 px-8 py-12 sm:px-16 lg:px-24 xl:px-32 bg-white">
-        <div class="w-full max-w-sm mx-auto lg:mx-0">
-            
-            <div class="mb-10">
-                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">
-                    EspacioCore
-                </h1>
-                <p class="mt-2 text-sm text-slate-500">
-                    El centro de tu movimiento. Inicia sesión para gestionar tu espacio.
-                </p>
-            </div>
-
-            @if ($errors->any())
-                <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-100">
-                    <p class="text-sm text-red-600 font-medium">Credenciales incorrectas. Por favor, intenta de nuevo.</p>
-                </div>
-            @endif
-            <form action="{{ route('login') }}" method="POST" class="space-y-6">
-                @csrf
-
-                <div>
-                    <label for="email" class="block text-sm font-semibold text-slate-700">Correo electrónico</label>
-                    <div class="mt-2">
-                        <input id="email" name="email" type="email" autocomplete="email" required autofocus
-                            class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm">
-                    </div>
-                </div>
-
-                <div>
-                    <div class="flex items-center justify-between">
-                        <label for="password" class="block text-sm font-semibold text-slate-700">Contraseña</label>
-                        <a href="#" class="text-sm font-medium text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
-                            ¿Olvidaste tu contraseña?
-                        </a>
-                    </div>
-                    <div class="mt-2">
-                        <input id="password" name="password" type="password" autocomplete="current-password" required
-                            class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm">
-                    </div>
-                </div>
-
-                <div class="flex items-center">
-                    <input id="remember" name="remember" type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all duration-200">
-                    <label for="remember" class="ml-2 block text-sm text-slate-600">
-                        Mantener sesión iniciada
-                    </label>
-                </div>
-
-                <div>
-                    <button type="submit"
-                        class="flex w-full justify-center px-4 py-3 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 active:scale-[0.98] transition-all duration-200">
-                        Entrar al Espacio
-                    </button>
-                </div>
-            </form>
-            <div class="mt-6">
-                <div class="relative">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-slate-200"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-slate-500">O continúa con</span>
-                    </div>
-                </div>
-
-                <div class="mt-6">
-                    <a href="{{ route('google.redirect') }}" 
-                    class="flex w-full items-center justify-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 active:scale-[0.98] transition-all duration-200 shadow-sm">
-                        <svg class="w-5 h-5" viewBox="0 0 24 24">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                        </svg>
-                        Google
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="hidden lg:flex lg:flex-1 relative bg-slate-900 overflow-hidden">
-        <img class="absolute inset-0 h-full w-full object-cover opacity-80 mix-blend-overlay" 
-             src="https://images.unsplash.com/photo-1547153760-18fc86324498?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
-             alt="Energía y movimiento EspacioCore">
-        
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent"></div>
-        
-        <div class="absolute bottom-12 left-12 right-12 z-10 text-white">
-            <blockquote class="space-y-4">
-                <p class="text-2xl font-medium leading-snug">
-                    "La gestión debe ser invisible para que el arte sea el único protagonista. Sincroniza tu estudio en segundos."
-                </p>
-            </blockquote>
-        </div>
-    </div>
-
-</div>
-@endsection
 <x-app-layout>
-    <div class="py-12 bg-slate-50 min-h-screen">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            
-            <div>
-                <h2 class="text-3xl font-extrabold tracking-tight text-slate-900">
-                    Hola, {{ explode(' ', Auth::user()->name)[0] }} 👋
-                </h2>
-                <p class="mt-2 text-lg text-slate-500">
-                    Tu espacio, tu movimiento. Aquí tienes el resumen de tu actividad.
-                </p>
-            </div>
+    <x-slot name="header">
+        <x-studio-tabs />
+        <div class="mt-8">
+            <x-studio-header title="Configuración de Clases" :breadcrumbs="[['name' => 'Talleres']]">
+                <x-slot name="actions">
+                    <button onclick="openWorkshopModal()" class="bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                        Nuevo Taller
+                    </button>
+                </x-slot>
+            </x-studio-header>
+        </div>
+    </x-slot>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        @if (session('success'))
+            <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                {{ session('success') }}
+            </div>
+        @endif
+        
+        @if ($errors->any())
+            <div class="mb-6 p-4 bg-rose-50 text-rose-700 rounded-xl text-sm font-bold border border-rose-200 flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Hubo un error al guardar el taller. Revisa el formulario.
+            </div>
+        @endif
+
+        {{-- TABLA DE TALLERES --}}
+        <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-zinc-200">
+                    <thead class="bg-zinc-50">
+                        <tr>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Taller / Profesor</th>
+                            <th class="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Horario / Fecha</th>
+                            <th class="px-6 py-4 text-right text-xs font-bold text-zinc-500 uppercase tracking-wider">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-zinc-100">
+                        @forelse($workshops as $workshop)
+                            @php 
+                                $diasStr = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']; 
+                                $borderColor = match($workshop->color) {
+                                    'emerald' => 'border-emerald-500', 'rose' => 'border-rose-500', 'purple' => 'border-purple-500',
+                                    'amber' => 'border-amber-500', 'indigo' => 'border-indigo-500', 'teal' => 'border-teal-500',
+                                    'cyan' => 'border-cyan-500', 'fuchsia' => 'border-fuchsia-500', 'slate' => 'border-slate-500',
+                                    default => 'border-blue-500',
+                                };
+                            @endphp
+                            
+                            <tr class="hover:bg-zinc-50/80 transition-colors duration-200 group">
+                                <td class="px-6 py-4 border-l-4 {{ $borderColor }}">
+                                    <div class="font-bold text-zinc-900 flex flex-wrap items-center gap-2 text-sm">
+                                        {{ $workshop->name }}
+                                        @if($workshop->is_single_class) <span class="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-black">Clase Única</span> @endif
+                                        @if($workshop->max_students) <span class="bg-zinc-50 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1" title="Cupo Máximo"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> Max {{ $workshop->max_students }}</span> @endif
+                                    </div>
+                                    <div class="text-xs text-zinc-500 mt-1.5 flex items-center gap-1.5 font-medium">
+                                        <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                        {{ $workshop->teacher ? $workshop->teacher->name : 'Sin profesor asignado' }} 
+                                        @if($workshop->teacher && $workshop->teacher->phone)
+                                            <span class="text-zinc-400">({{ $workshop->teacher->phone }})</span>
+                                        @endif
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm font-bold text-zinc-700">
+                                    @if($workshop->is_single_class && $workshop->specific_date)
+                                        <span class="text-zinc-900">{{ \Carbon\Carbon::parse($workshop->specific_date)->translatedFormat('d \d\e F') }}</span> 
+                                    @else
+                                        @if(is_array($workshop->repeat_days))
+                                            {{ implode(', ', array_map(fn($d) => $diasStr[$d], $workshop->repeat_days)) }}
+                                        @else
+                                            <span class="text-rose-500 italic">Sin días</span>
+                                        @endif
+                                    @endif
+                                    <span class="text-zinc-400 font-medium mx-1">a las</span> 
+                                    <span class="text-zinc-900">{{ \Carbon\Carbon::parse($workshop->start_time)->format('H:i') }}</span>
+                                </td>
+                                <td class="px-6 py-4 text-right space-x-3 flex justify-end items-center">
+                                    <a href="{{ route('workshops.students', $workshop->id) }}" class="text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors duration-200 bg-indigo-50 px-3 py-1.5 rounded-lg border border-indigo-100 flex items-center gap-1.5">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                                        alumnas/os
+                                    </a>
+                                    <button type="button" data-workshop="{{ json_encode($workshop) }}" onclick="openEditWorkshopModal(this)" class="text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors duration-200">
+                                        Editar
+                                    </button>
+                                    <form action="{{ route('workshops.destroy', $workshop->id) }}" method="POST" class="inline m-0">
+                                        @csrf @method('DELETE')
+                                        <button type="submit" onclick="return confirm('¿Eliminar este taller?')" class="text-sm font-bold text-rose-400 hover:text-rose-600 transition-colors duration-200">Eliminar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr><td colspan="3" class="px-6 py-12 text-center text-sm font-bold text-zinc-400">No hay talleres configurados</td></tr>
+                        @endempty
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div id="workshopModal" onclick="if(event.target === this) closeWorkshopModal()" class="fixed inset-0 z-50 hidden flex items-start justify-center p-4 sm:p-6 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto transition-opacity custom-scrollbar">
+    <div class="bg-white rounded-2xl p-6 md:p-8 max-w-3xl w-full shadow-xl border border-zinc-100 my-auto transform transition-all">
+        
+        <div class="flex justify-between items-center mb-6">
+            <h3 class="text-xl font-bold text-zinc-900 tracking-tight" id="modalWorkshopTitle">Configurar Taller</h3>
+            <button type="button" onclick="closeWorkshopModal()" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <form id="workshopForm" method="POST">
+            @csrf
+            <div id="workshopMethod"></div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 
-                <div class="col-span-1 md:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
-                    <div class="p-6 md:p-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
-                        <div class="space-y-2">
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800">
-                                Próxima Reserva
-                            </span>
-                            <h3 class="text-2xl font-bold text-slate-900">Telas Aéreas - Nivel Intermedio</h3>
-                            <p class="text-slate-500 flex items-center gap-2">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                                Estudio Gravedad Zero
-                            </p>
-                            <p class="text-slate-600 font-medium">Hoy, 19:00 hrs</p>
-                        </div>
-                        
-                        <div class="w-full sm:w-auto">
-                            <button class="w-full inline-flex justify-center items-center px-6 py-3 border border-slate-300 shadow-sm text-sm font-semibold rounded-xl text-slate-700 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200">
-                                Ver Detalles
-                            </button>
-                        </div>
-                    </div>
+                {{-- Nombre --}}
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre del Taller</label>
+                    <input type="text" name="name" id="w_name" value="{{ old('name') }}" placeholder="Ej: Telas Principiante" 
+                        class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all duration-200 outline-none" required>
                 </div>
 
-                <div class="bg-red-50 rounded-2xl border border-red-100 p-6 flex flex-col justify-between">
+                {{-- Área y Disciplina con DataList Dinámicos --}}
+                <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-semibold text-red-800 uppercase tracking-wider">Pendiente de Pago</h3>
-                            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                        </div>
-                        <p class="mt-4 text-4xl font-black text-red-900">$15.000</p>
-                        <p class="mt-1 text-sm text-red-700">1 clase(s) por regularizar</p>
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Área General</label>
+                        {{-- Agregamos onkeyup y onchange para que reaccione al escribir o seleccionar --}}
+                        <input list="areas_list" name="area" id="w_area" placeholder="Ej: Circo, Baile, Ejercicio..." required onkeyup="updateDisciplines()" onchange="updateDisciplines()"
+                               class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                        <datalist id="areas_list">
+                            {{-- Solo cargamos dinámicamente las áreas que manda el controlador --}}
+                            @foreach($existingAreas ?? [] as $area)
+                                <option value="{{ $area }}">
+                            @endforeach
+                        </datalist>
                     </div>
-                    <button class="mt-6 w-full inline-flex justify-center items-center px-4 py-3 border border-transparent text-sm font-bold rounded-xl shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-200">
-                        Pagar ahora (Fintoc)
-                    </button>
-                </div>
-            </div>
 
-            <div class="mt-12 bg-slate-900 rounded-3xl overflow-hidden relative shadow-xl">
-                <div class="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1547153760-18fc86324498?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80')] bg-cover bg-center"></div>
-                
-                <div class="relative p-8 md:p-12 lg:p-16 text-center sm:text-left flex flex-col sm:flex-row items-center justify-between gap-8">
-                    <div class="max-w-2xl text-white space-y-4">
-                        <h3 class="text-3xl font-bold tracking-tight">¿Lista para probar algo nuevo?</h3>
-                        <p class="text-slate-300 text-lg">Descubre estudios de danza, telas, lira y más disciplinas cerca de ti. La comunidad sigue creciendo.</p>
+                    <div>
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Disciplina Específica</label>
+                        {{-- Inicia bloqueado hasta que se elija un área --}}
+                        <input list="disciplines_list" name="discipline" id="w_discipline" placeholder="Primero selecciona un Área..." required disabled
+                               class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed">
+                        <datalist id="disciplines_list">
+                            {{-- Queda vacío porque el JavaScript lo llena en base al Área seleccionada --}}
+                        </datalist>
                     </div>
-                    <a href="#" class="shrink-0 inline-flex items-center px-8 py-4 border border-transparent text-lg font-bold rounded-xl text-slate-900 bg-white hover:bg-slate-100 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg">
-                        Explorar Clases
-                    </a>
                 </div>
-            </div>
 
-        </div>
-    </div>
-</x-app-layout>
+                {{-- Público Objetivo --}}
+                <div>
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Público Objetivo (Edad)</label>
+                    <select name="target_audience" id="w_target_audience" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none cursor-pointer">
+                        <option value="all">Todas las edades</option>
+                        <option value="kids">Niñas/os (hasta 12 años)</option>
+                        <option value="teens">Adolescentes (13 - 17 años)</option>
+                        <option value="adults" selected>Adultos (+18 años)</option>
+                    </select>
+                </div>
 
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+                {{-- Dirección Oficial con Google Maps --}}
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Dirección Oficial <span class="text-zinc-400 font-normal">(Para el Mapa)</span></label>
+                    <input type="text" name="address" id="w_address" placeholder="Empieza a escribir la dirección..." 
+                           class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                    
+                    {{-- Campos Ocultos para guardar las coordenadas --}}
+                    <input type="hidden" name="latitude" id="w_latitude">
+                    <input type="hidden" name="longitude" id="w_longitude">
+                    
+                    {{-- Detalle interno --}}
+                    <input type="text" name="room_location" id="w_room_location" placeholder="Detalle extra (Ej: Sala 2, Piso 4...)" 
+                           class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none mt-2 bg-zinc-50">
+                </div>
 
-    <title>{{ config('app.name', 'EspacioCore') }}</title>
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="font-sans text-slate-900 antialiased bg-slate-50 selection:bg-indigo-500 selection:text-white flex flex-col min-h-screen">
-    
-    @include('layouts.navigation')
-
-    @isset($header)
-        <header class="bg-white border-b border-slate-100">
-            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-                {{ $header }}
-            </div>
-        </header>
-    @endisset
-
-    <main class="flex w-full">
-        {{ $slot }}
-    </main>
-    
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-
-    <title>{{ config('app.name', 'EspacioCore') }}</title>
-
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
-</head>
-<body class="font-sans text-slate-900 antialiased bg-slate-50">
-    @include('layouts.navigation') 
-    <div class="min-h-screen flex w-full">
-        @yield('content')
-    </div>
-</body>
-</html>
-@extends('layouts.guest')
-
-@section('content')
-<div class="flex flex-col lg:flex-row w-full min-h-screen">
-    
-    <div class="flex flex-col justify-center flex-1 px-8 py-12 sm:px-16 lg:px-24 xl:px-32 bg-white">
-        <div class="w-full max-w-sm mx-auto lg:mx-0">
-            
-            <div class="mb-10">
-                <h1 class="text-3xl font-extrabold tracking-tight text-slate-900">
-                    Únete al Espacio
-                </h1>
-                <p class="mt-2 text-sm text-slate-500">
-                    Crea tu cuenta gratis y comienza a gestionar tu estudio de arte y movimiento.
-                </p>
-            </div>
-
-            @if ($errors->any())
-                <div class="mb-6 p-4 rounded-lg bg-red-50 border border-red-100">
-                    <ul class="text-sm text-red-600 font-medium list-disc list-inside">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
+                {{-- SELECTOR DE PROFESOR --}}
+                <div class="col-span-1 md:col-span-2 border border-zinc-200 p-4 rounded-xl bg-zinc-50/50">
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Entrenador(a) Principal <span class="text-zinc-400 font-normal">(Opcional)</span></label>
+                    <select name="teacher_id" id="w_teacher_id" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all duration-200 outline-none">
+                        <option value="">-- Sin profesor asignado --</option>
+                        @foreach($teachers as $teacher)
+                            <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
                         @endforeach
-                    </ul>
+                    </select>
+                    <p class="text-[11px] text-zinc-500 mt-2 font-medium">Agrega más profesores desde la sección "Equipo" en el menú principal.</p>
                 </div>
-            @endif
 
-            <form action="{{ route('register') }}" method="POST" class="space-y-5">
-                @csrf
+                {{-- Color --}}
+                <div class="col-span-1 md:col-span-2">
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Color (Etiqueta de Calendario)</label>
+                    <select name="color" id="w_color" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all duration-200 outline-none" required>
+                        <option value="blue">Azul Intenso</option>
+                        <option value="emerald">Verde Esmeralda</option>
+                        <option value="teal">Turquesa</option>
+                        <option value="cyan">Celeste</option>
+                        <option value="indigo">Índigo</option>
+                        <option value="purple">Púrpura</option>
+                        <option value="fuchsia">Fucsia</option>
+                        <option value="rose">Rosa / Rojo</option>
+                        <option value="amber">Ámbar / Naranja</option>
+                        <option value="slate">Gris Oscuro</option>
+                    </select>
+                </div>
 
-                <div>
-                    <label for="name" class="block text-sm font-semibold text-slate-700">Nombre completo</label>
-                    <div class="mt-1">
-                        <input id="name" name="name" type="text" value="{{ old('name') }}" required autofocus autocomplete="name"
-                            class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm">
+                {{-- TIPO DE CLASE (MENSUAL O ÚNICA) --}}
+                <div class="col-span-1 md:col-span-2 bg-zinc-50 p-5 rounded-xl border border-zinc-200 mt-2">
+                    <label class="block text-[11px] font-black text-zinc-400 mb-3 uppercase tracking-widest">Frecuencia del Taller</label>
+                    <div class="flex flex-col sm:flex-row gap-6 mb-4">
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="radio" name="is_single_class" value="0" id="type_monthly" onchange="toggleDateFields()" class="w-4 h-4 text-zinc-900 border-zinc-300 focus:ring-zinc-900" checked>
+                            <span class="text-sm font-bold text-zinc-700 group-hover:text-zinc-900">Mensual (Repetitivo)</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer group">
+                            <input type="radio" name="is_single_class" value="1" id="type_single" onchange="toggleDateFields()" class="w-4 h-4 text-zinc-900 border-zinc-300 focus:ring-zinc-900">
+                            <span class="text-sm font-bold text-zinc-700 group-hover:text-zinc-900">Clase Única (Masterclass)</span>
+                        </label>
+                    </div>
+
+                    {{-- SECCIÓN DÍAS MÚLTIPLES --}}
+                    <div id="container_repeat_day">
+                        <label class="block text-sm font-bold text-zinc-700 mb-2">Selecciona los días que se dicta</label>
+                        <div class="flex flex-wrap gap-3">
+                            @foreach(['1'=>'Lun', '2'=>'Mar', '3'=>'Mié', '4'=>'Jue', '5'=>'Vie', '6'=>'Sáb', '0'=>'Dom'] as $val => $label)
+                                <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-zinc-200 cursor-pointer hover:border-zinc-400 hover:shadow-sm transition-all">
+                                    <input type="checkbox" name="repeat_days[]" value="{{ $val }}" class="day-checkbox w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900">
+                                    <span class="text-sm font-bold text-zinc-700">{{ $label }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div id="container_specific_date" class="hidden">
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Fecha Exacta</label>
+                        <input type="date" name="specific_date" id="w_specific_date" onclick="try { this.showPicker(); } catch(e) {}"
+                            class="w-full md:w-1/2 rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none cursor-pointer">
                     </div>
                 </div>
-
+                
+                {{-- Hora --}}
                 <div>
-                    <label for="email" class="block text-sm font-semibold text-slate-700">Correo electrónico</label>
-                    <div class="mt-1">
-                        <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email"
-                            class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm">
-                    </div>
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio</label>
+                    <input type="time" name="start_time" id="w_start_time" onclick="try { this.showPicker(); } catch(e) {}"
+                        class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none cursor-pointer" required>
                 </div>
 
+                {{-- Cupo Máximo --}}
                 <div>
-                    <label for="password" class="block text-sm font-semibold text-slate-700">Contraseña</label>
-                    <div class="mt-1">
-                        <input id="password" name="password" type="password" required autocomplete="new-password"
-                            class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm">
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Cupo Máximo <span class="text-zinc-400 font-normal">(Opcional)</span></label>
+                    <input type="number" name="max_students" id="w_max_students" placeholder="Ej: 15" min="1"
+                        class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none">
+                </div>
+                
+                {{-- PLANES DE PRECIOS DINÁMICOS --}}
+                <div class="col-span-1 md:col-span-2 border-t border-zinc-200 pt-5 mt-2">
+                    <div class="flex justify-between items-center mb-4">
+                        <div>
+                            <h4 class="text-sm font-bold text-zinc-900">Planes de Precios</h4>
+                            <p class="text-xs text-zinc-500">Configura cuánto cuestan los paquetes de clases para este taller.</p>
+                        </div>
+                        <button type="button" onclick="addPriceRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
+                            + Agregar Plan
+                        </button>
                     </div>
+                    <div id="prices_container" class="space-y-3"></div>
                 </div>
 
-                <div>
-                    <label for="password_confirmation" class="block text-sm font-semibold text-slate-700">Confirmar contraseña</label>
-                    <div class="mt-1">
-                        <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password"
-                            class="block w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 focus:bg-white transition-all duration-200 sm:text-sm">
-                    </div>
+                {{-- Info Pago --}}
+                <div class="col-span-1 md:col-span-2 mt-2">
+                    <label class="block text-sm font-bold text-zinc-700 mb-1.5">Datos de Transferencia (Opcional)</label>
+                    <textarea name="payment_info" id="w_payment" rows="2" placeholder="Ej: Banco Estado, Cuenta RUT..." 
+                            class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none">{{ old('payment_info') }}</textarea>
                 </div>
+            </div>
 
-                <div class="pt-2">
-                    <button type="submit"
-                        class="flex w-full justify-center px-4 py-3 text-sm font-semibold text-white bg-slate-900 rounded-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 active:scale-[0.98] transition-all duration-200">
-                        Crear mi cuenta
+            <div class="mt-8 flex gap-3 pt-4 border-t border-zinc-100">
+                <button type="button" onclick="closeWorkshopModal()" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors text-sm">Cancelar</button>
+                <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 transition-all active:scale-95 text-sm">Guardar Taller</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e4e4e7; border-radius: 20px; }
+    </style>
+
+    <script>
+        // --- 1. VARIABLES GLOBALES Y ÁRBOL DE CATEGORÍAS ---
+        const categoryTree = @json($categoryTree ?? []);
+        let priceIndex = 0;
+
+        // --- 2. LÓGICA DE ÁREAS Y DISCIPLINAS ---
+        function updateDisciplines() {
+            const areaInput = document.getElementById('w_area');
+            const disciplineInput = document.getElementById('w_discipline');
+            const datalist = document.getElementById('disciplines_list');
+            
+            const selectedArea = areaInput.value.trim();
+            datalist.innerHTML = '';
+            
+            if (document.activeElement === areaInput) {
+                disciplineInput.value = '';
+            }
+
+            if (selectedArea === '') {
+                disciplineInput.disabled = true;
+                disciplineInput.placeholder = "Primero selecciona un Área...";
+            } else {
+                disciplineInput.disabled = false;
+                disciplineInput.placeholder = "Selecciona o escribe una disciplina...";
+
+                const areaKey = Object.keys(categoryTree).find(key => key.toLowerCase() === selectedArea.toLowerCase());
+
+                if (areaKey) {
+                    categoryTree[areaKey].forEach(function(discipline) {
+                        const option = document.createElement('option');
+                        option.value = discipline;
+                        datalist.appendChild(option);
+                    });
+                }
+            }
+        }
+
+        // --- 3. LÓGICA DE PRECIOS Y FECHAS (Tu código original) ---
+        function addPriceRow(count = '', price = '', isMonthly = false) {
+            const container = document.getElementById('prices_container');
+            const html = `
+                <div class="flex flex-col sm:flex-row items-end gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl relative group transition-all hover:border-zinc-300">
+                    <div class="w-full sm:w-1/4">
+                        <label class="block text-xs font-bold text-zinc-600 mb-1.5">N° Clases</label>
+                        <input type="number" name="prices[${priceIndex}][class_count]" value="${count}" placeholder="Ej: 4" min="1" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all">
+                    </div>
+                    <div class="w-full sm:w-1/3">
+                        <label class="block text-xs font-bold text-zinc-600 mb-1.5">Precio Total ($)</label>
+                        <input type="number" name="prices[${priceIndex}][price]" value="${price}" placeholder="Ej: 25000" min="0" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all">
+                    </div>
+                    <div class="w-full sm:w-1/3 pb-3">
+                        <label class="flex items-center gap-2 cursor-pointer group/check">
+                            <input type="checkbox" name="prices[${priceIndex}][is_monthly]" value="1" ${isMonthly ? 'checked' : ''} class="w-4 h-4 text-zinc-900 rounded border-zinc-300 focus:ring-zinc-900 transition-all">
+                            <span class="text-xs font-bold text-zinc-700 group-hover/check:text-zinc-900" title="Aplica regla: Solo dura el mes en curso">Regla Mensualidad</span>
+                        </label>
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-7 h-7 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
-            </form>
-            <div class="mt-6">
-                <div class="relative">
-                    <div class="absolute inset-0 flex items-center">
-                        <div class="w-full border-t border-slate-200"></div>
-                    </div>
-                    <div class="relative flex justify-center text-sm">
-                        <span class="px-2 bg-white text-slate-500">O continúa con</span>
-                    </div>
-                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            priceIndex++;
+        }
 
-                <div class="mt-6">
-                    <a href="{{ route('google.redirect') }}" 
-                    class="flex w-full items-center justify-center gap-3 px-4 py-3 text-sm font-semibold text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-900 active:scale-[0.98] transition-all duration-200 shadow-sm">
-                        <svg class="w-5 h-5" viewBox="0 0 24 24">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                        </svg>
-                        Google
-                    </a>
-                </div>
-            </div>
-            <div class="mt-8 text-center text-sm">
-                <span class="text-slate-500">¿Ya tienes una cuenta?</span>
-                <a href="{{ route('login') }}" class="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors duration-200">
-                    Inicia sesión aquí
-                </a>
-            </div>
+        function toggleDateFields() {
+            const isSingle = document.getElementById('type_single').checked;
+            const containerDay = document.getElementById('container_repeat_day');
+            const containerDate = document.getElementById('container_specific_date');
+            const inputDate = document.getElementById('w_specific_date');
+
+            if (isSingle) {
+                containerDay.classList.add('hidden');
+                containerDate.classList.remove('hidden');
+                inputDate.setAttribute('required', 'required');
+            } else {
+                containerDay.classList.remove('hidden');
+                containerDate.classList.add('hidden');
+                inputDate.removeAttribute('required');
+            }
+        }
+
+        // --- 4. CONTROL DEL MODAL (Nuevo y Editar) ---
+        function openWorkshopModal() {
+            document.getElementById('workshopForm').action = "{{ route('workshops.store') }}";
+            document.getElementById('workshopMethod').innerHTML = "";
+            document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
             
-        </div>
-    </div>
+            @if(!$errors->any()) 
+                document.getElementById('workshopForm').reset(); 
+                document.getElementById('w_max_students').value = ''; 
+                document.getElementById('w_teacher_id').value = ''; 
+                document.getElementById('type_monthly').checked = true;
+                
+                // Reset de los nuevos campos
+                document.getElementById('w_area').value = '';
+                document.getElementById('w_discipline').value = '';
+                document.getElementById('w_discipline').disabled = true;
+                document.getElementById('w_target_audience').value = 'adults';
+                document.getElementById('w_address').value = '';
+                document.getElementById('w_latitude').value = '';
+                document.getElementById('w_longitude').value = '';
+                document.getElementById('w_room_location').value = '';
+                
+                document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
+                document.getElementById('prices_container').innerHTML = '';
+                priceIndex = 0;
+                addPriceRow(); 
 
-    <div class="hidden lg:flex lg:flex-1 relative bg-slate-900 overflow-hidden">
-        <img class="absolute inset-0 h-full w-full object-cover opacity-75 mix-blend-overlay scale-105" 
-             src="https://images.unsplash.com/photo-1518834107812-67b0b7c58434?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
-             alt="Comunidad y movimiento EspacioCore">
-        
-        <div class="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-transparent"></div>
-        
-        <div class="absolute bottom-12 left-12 right-12 z-10 text-white">
-            <blockquote class="space-y-4">
-                <h3 class="text-3xl font-bold tracking-tight">Tu estudio, tu red.</h3>
-                <p class="text-lg text-slate-300 font-light max-w-md leading-relaxed">
-                    Miles de alumnas están buscando dónde entrenar hoy. Conecta tu espacio, organiza tus clases y deja que la plataforma haga el resto.
-                </p>
-            </blockquote>
-        </div>
-    </div>
+                toggleDateFields();
+            @endif
+            
+            document.body.style.overflow = 'hidden';
+            document.getElementById('workshopModal').classList.remove('hidden');
+        }
 
-</div>
-@endsection
+        function openEditWorkshopModal(buttonElement) {
+            const w = JSON.parse(buttonElement.getAttribute('data-workshop'));
+            
+            document.getElementById('workshopForm').action = `/workshops/${w.id}`;
+            document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
+            document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
+            
+            // Asignación de campos básicos
+            document.getElementById('w_name').value = w.name;
+            document.getElementById('w_color').value = w.color || 'blue';
+            document.getElementById('w_start_time').value = w.start_time;
+            document.getElementById('w_max_students').value = w.max_students || '';
+            document.getElementById('w_payment').value = w.payment_info || '';
+            document.getElementById('w_teacher_id').value = w.teacher_id || '';
+            
+            // Asignación de los NUEVOS campos
+            document.getElementById('w_target_audience').value = w.target_audience || 'adults';
+            document.getElementById('w_address').value = w.address || '';
+            document.getElementById('w_latitude').value = w.latitude || '';
+            document.getElementById('w_longitude').value = w.longitude || '';
+            document.getElementById('w_room_location').value = w.room_location || '';
+
+            // Asignación de Área y Disciplina (Relación Anidada)
+            if (w.discipline) {
+                document.getElementById('w_area').value = w.discipline.area ? w.discipline.area.name : '';
+                updateDisciplines(); // Desbloquea y llena el datalist de disciplina
+                document.getElementById('w_discipline').value = w.discipline.name;
+            } else {
+                document.getElementById('w_area').value = '';
+                updateDisciplines(); // Bloquea el campo
+                document.getElementById('w_discipline').value = '';
+            }
+            
+            // Días y Fechas
+            document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
+            if (w.repeat_days && Array.isArray(w.repeat_days)) {
+                w.repeat_days.forEach(day => {
+                    const cb = document.querySelector(`.day-checkbox[value="${day}"]`);
+                    if(cb) cb.checked = true;
+                });
+            }
+
+            if (w.is_single_class) {
+                document.getElementById('type_single').checked = true;
+                document.getElementById('w_specific_date').value = w.specific_date;
+            } else {
+                document.getElementById('type_monthly').checked = true;
+            }
+            toggleDateFields();
+
+            // Precios
+            document.getElementById('prices_container').innerHTML = '';
+            priceIndex = 0;
+            if (w.prices && w.prices.length > 0) {
+                w.prices.forEach(p => addPriceRow(p.class_count, p.price, p.is_monthly));
+            } else {
+                addPriceRow();
+            }
+            
+            document.body.style.overflow = 'hidden';
+            document.getElementById('workshopModal').classList.remove('hidden');
+        }
+
+        function closeWorkshopModal() { 
+            document.body.style.overflow = '';
+            document.getElementById('workshopModal').classList.add('hidden'); 
+        }
+
+        @if($errors->any())
+            document.addEventListener("DOMContentLoaded", function() {
+                toggleDateFields();
+                openWorkshopModal();
+            });
+        @endif
+
+        // --- 5. GOOGLE MAPS AUTOCOMPLETE ---
+        function initMapAutocomplete() {
+            const addressInput = document.getElementById('w_address');
+            if(!addressInput) return;
+            
+            const autocomplete = new google.maps.places.Autocomplete(addressInput, {
+                componentRestrictions: { country: "cl" },
+                fields: ["formatted_address", "geometry", "name"],
+                types: ["geocode", "establishment"]
+            });
+
+            autocomplete.addListener('place_changed', function() {
+                const place = autocomplete.getPlace();
+                
+                if (!place.geometry) {
+                    document.getElementById('w_latitude').value = '';
+                    document.getElementById('w_longitude').value = '';
+                    return;
+                }
+
+                document.getElementById('w_latitude').value = place.geometry.location.lat();
+                document.getElementById('w_longitude').value = place.geometry.location.lng();
+                addressInput.value = place.formatted_address;
+            });
+        }
+</script>
+
+{{-- NO OLVIDES INCLUIR ESTO FUERA DEL SCRIPT ANTERIOR, AL FINAL DE LA PÁGINA --}}
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.key') }}&libraries=places&callback=initMapAutocomplete"></script>

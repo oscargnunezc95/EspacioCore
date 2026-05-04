@@ -3,7 +3,7 @@
         <div class="flex justify-between h-20">
             
             <div class="flex items-center">
-                <a href="{{ url('/') }}" class="flex-shrink-0 flex items-center gap-2 group">
+                <a href="{{ route('explore') }}" class="flex-shrink-0 flex items-center gap-2 group">
                     <div class="w-8 h-8 bg-zinc-900 rounded-lg flex items-center justify-center group-hover:bg-zinc-700 transition-colors">
                         <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5"></path></svg>
                     </div>
@@ -11,53 +11,26 @@
                 </a>
 
                 <div class="hidden sm:ml-10 sm:flex sm:space-x-8">
-                    @guest
-                        <a href="{{ route('explore') }}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 transition duration-200">
-                            Explorar Clases
-                        </a>
-                    @endguest
+                    <a href="{{ route('explore') }}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 transition duration-200">
+                        Explorar Clases
+                    </a>
 
                     @auth
-                        <a href="{{ route('studios.index') }}" class="inline-flex items-center px-1 pt-1 border-b-2 border-transparent text-sm font-medium text-zinc-500 hover:text-zinc-900 hover:border-zinc-300 transition duration-200">
+                        <a href="{{ route('studios.index') }}" class="inline-flex items-center px-1 pt-1 border-b-2 {{ request()->routeIs('studios.index') ? 'border-zinc-900 text-zinc-900' : 'border-transparent text-zinc-500 hover:text-zinc-900 hover:border-zinc-300' }} text-sm font-medium transition duration-200">
                             Mis Espacios
                         </a>
+                        <!-- Enlaces Globales EspacioCore -->
+                        <x-nav-link :href="route('global.classes.student')" :active="request()->routeIs('global.classes.student')">
+                            Portal de Alumno
+                        </x-nav-link>
 
-                        @if(request()->route('subdomain'))
-                            @php $currentSubdomain = request()->route('subdomain'); @endphp
-                            
-                            <div class="relative inline-flex items-center" x-data="{ open: false }" @click.outside="open = false" @close.stop="open = false">
-                                <button @click="open = ! open" type="button" class="inline-flex items-center px-1 pt-1 border-b-2 border-zinc-900 text-sm font-medium text-zinc-900 transition duration-200 group">
-                                    Panel de Estudio
-                                    <svg class="ml-1 h-4 w-4 text-zinc-400 group-hover:text-zinc-600 transition" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
+                        <x-nav-link :href="route('global.classes.teacher')" :active="request()->routeIs('global.classes.teacher')">
+                            Portal de Profesor
+                        </x-nav-link>
 
-                                <div x-show="open" 
-                                     x-transition:enter="transition ease-out duration-200" 
-                                     x-transition:enter-start="opacity-0 scale-95 translate-y-2" 
-                                     x-transition:enter-end="opacity-100 scale-100 translate-y-0" 
-                                     x-transition:leave="transition ease-in duration-150" 
-                                     x-transition:leave-start="opacity-100 scale-100 translate-y-0" 
-                                     x-transition:leave-end="opacity-0 scale-95 translate-y-2" 
-                                     class="absolute top-full left-0 mt-1 w-56 rounded-xl shadow-lg bg-white border border-zinc-100 py-2 z-50 hidden"
-                                     :class="{'hidden': !open}">
-                                    
-                                    <a href="{{ route('dashboard', ['subdomain' => $currentSubdomain]) }}" class="block px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 font-medium transition">
-                                        Panel Principal (Dashboard)
-                                    </a>
-                                    <a href="{{ route('students.index', ['subdomain' => $currentSubdomain]) }}" class="block px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 font-medium transition">
-                                        Directorio de Alumnas
-                                    </a>
-                                    <a href="{{ route('workshops.index', ['subdomain' => $currentSubdomain]) }}" class="block px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 font-medium transition">
-                                        Configurar Clases
-                                    </a>
-                                    <a href="{{ route('entrenamientos.index', ['subdomain' => $currentSubdomain]) }}" class="block px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 font-medium transition">
-                                        Planificación Mensual
-                                    </a>
-                                </div>
-                            </div>
-                        @endif
+                        <x-nav-link :href="route('global.debts.index')" :active="request()->routeIs('global.debts.index')">
+                            Panel de Deudas
+                        </x-nav-link>
                     @endauth
                 </div>
             </div>
@@ -131,7 +104,14 @@
             @endguest
 
             @auth
-                <a href="{{ route('studios.index') }}" class="block pl-4 pr-4 py-3 border-l-4 border-transparent text-base font-bold text-zinc-900 hover:bg-zinc-50 transition">Mis Espacios (Lobby)</a>
+                <a href="{{ route('studios.index') }}" class="block pl-4 pr-4 py-3 border-l-4 {{ request()->routeIs('studios.index') ? 'border-zinc-900 text-zinc-900 bg-zinc-50 font-bold' : 'border-transparent text-zinc-600 font-medium hover:bg-zinc-50 transition' }} text-base">Mis Espacios (Lobby)</a>
+                
+                <!-- ENLACES GLOBALES MÓVILES NUEVOS -->
+                <a href="{{ route('global.classes.student') }}" class="block pl-4 pr-4 py-3 border-l-4 {{ request()->routeIs('global.classes.student') ? 'border-zinc-900 text-zinc-900 bg-zinc-50 font-bold' : 'border-transparent text-zinc-600 font-medium hover:bg-zinc-50 transition' }} text-base">Mis Clases (Alumno)</a>
+                
+                <a href="{{ route('global.classes.teacher') }}" class="block pl-4 pr-4 py-3 border-l-4 {{ request()->routeIs('global.classes.teacher') ? 'border-zinc-900 text-zinc-900 bg-zinc-50 font-bold' : 'border-transparent text-zinc-600 font-medium hover:bg-zinc-50 transition' }} text-base">Mis Clases (Profesor)</a>
+                
+                <a href="{{ route('global.debts.index') }}" class="block pl-4 pr-4 py-3 border-l-4 {{ request()->routeIs('global.debts.index') ? 'border-zinc-900 text-zinc-900 bg-zinc-50 font-bold' : 'border-transparent text-zinc-600 font-medium hover:bg-zinc-50 transition' }} text-base">Panel de Deudas</a>
                 
                 @if(request()->route('subdomain'))
                     @php $currentSubdomain = request()->route('subdomain'); @endphp
@@ -139,7 +119,7 @@
                         <div class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Panel del Estudio</div>
                         <div class="space-y-1 pl-2 border-l-2 border-zinc-200">
                             <a href="{{ route('dashboard', ['subdomain' => $currentSubdomain]) }}" class="block px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition">Dashboard</a>
-                            <a href="{{ route('students.index', ['subdomain' => $currentSubdomain]) }}" class="block px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition">Alumnas</a>
+                            <a href="{{ route('students.index', ['subdomain' => $currentSubdomain]) }}" class="block px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition">alumnas/os</a>
                             <a href="{{ route('workshops.index', ['subdomain' => $currentSubdomain]) }}" class="block px-3 py-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 transition">Clases</a>
                         </div>
                     </div>

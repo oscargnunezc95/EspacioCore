@@ -1,329 +1,271 @@
-@extends('layouts.app')
+<x-app-layout>
+    <x-slot name="header">
+        <x-studio-tabs />
 
-@section('content')
-<div class="max-w-6xl mx-auto px-4">
-    <div class="flex space-x-4 mb-8 border-b border-gray-200">
-        <a href="{{ route('workshops.index') }}" class="py-2 px-6 font-medium text-gray-500 hover:text-blue-600 transition">Talleres (Configuración)</a>
-        <button class="py-2 px-6 font-bold text-blue-600 border-b-2 border-blue-600">Entrenamientos (Meses)</button>
-    </div>
-    
-    <div class="mb-8">
-        <a href="{{ route('entrenamientos.show', $monthId) }}" class="text-blue-600 font-bold mb-2 block hover:underline">&larr; Volver al calendario</a>
-        
-        <div class="flex items-center gap-3">
-            <h1 class="text-4xl font-black text-gray-900 leading-tight">{{ $session->workshop->name }}</h1>
+        <div class="mt-8">
+            <x-studio-header 
+                title="{{ $session->workshop->name }}" 
+                :breadcrumbs="[
+                    ['name' => 'Planificación', 'url' => route('entrenamientos.index', ['subdomain' => request()->route('subdomain')])],
+                    ['name' => ucfirst(\Carbon\Carbon::parse($session->date)->translatedFormat('F')), 'url' => route('entrenamientos.show', ['subdomain' => request()->route('subdomain'), 'month' => $monthId])],
+                    ['name' => 'Lista de Clase']
+                ]"
+            >
+                <x-slot name="actions">
+                    <button onclick="document.getElementById('enrollModal').classList.remove('hidden')" class="bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        Inscribir Alumna
+                    </button>
+                </x-slot>
+            </x-studio-header>
+        </div>
+    </x-slot>
+
+    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        <!-- Info de la Clase -->
+        <div class="mb-6 flex flex-col md:flex-row md:items-center gap-4">
+            <div class="flex items-center gap-2 text-zinc-600 font-medium bg-white px-4 py-2 rounded-lg border border-zinc-200 shadow-sm inline-flex">
+                <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                <span class="capitalize">{{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }}</span>
+                <span class="text-zinc-300 mx-1">|</span>
+                <span class="font-bold text-zinc-900">{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs</span>
+            </div>
             
-            @if($session->workshop->is_single_class)
-                <span class="bg-indigo-100 text-indigo-700 text-xs px-3 py-1 rounded-full font-black uppercase tracking-widest mt-1">Clase Única</span>
-            @endif
+            <div class="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-zinc-200 shadow-sm inline-flex">
+                <span class="text-zinc-500 font-medium text-sm">Inscritas:</span>
+                <span class="font-black text-zinc-900">{{ $students->count() }} @if($session->workshop->max_students) / {{ $session->workshop->max_students }} @endif</span>
+            </div>
         </div>
 
-        <p class="text-gray-500 font-bold uppercase tracking-widest text-xs mt-2">
-            {{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }} | {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs
-        </p>
+        @if (session('success'))
+            <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2">
+                <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                {{ session('success') }}
+            </div>
+        @endif
+        
+        @if ($errors->any())
+            <div class="mb-6 p-4 bg-rose-50 text-rose-700 rounded-xl text-sm font-bold border border-rose-200 flex items-center gap-2">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Hubo un error al inscribir. Revisa los datos del formulario.
+            </div>
+        @endif
+
+        <!-- CONTENEDOR PRINCIPAL: LISTA DE ASISTENCIA -->
+        <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+            
+            <div class="p-5 md:p-6 bg-zinc-50 border-b border-zinc-200">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    
+                    <div class="w-full md:w-1/2 relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                        </div>
+                        <input type="text" id="searchStudent" onkeyup="filterStudents()" placeholder="Buscar en la lista..." 
+                               class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-300 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none shadow-sm">
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        @if(!$session->is_cancelled)
+                            <form action="{{ route('sessions.cancel', ['subdomain' => request()->route('subdomain'), 'session' => $session->id]) }}" method="POST" class="m-0">
+                                @csrf @method('PATCH')
+                                <button onclick="return confirm('¿Suspender esta clase?')" class="text-sm font-bold text-rose-600 hover:text-rose-800 transition-colors px-3 py-2 rounded-lg hover:bg-rose-50">Suspender Clase</button>
+                            </form>
+                        @else
+                            <span class="bg-rose-100 text-rose-700 text-xs font-black px-3 py-1 rounded-md uppercase tracking-wider border border-rose-200 flex items-center gap-1">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span> Cancelada
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            </div>
+
+            <ul class="divide-y divide-zinc-100" id="studentsList">
+                @forelse($students as $student)
+                    @php
+                        $isPresent = $session->attendances->contains('student_id', $student->id);
+                        $hasPaidThisClass = in_array($student->id, $paidStudentIds);
+                    @endphp
+                    <li class="student-item p-4 md:p-6 flex items-center gap-5 transition-colors hover:bg-zinc-50/80">
+                        
+                        <!-- Toggle Switch de Asistencia -->
+                        <button onclick="toggleAttendance({{ $session->id }}, {{ $student->id }}, this)" 
+                                class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 {{ $isPresent ? 'bg-emerald-500' : 'bg-zinc-200' }}" 
+                                role="switch" aria-checked="{{ $isPresent ? 'true' : 'false' }}">
+                            <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isPresent ? 'translate-x-5' : 'translate-x-0' }}"></span>
+                        </button>
+                        
+                        <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-2">
+                            <p class="student-name font-bold text-zinc-900 text-sm md:text-base">{{ $student->name }}</p>
+                            
+                            <!-- Badges de Estado -->
+                            <div>
+                                @if($hasPaidThisClass)
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md inline-block">Pagada</span>
+                                @elseif($isPresent && !$hasPaidThisClass)
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md inline-block" data-status="debe-pago">Debe Pago</span>
+                                @endif
+                            </div>
+                        </div>
+                    </li>
+                @empty
+                    <li class="p-8 text-center text-sm font-medium text-zinc-500">Nadie se ha inscrito a esta clase todavía.</li>
+                @endforelse
+            </ul>
+        </div>
     </div>
 
-    @if (session('success'))
-        <div class="mb-6 p-4 bg-green-100 text-green-700 rounded-lg font-bold shadow-sm border-l-4 border-green-500">
-            {{ session('success') }}
-        </div>
-    @endif
-    
-    @if ($errors->any())
-        <div class="mb-6 p-4 bg-red-100 text-red-700 rounded-lg font-bold shadow-sm border-l-4 border-red-500">
-            Hubo un error al registrar. Revisa los datos e intenta nuevamente.
-        </div>
-    @endif
-
-    <div class="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-200">
-        
-        <div class="p-6 bg-gray-50 border-b border-gray-200">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
-                <div class="flex items-center gap-4">
-                    <h2 class="text-xl font-bold text-gray-800">Lista de Asistencia</h2>
-                    @if(!$session->is_cancelled)
-                        <form action="{{ route('sessions.cancel', $session->id) }}" method="POST">@csrf @method('PATCH')
-                            <button class="text-xs font-bold text-red-500 hover:text-red-700 bg-red-50 px-3 py-1.5 rounded-lg border border-red-200 transition">Cancelar Clase</button>
-                        </form>
-                    @else
-                        <span class="bg-red-500 text-white text-[10px] font-black px-3 py-1 rounded-full uppercase">Cancelada</span>
-                    @endif
+    {{-- MODAL: INSCRIBIR ALUMNA MANUALMENTE --}}
+    <div id="enrollModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all">
+            
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-zinc-900">Inscribir a la Clase</h3>
+                    <p class="text-xs text-zinc-500 mt-1 leading-tight">Agrega manualmente a una alumna a esta sesión.</p>
                 </div>
-                
-                {{-- NUEVO BOTÓN: Alumnas No Frecuentes --}}
-                <button onclick="document.getElementById('infrequentModal').classList.remove('hidden')" class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-md text-sm transition flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                    Alumnas No Frecuentes
+                <button type="button" onclick="document.getElementById('enrollModal').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
-
-            <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            
+            <form action="{{ route('sessions.enroll', ['subdomain' => request()->route('subdomain'), 'session' => $session->id]) }}" method="POST">
+                @csrf
+                
+                {{-- Selector de Modalidad --}}
+                <div class="mb-5 bg-zinc-100 p-1.5 rounded-xl flex gap-1">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="enroll_mode" value="existing" checked onchange="toggleEnrollMode()" class="peer sr-only">
+                        <div class="text-center font-bold text-xs py-2 px-3 rounded-lg text-zinc-500 transition-all peer-checked:bg-white peer-checked:text-zinc-900 peer-checked:shadow-sm">Buscar en Estudio</div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="enroll_mode" value="new" onchange="toggleEnrollMode()" class="peer sr-only">
+                        <div class="text-center font-bold text-xs py-2 px-3 rounded-lg text-zinc-500 transition-all peer-checked:bg-white peer-checked:text-zinc-900 peer-checked:shadow-sm">Nueva Alumna</div>
+                    </label>
                 </div>
-                <input type="text" id="searchStudent" onkeyup="filterStudents()" placeholder="Buscar alumna activa por nombre..." 
-                       class="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-400 bg-white text-gray-800 font-medium placeholder-gray-500 focus:border-blue-500 focus:ring-0 transition">
-            </div>
-        </div>
 
-        <ul class="divide-y divide-gray-100" id="studentsList">
-            @foreach($students as $student)
-                @php
-                    $isPresent = $session->attendances->contains('student_id', $student->id);
-                    $hasPaidThisClass = $student->payments()->whereHas('classSessions', function($q) use ($session) {
-                        $q->where('class_sessions.id', $session->id);
-                    })->exists();
-                @endphp
-                <li class="student-item p-6 flex flex-col md:flex-row md:items-center justify-between gap-4 transition hover:bg-gray-50">
-                    <div class="flex items-center gap-4">
-                        <button onclick="toggleAttendance({{ $session->id }}, {{ $student->id }}, this)" class="relative inline-flex h-8 w-14 rounded-full transition-colors {{ $isPresent ? 'bg-green-500' : 'bg-gray-300' }}" aria-checked="{{ $isPresent ? 'true' : 'false' }}">
-                            <span class="inline-block h-6 w-6 transform rounded-full bg-white transition mt-1 {{ $isPresent ? 'translate-x-7' : 'translate-x-1' }} shadow-sm"></span>
-                        </button>
-                        <div>
-                            <p class="student-name font-bold text-gray-900">{{ $student->name }}</p>
-                            @if($hasPaidThisClass)
-                                <span class="text-[10px] font-black uppercase tracking-tighter text-green-600 bg-green-50 px-2 py-0.5 rounded">Clase Pagada</span>
-                            @else
-                                <span class="text-[10px] font-black uppercase tracking-tighter text-red-600 underline">Pendiente de pago</span>
-                            @endif
+                {{-- ZONA 1: BUSCAR EXISTENTE --}}
+                <div id="mode_existing" class="mb-6">
+                    <input type="text" id="searchOtherStudent" onkeyup="filterOther()" placeholder="Buscar por nombre o correo..." 
+                           class="w-full rounded-xl border border-zinc-300 p-3 text-sm mb-3 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all">
+                    
+                    <div class="max-h-48 overflow-y-auto border border-zinc-200 rounded-xl bg-zinc-50 p-2 space-y-1 custom-scrollbar">
+                        @forelse($otherStudents as $other)
+                            <label class="other-item flex items-center gap-3 p-3 bg-white border border-zinc-200 rounded-lg cursor-pointer hover:border-zinc-400 transition-all">
+                                <input type="radio" name="student_id" value="{{ $other->id }}" class="w-4 h-4 text-zinc-900 focus:ring-zinc-900 border-zinc-300">
+                                <div class="flex flex-col">
+                                    <span class="other-name font-bold text-zinc-900 text-sm leading-none">{{ $other->name }}</span>
+                                    <span class="text-xs font-medium text-zinc-500 mt-1">{{ $other->email ?: 'Sin correo' }}</span>
+                                </div>
+                            </label>
+                        @empty
+                            <div class="text-sm text-zinc-400 italic text-center py-4">No hay más alumnas en el estudio.</div>
+                        @endforelse
+                    </div>
+                    @error('student_id') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
+                </div>
+
+                {{-- ZONA 2: CREAR NUEVA --}}
+                <div id="mode_new" class="mb-6 hidden space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre</label>
+                            <input type="text" name="first_name" placeholder="Ej: Camila" 
+                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('first_name') ? 'border-red-500 ring-1 ring-red-500' : '' }}">
+                            @error('first_name') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Apellido <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                            <input type="text" name="last_name" placeholder="Ej: Rojas" 
+                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Correo Electrónico</label>
+                            <input type="email" name="email" placeholder="camila@ejemplo.com" 
+                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('email') ? 'border-red-500 ring-1 ring-red-500' : '' }}">
+                            @error('email') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                        <button onclick="openPaymentModal({{ $student->id }}, '{{ addslashes($student->name) }}')" class="text-xs bg-white border-2 border-green-500 text-green-600 px-5 py-2 rounded-xl font-black uppercase tracking-tighter hover:bg-green-50 transition shadow-sm">
-                            Pagar Clases
-                        </button>
-                    </div>
-                </li>
-            @endforeach
-        </ul>
-    </div>
-</div>
-
-{{-- MODAL PAGO CON FECHAS ESPECÍFICAS (Se mantiene igual) --}}
-<div id="paymentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-    <div class="bg-white rounded-[2rem] p-8 max-w-md w-full shadow-2xl border border-gray-200">
-        <h3 class="text-2xl font-bold mb-1 text-gray-900">Registrar Pago</h3>
-        <p class="text-sm font-bold text-indigo-600 mb-6" id="pModalStudentName"></p>
-        
-        <form id="quickPaymentForm" method="POST" enctype="multipart/form-data">
-            @csrf
-            <input type="hidden" name="workshop_id" value="{{ $session->workshop_id }}">
-            
-            <div class="mb-5 bg-gray-50 p-4 rounded-xl border border-gray-200">
-                <label class="block text-xs font-black text-gray-500 mb-3 uppercase tracking-wider">Fechas que está pagando</label>
-                <div id="modal_loading_spinner" class="text-sm font-bold text-indigo-500 hidden">Buscando clases...</div>
-                <div id="modal_sessions_list" class="space-y-2 max-h-40 overflow-y-auto pr-2"></div>
-            </div>
-
-            <div class="mb-4">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Monto Pagado ($)</label>
-                <div class="relative">
-                    <span class="absolute left-3 top-2.5 text-gray-500 font-bold">$</span>
-                    <input type="number" name="amount" placeholder="Ej: 15000" class="w-full pl-8 rounded-xl border-2 border-gray-400 p-2 focus:border-green-500 focus:ring-0 font-bold" required>
                 </div>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Comprobante (Imagen)</label>
-                <input type="file" name="receipt" class="w-full text-sm text-gray-600 border-2 border-gray-400 rounded-xl p-2 bg-white focus:border-green-500" required>
-            </div>
-            
-            <div class="flex gap-3">
-                <button type="button" onclick="document.getElementById('paymentModal').classList.add('hidden')" class="flex-1 font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl transition">Cancelar</button>
-                <button type="submit" class="flex-1 bg-green-600 text-white font-black py-3 rounded-xl shadow-lg hover:bg-green-700 transition">Confirmar Pago</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-{{-- NUEVO MODAL: ALUMNAS NO FRECUENTES --}}
-<div id="infrequentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-gray-900/60 backdrop-blur-sm">
-    <div class="bg-white rounded-[2rem] p-8 max-w-sm w-full shadow-2xl border border-gray-200">
-        <h3 class="text-2xl font-bold mb-2 text-gray-900">Alumnas No Frecuentes</h3>
-        <p class="text-xs text-gray-500 mb-6 leading-tight">Registra la asistencia y pago sin alterar el directorio principal de alumnas.</p>
-        
-        <form action="{{ route('sessions.infrequent', $session->id) }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            
-            {{-- Selector de Modalidad --}}
-            <div class="mb-4 bg-purple-50 p-3 rounded-xl border border-purple-100 flex gap-4">
-                <label class="flex items-center gap-2 cursor-pointer flex-1">
-                    <input type="radio" name="infrequent_mode" value="existing" checked onchange="toggleInfrequentMode()" class="w-4 h-4 text-purple-600 focus:ring-purple-500">
-                    <span class="font-bold text-gray-800 text-[11px] uppercase tracking-wider">Buscar Deshabilitada</span>
-                </label>
-                <label class="flex items-center gap-2 cursor-pointer flex-1">
-                    <input type="radio" name="infrequent_mode" value="new" onchange="toggleInfrequentMode()" class="w-4 h-4 text-purple-600 focus:ring-purple-500">
-                    <span class="font-bold text-gray-800 text-[11px] uppercase tracking-wider">Crear Nueva</span>
-                </label>
-            </div>
-
-            {{-- ZONA 1: BUSCAR EXISTENTE --}}
-            <div id="mode_existing" class="mb-6">
-                <input type="text" id="searchInactiveRut" onkeyup="filterInactive()" placeholder="Filtrar por RUT..." 
-                       class="w-full rounded-xl border-2 border-gray-300 p-2 text-sm mb-3 focus:border-purple-500 focus:ring-0">
                 
-                <div class="max-h-32 overflow-y-auto border-2 border-gray-200 rounded-xl bg-gray-50 p-2 space-y-1">
-                    @forelse($inactiveStudents as $inactive)
-                        <label class="inactive-item flex items-center gap-3 p-2 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-purple-50 transition" data-rut="{{ $inactive->rut }}">
-                            <input type="radio" name="student_id" value="{{ $inactive->id }}" class="w-4 h-4 text-purple-600 focus:ring-purple-500">
-                            <div class="flex flex-col">
-                                <span class="font-bold text-gray-800 text-sm leading-none">{{ $inactive->name }}</span>
-                                <span class="text-[10px] font-black text-gray-400 mt-1">{{ $inactive->rut }}</span>
-                            </div>
-                        </label>
-                    @empty
-                        <div class="text-xs text-gray-400 italic text-center py-2">No hay alumnas deshabilitadas.</div>
-                    @endforelse
+                <div class="flex gap-3 pt-2 border-t border-zinc-100">
+                    <button type="button" onclick="document.getElementById('enrollModal').classList.add('hidden')" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors duration-200 text-sm">Cancelar</button>
+                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all duration-200 active:scale-95 text-sm">Inscribir y Asistir</button>
                 </div>
-                @error('student_id') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
-            </div>
-
-            {{-- ZONA 2: CREAR NUEVA --}}
-            <div id="mode_new" class="mb-6 hidden space-y-4">
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">RUT</label>
-                    <input type="text" name="rut" placeholder="12.345.678-9" oninput="formatRut(this)" maxlength="12"
-                           class="w-full rounded-xl border-2 border-gray-400 p-3 focus:border-purple-500 focus:ring-0">
-                    @error('rut') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
-                </div>
-                <div>
-                    <label class="block text-sm font-bold text-gray-700 mb-1">Nombre Completo</label>
-                    <input type="text" name="name" placeholder="Ej: Camila Rojas" 
-                           class="w-full rounded-xl border-2 border-gray-400 p-3 focus:border-purple-500 focus:ring-0">
-                    @error('name') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
-                </div>
-            </div>
-
-            {{-- CAMPOS COMUNES DE PAGO --}}
-            <div class="mb-4 pt-4 border-t border-gray-200">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Monto Pagado ($)</label>
-                <div class="relative">
-                    <span class="absolute left-3 top-3 text-gray-500 font-bold">$</span>
-                    <input type="number" name="amount" placeholder="Ej: 5000" class="w-full pl-8 rounded-xl border-2 border-gray-400 p-3 focus:border-purple-500 focus:ring-0 font-bold" >
-                </div>
-            </div>
-
-            <div class="mb-6">
-                <label class="block text-sm font-bold text-gray-700 mb-1">Comprobante (Imagen)</label>
-                <input type="file" name="receipt" class="w-full text-sm text-gray-600 border-2 border-gray-400 rounded-xl p-2 bg-gray-50 focus:border-purple-500" >
-            </div>
-            
-            <div class="flex gap-3">
-                <button type="button" onclick="document.getElementById('infrequentModal').classList.add('hidden')" class="flex-1 font-bold text-gray-500 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl transition">Cancelar</button>
-                <button type="submit" class="flex-1 bg-purple-600 text-white font-black py-3 rounded-xl shadow-lg hover:bg-purple-700 transition">Guardar y Marcar</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-</div>
 
-<script>
-    const currentSessionId = {{ $session->id }};
-    const currentWorkshopId = {{ $session->workshop_id }};
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e4e4e7; border-radius: 20px; }
+    </style>
 
-    function filterStudents() {
-        let input = document.getElementById('searchStudent').value.toLowerCase();
-        let items = document.querySelectorAll('.student-item');
-        items.forEach(item => {
-            let name = item.querySelector('.student-name').innerText.toLowerCase();
-            item.style.display = name.includes(input) ? 'flex' : 'none';
-        });
-    }
-
-    // Buscador interno del Modal de Inactivas por RUT
-    function filterInactive() {
-        let input = document.getElementById('searchInactiveRut').value.toLowerCase().replace(/[^0-9kK]/g, '');
-        let items = document.querySelectorAll('.inactive-item');
-        items.forEach(item => {
-            let rut = item.getAttribute('data-rut').toLowerCase().replace(/[^0-9kK]/g, '');
-            item.style.display = rut.includes(input) ? 'flex' : 'none';
-        });
-    }
-
-    // Alternar entre pestañas "Existente" y "Nueva"
-    function toggleInfrequentMode() {
-        const mode = document.querySelector('input[name="infrequent_mode"]:checked').value;
-        const modeExisting = document.getElementById('mode_existing');
-        const modeNew = document.getElementById('mode_new');
-
-        if (mode === 'existing') {
-            modeExisting.classList.remove('hidden');
-            modeNew.classList.add('hidden');
-        } else {
-            modeExisting.classList.add('hidden');
-            modeNew.classList.remove('hidden');
+    <script>
+        function filterStudents() {
+            let input = document.getElementById('searchStudent').value.toLowerCase();
+            let items = document.querySelectorAll('.student-item');
+            items.forEach(item => {
+                let name = item.querySelector('.student-name').innerText.toLowerCase();
+                item.style.display = name.includes(input) ? 'flex' : 'none';
+            });
         }
-    }
 
-    // Formateador estricto de RUT (reutilizado)
-    function formatRut(rutInput) {
-        let valor = rutInput.value.replace(/[^0-9kK]/g, '').toUpperCase();
-        if (valor.length === 0) { rutInput.value = ''; return; }
-        let cuerpo = valor.slice(0, -1);
-        let dv = valor.slice(-1);
-        if (valor.length > 1) {
-            cuerpo = cuerpo.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-            rutInput.value = cuerpo + '-' + dv;
-        } else {
-            rutInput.value = valor;
+        function filterOther() {
+            let input = document.getElementById('searchOtherStudent').value.toLowerCase();
+            let items = document.querySelectorAll('.other-item');
+            items.forEach(item => {
+                let name = item.querySelector('.other-name').innerText.toLowerCase();
+                item.style.display = name.includes(input) ? 'flex' : 'none';
+            });
         }
-    }
 
-    async function openPaymentModal(sid, studentName) {
-        document.getElementById('quickPaymentForm').action = `/students/${sid}/payments`;
-        document.getElementById('pModalStudentName').innerText = studentName;
-        document.getElementById('paymentModal').classList.remove('hidden');
+        function toggleEnrollMode() {
+            const mode = document.querySelector('input[name="enroll_mode"]:checked').value;
+            const modeExisting = document.getElementById('mode_existing');
+            const modeNew = document.getElementById('mode_new');
 
-        const sessionsList = document.getElementById('modal_sessions_list');
-        const spinner = document.getElementById('modal_loading_spinner');
+            if (mode === 'existing') {
+                modeExisting.classList.remove('hidden');
+                modeNew.classList.add('hidden');
+            } else {
+                modeExisting.classList.add('hidden');
+                modeNew.classList.remove('hidden');
+            }
+        }
 
-        sessionsList.innerHTML = '';
-        spinner.classList.remove('hidden');
-
-        try {
-            const response = await fetch(`/api/students/${sid}/available-sessions`);
-            const sessions = await response.json();
+        function toggleAttendance(sid, stid, btn) {
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+            const present = btn.getAttribute('aria-checked') === 'true';
             
-            spinner.classList.add('hidden');
+            btn.classList.replace(present ? 'bg-emerald-500' : 'bg-zinc-200', present ? 'bg-zinc-200' : 'bg-emerald-500');
+            btn.querySelector('span').classList.replace(present ? 'translate-x-5' : 'translate-x-0', present ? 'translate-x-0' : 'translate-x-5');
+            btn.setAttribute('aria-checked', !present);
 
-            if(sessions.length === 0) {
-                sessionsList.innerHTML = '<p class="text-sm text-red-500 font-bold p-2 bg-red-50 rounded">No hay clases pendientes en este mes.</p>';
-                return;
+            const badgeContainer = btn.nextElementSibling.querySelector('div');
+            const hasPaidBadge = badgeContainer.querySelector('span.text-emerald-700'); 
+            
+            if(!hasPaidBadge) {
+                if(!present) {
+                    badgeContainer.innerHTML = '<span class="text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-md inline-block" data-status="debe-pago">Debe Pago</span>';
+                } else {
+                    badgeContainer.innerHTML = '';
+                }
             }
 
-            sessions.forEach(sess => {
-                const label = document.createElement('label');
-                label.className = "flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg cursor-pointer hover:bg-green-50 transition";
-                const isChecked = (sess.id == currentSessionId) ? 'checked' : '';
-
-                label.innerHTML = `
-                    <input type="checkbox" name="sessions[]" value="${sess.id}" ${isChecked} class="w-5 h-5 mt-0.5 text-green-600 rounded border-gray-300 focus:ring-green-500">
-                    <div class="flex-1">
-                        <div class="font-bold text-gray-800 text-sm leading-tight">${sess.workshop_name}</div>
-                        <div class="text-xs font-bold text-gray-500 mt-0.5">${sess.formatted_date}</div>
-                        <div class="text-[10px] font-black text-indigo-400 uppercase">A las ${sess.time}</div>
-                    </div>
-                `;
-                sessionsList.appendChild(label);
+            fetch(`/{{ request()->route('subdomain') }}/sessions/${sid}/attendance/${stid}`, {
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
             });
-
-        } catch (error) {
-            spinner.classList.add('hidden');
-            sessionsList.innerHTML = '<p class="text-sm text-red-500 font-bold">Error al cargar el calendario.</p>';
         }
-    }
 
-    function toggleAttendance(sid, stid, btn) {
-        const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-        const present = btn.getAttribute('aria-checked') === 'true';
-        
-        btn.classList.replace(present ? 'bg-green-500' : 'bg-gray-300', present ? 'bg-gray-300' : 'bg-green-500');
-        btn.querySelector('span').classList.replace(present ? 'translate-x-7' : 'translate-x-1', present ? 'translate-x-1' : 'translate-x-7');
-        btn.setAttribute('aria-checked', !present);
-
-        fetch(`/sessions/${sid}/attendance/${stid}`, {
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
-        });
-    }
-</script>
-@endsection
+        @if($errors->any())
+            document.addEventListener("DOMContentLoaded", function() {
+                document.getElementById('enrollModal').classList.remove('hidden');
+                toggleEnrollMode();
+            });
+        @endif
+    </script>
+</x-app-layout>

@@ -1,6 +1,4 @@
-@extends('layouts.guest')
-
-@section('content')
+<x-guest-layout>
 <main class="flex items-center justify-center w-full bg-slate-50 px-6">
     <div class="text-center space-y-12">
         
@@ -38,4 +36,4 @@
 
     </div>
 </main>
-@endsection
+</x-guest-layout>

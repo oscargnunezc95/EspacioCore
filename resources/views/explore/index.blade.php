@@ -1,6 +1,4 @@
-@extends('layouts.guest')
-
-@section('content')
+<x-guest-layout>
 <div class="bg-zinc-50 w-full min-h-screen pb-20">
     
     <div class="bg-white border-b border-zinc-200/60 pt-12 pb-8">
@@ -123,4 +121,4 @@
         </div>
     </div>
 </div>
-@endsection
+</x-app-layout>

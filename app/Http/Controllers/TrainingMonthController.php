@@ -9,85 +9,100 @@ use Carbon\Carbon;
 
 class TrainingMonthController extends Controller
 {
-    public function index()
+    public function index($subdomain)
     {
+        // Agrupamos las sesiones por mes y año para la lista principal
         $months = ClassSession::selectRaw('strftime("%Y-%m", date) as month_id, MIN(date) as first_date')
             ->groupBy('month_id')
             ->orderBy('first_date', 'desc')
             ->get();
 
-        // 1. SOLO enviamos los talleres MENSUALES al modal. Las únicas ya no estorban.
-        $workshops = Workshop::where('is_single_class', false)->orderBy('name', 'asc')->get();
+        $workshops = Workshop::orderBy('name', 'asc')->get();
 
         return view('entrenamientos.index', compact('months', 'workshops'));
     }
 
-    public function store(Request $request)
+    public function store(Request $request, $subdomain)
     {
         $request->validate([
-            'month_year' => 'required',
+            'month_year' => 'required', // Formato YYYY-MM desde el input tipo month
             'workshops' => 'required|array'
         ]);
 
-        $date = \Carbon\Carbon::parse($request->month_year . '-01');
+        $date = Carbon::parse($request->month_year . '-01');
         $year = $date->year;
         $month = $date->month;
 
-        $selectedWorkshops = \App\Models\Workshop::whereIn('id', $request->workshops)->get();
+        $selectedWorkshops = Workshop::whereIn('id', $request->workshops)->get();
 
         foreach ($selectedWorkshops as $workshop) {
-            $daysInMonth = $date->daysInMonth;
-            for ($d = 1; $d <= $daysInMonth; $d++) {
-                // Usar createFromDate previene errores de "horas arrastradas"
-                $currentDay = \Carbon\Carbon::createFromDate($year, $month, $d);
+            
+            if ($workshop->is_single_class) {
+                // --- LÓGICA PARA CLASE ÚNICA ---
+                if (!$workshop->specific_date) continue; // Protección de seguridad
                 
-                // CORRECCIÓN: Usamos dayOfWeek (0 a 6, donde 0 es Domingo).
-                // Esto hace match perfecto con nuestro formulario de configuración.
-                if ($currentDay->dayOfWeek == $workshop->repeat_day) {
-                    \App\Models\ClassSession::firstOrCreate([
+                $specificDate = Carbon::parse($workshop->specific_date);
+                
+                // Solo la creamos si la fecha única coincide con el mes/año que estamos planificando
+                if ($specificDate->year == $year && $specificDate->month == $month) {
+                    ClassSession::firstOrCreate([
                         'workshop_id' => $workshop->id,
-                        'date' => $currentDay->toDateString(),
+                        'date' => $specificDate->toDateString(),
                         'start_time' => $workshop->start_time
                     ]);
+                }
+
+            } else {
+                // --- LÓGICA PARA TALLER MENSUAL MULTI-DÍA ---
+                // Si no tiene días configurados, lo saltamos
+                if (!is_array($workshop->repeat_days) || empty($workshop->repeat_days)) continue;
+
+                $daysInMonth = $date->daysInMonth;
+                
+                for ($d = 1; $d <= $daysInMonth; $d++) {
+                    $currentDay = Carbon::create($year, $month, $d);
+                    
+                    // dayOfWeek en Carbon devuelve 0 para Domingo, 1 para Lunes... hasta 6 para Sábado.
+                    // Esto coincide exactamente con los values de tus checkboxes.
+                    if (in_array((string)$currentDay->dayOfWeek, $workshop->repeat_days)) {
+                        ClassSession::firstOrCreate([
+                            'workshop_id' => $workshop->id,
+                            'date' => $currentDay->toDateString(),
+                            'start_time' => $workshop->start_time
+                        ]);
+                    }
                 }
             }
         }
 
         return redirect()->route('entrenamientos.show', $request->month_year)
-                         ->with('success', 'Calendario mensual generado exitosamente.');
+                         ->with('success', 'Calendario generado exitosamente.');
     }
 
-    public function show($monthId)
+    public function show($subdomain, $monthId)
     {
-        $monthDate = \Carbon\Carbon::parse($monthId . '-01');
+        $monthDate = Carbon::parse($monthId . '-01');
         
-        $sessions = \App\Models\ClassSession::with('workshop')
+        $sessions = ClassSession::with('workshop')
             ->whereYear('date', $monthDate->year)
             ->whereMonth('date', $monthDate->month)
             ->get();
 
-        // CORRECCIÓN: Agrupamos las sesiones forzando estrictamente el formato YYYY-MM-DD
-        // Así evitamos que la clase del día 1 se esconda si la BD le añade horas.
-        $sessionsByDate = $sessions->groupBy(function($session) {
-            return \Carbon\Carbon::parse($session->date)->toDateString();
-        });
+        // Agrupamos por fecha para que la vista del calendario las dibuje fácilmente
+        $sessionsByDate = $sessions->groupBy('date');
 
         return view('entrenamientos.show', compact('sessionsByDate', 'monthDate', 'monthId'));
     }
 
-    public function destroyMonth($monthId)
+    public function destroyMonth($subdomain, $monthId)
     {
         $date = Carbon::parse($monthId . '-01');
         
-        // 3. PROTECCIÓN: Solo eliminamos las sesiones que pertenezcan a talleres mensuales.
-        // Las clases únicas quedan intactas en el calendario.
+        // Eliminamos de forma segura gracias al Global Scope que lo limita a este estudio
         ClassSession::whereYear('date', $date->year)
             ->whereMonth('date', $date->month)
-            ->whereHas('workshop', function($q) {
-                $q->where('is_single_class', false);
-            })
             ->delete();
 
-        return redirect()->route('entrenamientos.index')->with('success', 'Mes eliminado correctamente. Las clases únicas se mantuvieron intactas.');
+        return redirect()->route('entrenamientos.index')->with('success', 'Mes eliminado correctamente.');
     }
 }

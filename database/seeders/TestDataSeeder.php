@@ -42,7 +42,7 @@ class TestDataSeeder extends Seeder
             'is_single_class' => true
         ]);
 
-        // 2. Crear 10 Alumnas
+        // 2. Crear 10 alumnas/os
         $nombres = [
             'Valentina Rojas', 'Isidora Silva', 'Florencia Araya', 
             'Antonia López', 'Martina Castro', 'Francisca Reyes',

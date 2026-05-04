@@ -56,7 +56,7 @@ class PaymentController extends Controller
         }
         $payment->classSessions()->attach($pivotData);
 
-        // 4. (Opcional) Asegurarnos de que la alumna esté vinculada al taller en general
+        // 4. (Opcional) Asegurarnos de que la alumna/oesté vinculada al taller en general
         $student->workshops()->syncWithoutDetaching([$request->workshop_id]);
 
         return redirect()->route('students.index')->with('success', '¡Pago registrado! Las clases seleccionadas ya están cubiertas.');
@@ -67,7 +67,7 @@ class PaymentController extends Controller
     // -------------------------------------------------------------
     public function getAvailableSessions(Student $student)
     {
-        // 1. Buscar los IDs de las sesiones que esta alumna YA PAGÓ
+        // 1. Buscar los IDs de las sesiones que esta alumna/oYA PAGÓ
         $paidSessionIds = DB::table('class_session_payment')
             ->where('student_id', $student->id)
             ->pluck('class_session_id')
