@@ -28,6 +28,8 @@ return new class extends Migration
             $table->string('city')->nullable()->index(); // Indexado porque será muy usado en búsquedas
             $table->string('region')->nullable();
             $table->string('country')->nullable();
+
+            
             
             $table->timestamps();
         });

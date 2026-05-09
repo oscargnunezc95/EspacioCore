@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use App\Models\Workshop;
 use App\Models\ClassSession;
 use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\Area;
 use App\Models\Discipline;
-use App\Models\Studio; // <-- Aseguramos la importación del modelo
+use App\Models\Studio;
 
 class WorkshopController extends Controller
 {
@@ -18,8 +19,15 @@ class WorkshopController extends Controller
     {
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
 
-        $workshops = Workshop::with(['prices', 'teacher', 'discipline.area'])->orderBy('name', 'asc')->get();
-        $teachers = Teacher::orderBy('name', 'asc')->get();
+        // 1. CORRECCIÓN DE RENDIMIENTO (N+1): Agregamos 'schedules' al Eager Loading
+        $workshops = Workshop::with(['prices', 'teacher', 'discipline.area', 'schedules'])
+                            ->orderBy('name', 'asc')
+                            ->get();
+        
+        // 2. ORDENAMIENTO COMPLETO: Apellido y luego Nombre
+        $teachers = Teacher::orderBy('first_name', 'asc')
+                           ->orderBy('last_name', 'asc')
+                           ->get();
         
         $areas = Area::with('disciplines')->get();
         $categoryTree = [];
@@ -37,7 +45,6 @@ class WorkshopController extends Controller
     {
         $this->validateWorkshop($request);
 
-        // CRÍTICO: Obtenemos el Estudio actual usando el subdominio para heredar datos
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
 
         DB::transaction(function () use ($request, $studio) {
@@ -47,15 +54,20 @@ class WorkshopController extends Controller
                 'name' => trim($request->discipline)
             ]);
 
-            $data = $request->except(['prices', 'area', 'discipline']);
+            // Excluimos los arrays y la imagen para procesarlos individualmente
+            $data = $request->except(['prices', 'schedules', 'area', 'discipline', 'image']);
             
-            // Asignaciones base
-            $data['studio_id'] = $studio->id; // <-- Enlace vital
+            $data['studio_id'] = $studio->id;
             $data['discipline_id'] = $discipline->id;
             $data['is_single_class'] = $request->is_single_class == '1';
             $data['use_main_location'] = $request->boolean('use_main_location');
 
-            // Lógica de Ubicación (DRY)
+            // Subida de la imagen
+            if ($request->hasFile('image')) {
+                $data['image_path'] = $request->file('image')->store('workshops/images', 'public');
+            }
+
+            // Ubicación
             if ($data['use_main_location']) {
                 $data['address'] = $studio->address;
                 $data['latitude'] = $studio->latitude;
@@ -64,33 +76,47 @@ class WorkshopController extends Controller
                 $data['region'] = $studio->region;
                 $data['country'] = $studio->country;
             } 
-            // Si es falso, $data ya trae los valores del mapa personalizado gracias al $request->except()
 
-            // Limpieza de fechas
-            if ($data['is_single_class']) {
-                $data['repeat_days'] = null;
-            } else {
+            // Limpieza cruzada
+            if (!$data['is_single_class']) {
                 $data['specific_date'] = null;
+                $data['start_time'] = null;
             }
 
+            // Persistencia del Taller Base
             $workshop = Workshop::create($data);
 
-            if ($request->has('prices')) {
-                foreach ($request->prices as $priceRow) {
-                    $workshop->prices()->create([
-                        'class_count' => $priceRow['class_count'],
-                        'price' => $priceRow['price'],
-                        'is_monthly' => isset($priceRow['is_monthly']) ? true : false,
+            // 1. Guardar Horarios Dinámicos Múltiples (Solo si es recurrente)
+            if (!$workshop->is_single_class && $request->has('schedules')) {
+                foreach ($request->schedules as $schedule) {
+                    $workshop->schedules()->create([
+                        'day_of_week'  => $schedule['day'],
+                        'start_time'   => $schedule['time'],
+                        'max_students' => isset($schedule['max_students']) && $schedule['max_students'] !== '' ? $schedule['max_students'] : null,
                     ]);
                 }
             }
 
+            // 2. Guardar Planes de Precios
+            if ($request->has('prices')) {
+                foreach ($request->prices as $priceRow) {
+                    $workshop->prices()->create([
+                        'class_count'            => $priceRow['class_count'],
+                        'price'                  => $priceRow['price'],
+                        'is_monthly'             => isset($priceRow['is_monthly']) ? true : false,
+                        'introductory_price'     => !empty($priceRow['introductory_price']) ? $priceRow['introductory_price'] : null,
+                        'is_introductory_active' => isset($priceRow['is_introductory_active']) ? true : false,
+                    ]);
+                }
+            }
+
+            // 3. Generar Sesión para Clase Única (Masterclass)
             if ($workshop->is_single_class) {
                 ClassSession::create([
-                    'studio_id' => $workshop->studio_id,
+                    'studio_id'   => $workshop->studio_id,
                     'workshop_id' => $workshop->id,
-                    'date' => $workshop->specific_date,
-                    'start_time' => $workshop->start_time
+                    'date'        => $workshop->specific_date,
+                    'start_time'  => $request->start_time
                 ]);
             }
         });
@@ -102,7 +128,6 @@ class WorkshopController extends Controller
     {
         $this->validateWorkshop($request);
 
-        // Obtenemos el Estudio para heredar datos si decide volver a la sede principal
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
 
         DB::transaction(function () use ($request, $workshop, $studio) {
@@ -112,12 +137,20 @@ class WorkshopController extends Controller
                 'name' => trim($request->discipline)
             ]);
 
-            $data = $request->except(['prices', 'area', 'discipline']);
+            $data = $request->except(['prices', 'schedules', 'area', 'discipline', 'image']);
             $data['discipline_id'] = $discipline->id;
             $data['is_single_class'] = $request->is_single_class == '1';
             $data['use_main_location'] = $request->boolean('use_main_location');
 
-            // Lógica de Ubicación (DRY)
+            // Reemplazo de Imagen
+            if ($request->hasFile('image')) {
+                if ($workshop->image_path) {
+                    Storage::disk('public')->delete($workshop->image_path);
+                }
+                $data['image_path'] = $request->file('image')->store('workshops/images', 'public');
+            }
+
+            // Ubicación
             if ($data['use_main_location']) {
                 $data['address'] = $studio->address;
                 $data['latitude'] = $studio->latitude;
@@ -127,47 +160,54 @@ class WorkshopController extends Controller
                 $data['country'] = $studio->country;
             }
 
-            // Limpieza de fechas
+            // Limpieza cruzada y limpieza de la base de datos
             if ($data['is_single_class']) {
-                $data['repeat_days'] = null;
+                $workshop->schedules()->delete();
             } else {
                 $data['specific_date'] = null;
+                $data['start_time'] = null;
             }
 
             $workshop->update($data);
 
-            // Sincronizar precios
+            // 1. Sincronizar Horarios Dinámicos Múltiples
+            if (!$workshop->is_single_class) {
+                $workshop->schedules()->delete(); // Limpiamos los viejos por seguridad
+                if ($request->has('schedules')) {
+                    foreach ($request->schedules as $schedule) {
+                        $workshop->schedules()->create([
+                            'day_of_week'  => $schedule['day'],
+                            'start_time'   => $schedule['time'],
+                            'max_students' => isset($schedule['max_students']) && $schedule['max_students'] !== '' ? $schedule['max_students'] : null,
+                        ]);
+                    }
+                }
+            }
+
+            // 2. Sincronizar Planes de Precios
             $workshop->prices()->delete();
             if ($request->has('prices')) {
                 foreach ($request->prices as $priceRow) {
                     $workshop->prices()->create([
-                        'class_count' => $priceRow['class_count'],
-                        'price' => $priceRow['price'],
-                        'is_monthly' => isset($priceRow['is_monthly']) ? true : false,
+                        'class_count'            => $priceRow['class_count'],
+                        'price'                  => $priceRow['price'],
+                        'is_monthly'             => isset($priceRow['is_monthly']) ? true : false,
+                        'introductory_price'     => !empty($priceRow['introductory_price']) ? $priceRow['introductory_price'] : null,
+                        'is_introductory_active' => isset($priceRow['is_introductory_active']) ? true : false,
                     ]);
                 }
             }
 
-            // Sincronizar Sesiones de forma segura (NO DESTRUCTIVA)
+            // 3. Sincronizar Sesión para Clase Única
             if ($workshop->is_single_class) {
-                // Si es Masterclass, actualizamos su fecha y hora
                 ClassSession::updateOrCreate(
                     ['workshop_id' => $workshop->id],
                     [
-                        'studio_id' => $workshop->studio_id,
-                        'date' => $workshop->specific_date, 
-                        'start_time' => $workshop->start_time
+                        'studio_id'  => $workshop->studio_id,
+                        'date'       => $workshop->specific_date, 
+                        'start_time' => $request->start_time
                     ]
                 );
-            } else {
-                // Si es un Taller Mensual, NUNCA borramos las sesiones.
-                // Solo actualizamos la hora de inicio de las clases que aún no han ocurrido
-                // para no alterar el historial de clases pasadas ni borrar a los inscritos.
-                ClassSession::where('workshop_id', $workshop->id)
-                    ->where('date', '>=', now()->toDateString())
-                    ->update([
-                        'start_time' => $workshop->start_time
-                    ]);
             }
         });
 
@@ -176,6 +216,11 @@ class WorkshopController extends Controller
 
     public function destroy($subdomain, Workshop $workshop)
     {
+        // Borrar imagen del taller antes de eliminarlo
+        if ($workshop->image_path) {
+            Storage::disk('public')->delete($workshop->image_path);
+        }
+        
         $workshop->delete();
         return back()->with('success', 'Taller eliminado.');
     }
@@ -183,44 +228,58 @@ class WorkshopController extends Controller
     private function validateWorkshop(Request $request)
     {
         $rules = [
-            'name' => 'required|string|max:255',
-            'area' => 'required|string|max:100',
-            'discipline' => 'required|string|max:100',
-            'target_audience' => 'required|in:kids,teens,adults,all',
-            
-            // Campos de Ubicación
+            'name'              => 'required|string|max:255',
+            'image'             => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
+            'area'              => 'required|string|max:100',
+            'discipline'        => 'required|string|max:100',
+            'target_audience'   => 'required|in:kids,teens,adults,all',
             'use_main_location' => 'nullable|boolean',
-            'address' => 'nullable|string|max:255',
-            'latitude' => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            'city' => 'nullable|string|max:255',
-            'region' => 'nullable|string|max:255',
-            'country' => 'nullable|string|max:255',
-            'room_location' => 'nullable|string|max:255',
+            'address'           => 'nullable|string|max:255',
+            'latitude'          => 'nullable|numeric',
+            'longitude'         => 'nullable|numeric',
+            'city'              => 'nullable|string|max:255',
+            'region'            => 'nullable|string|max:255',
+            'country'           => 'nullable|string|max:255',
+            'room_location'     => 'nullable|string|max:255',
+            'color'             => 'required|string',
+            'teacher_id'        => 'nullable|exists:teachers,id', 
             
-            'color' => 'required|string',
-            'teacher_id' => 'nullable|exists:teachers,id', 
-            'start_time' => 'required',
-            'is_single_class' => 'required|in:0,1',
-            'repeat_days' => 'required_if:is_single_class,0|array',
-            'repeat_days.*' => 'integer|min:0|max:6',
-            'specific_date' => 'required_if:is_single_class,1|nullable|date',
-            'max_students' => 'nullable|integer|min:1',
-            'prices' => 'nullable|array',
-            'prices.*.class_count' => 'required|integer|min:1',
-            'prices.*.price' => 'required|numeric|min:0',
+            // Lógica de Clase Única (Masterclass)
+            'is_single_class'   => 'required|in:0,1',
+            'specific_date'     => 'required_if:is_single_class,1|nullable|date',
+            'start_time'        => 'required_if:is_single_class,1', 
+            
+            // LÓGICA DE HORARIOS MÚLTIPLES
+            'schedules'                  => 'required_if:is_single_class,0|array|min:1',
+            'schedules.*.day'            => 'required_with:schedules|integer|min:0|max:6',
+            'schedules.*.time'           => 'required_with:schedules',
+            'schedules.*.max_students'   => 'nullable|integer|min:1',
+
+            'max_students'      => 'nullable|integer|min:1',
+            
+            // VALIDACIÓN DEL ARREGLO DE PRECIOS
+            'prices'                       => 'nullable|array',
+            'prices.*.class_count'         => 'required|integer|min:1',
+            'prices.*.price'               => 'required|numeric|min:0',
+            'prices.*.introductory_price'  => 'nullable|numeric|min:0',
         ];
 
         $messages = [
-            'name.required' => 'El nombre del taller es obligatorio.',
-            'area.required' => 'Debes indicar un área general.',
-            'discipline.required' => 'Debes seleccionar o escribir una disciplina específica.',
-            'start_time.required' => 'Debes ingresar la hora de inicio.',
-            'repeat_days.required_if' => 'Para un taller mensual, debes seleccionar al menos un día.',
-            'specific_date.required_if' => 'Para una clase única, debes seleccionar una fecha exacta.',
-            'prices.*.class_count.required' => 'Falta indicar la cantidad de clases en un precio.',
-            'prices.*.price.required' => 'Falta indicar el costo en un precio.',
-            'target_audience.required' => 'Debes indicar a quién va dirigido el taller.'
+            'name.required' => 'El nombre de la clase o taller es obligatorio.',
+            'area.required' => 'Debes asignar un área o categoría principal.',
+            'discipline.required' => 'Debes especificar la disciplina de la clase.',
+            'target_audience.required' => 'Selecciona a qué público va dirigido.',
+            'color.required' => 'Elige un color para identificar este taller.',
+            
+            'start_time.required_if' => 'Debes asignar una hora para tu Masterclass.',
+            'specific_date.required_if' => 'Debes indicar la fecha exacta en el calendario para tu Masterclass.',
+            
+            'schedules.required_if' => 'Debes agregar al menos un horario en la semana para este taller.',
+            'schedules.*.day.required_with' => 'Asegúrate de seleccionar el día en todos los horarios.',
+            'schedules.*.time.required_with' => 'Asegúrate de indicar la hora en todos los horarios.',
+
+            'prices.*.class_count.required' => 'Indica la cantidad de clases para este paquete (ej: 4 clases).',
+            'prices.*.price.required' => 'Debes asignarle un precio base a tu paquete.',
         ];
 
         $request->validate($rules, $messages);
@@ -228,6 +287,7 @@ class WorkshopController extends Controller
 
     public function students($subdomain, Workshop $workshop)
     {
+        // Se carga la lista de alumnas ordenando por nombre y luego apellido
         $students = Student::where('is_guest', false)
                     ->orderBy('first_name', 'asc')
                     ->orderBy('last_name', 'asc')
@@ -248,6 +308,6 @@ class WorkshopController extends Controller
         $workshop->students()->sync($request->students ?? []);
 
         return redirect()->route('workshops.index', ['subdomain' => $subdomain])
-                         ->with('success', 'Lista de alumnas/os actualizada para el taller: ' . $workshop->name);
+                         ->with('success', 'Lista actualizada para: ' . $workshop->name);
     }
 }

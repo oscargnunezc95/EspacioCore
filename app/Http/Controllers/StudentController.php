@@ -5,9 +5,16 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Models\Student;
+use App\Models\Studio;
+use App\Models\ClassSession;
+use App\Http\Controllers\SessionController;
 use App\Models\Attendance;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Config;
 use Carbon\Carbon;
+use App\Services\DocumentService;
+use App\Rules\ValidDocument;
+use App\Models\Country; // <-- IMPORTACIÓN CLAVE PARA BUSCAR EL PAÍS
 
 class StudentController extends Controller
 {
@@ -23,46 +30,103 @@ class StudentController extends Controller
             ->orderBy('first_name', 'asc')
             ->orderBy('last_name', 'asc')
             ->get();
+            
+        // No olvides enviar los países a la vista si tu modal los necesita
+        $countries = Country::orderBy('name', 'asc')->get();
         
-        return view('students.index', compact('students', 'inactiveStudents'));
+        return view('students.index', compact('students', 'inactiveStudents', 'countries'));
     }
 
     public function store(Request $request, $subdomain)
     {
+        $studioId = Config::get('tenant.studio_id');
+        
+        // 1. OBTENER EL CÓDIGO DEL PAÍS SELECCIONADO DESDE LA BD
+        $countryCode = 'OT'; // Por defecto 'Otro'
+        if ($request->filled('country_id')) {
+            $countryObj = Country::find($request->country_id);
+            $countryCode = $countryObj ? $countryObj->code : 'OT';
+        }
+
+        // 2. ESTANDARIZAR EL RUT O DOCUMENTO
+        if ($request->filled('national_id')) {
+            $request->merge([
+                'national_id' => DocumentService::standardize($request->national_id, $countryCode)
+            ]);
+
+            // LÓGICA DE RESCATE (Papelera de Alumnas)
+            $existingStudent = Student::withTrashed()
+                ->where('studio_id', $studioId)
+                ->where('national_id', $request->national_id)
+                ->first();
+
+            if ($existingStudent) {
+                if ($existingStudent->trashed()) {
+                    $existingStudent->restore();
+                    $existingStudent->update($request->except(['national_id']));
+                    return back()->with('success', 'La alumna/o estaba en la papelera y ha sido reactivada con sus nuevos datos.');
+                }
+                return back()->withErrors(['national_id' => 'Este documento ya pertenece a una alumna/o activa en tu estudio.'])->withInput();
+            }
+        }
+
+        // 3. VALIDACIÓN
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'email' => [
-                'required',
-                'email',
-                // El correo debe ser único dentro de este estudio específico
-                Rule::unique('students', 'email')->where(function ($query) {
-                    return $query->where('studio_id', session('current_studio_id'));
+            'first_name'  => 'required|string|max:255',
+            'last_name'   => 'nullable|string|max:255',
+            'country_id'  => 'required|exists:countries,id', // <-- OBLIGAMOS A ENVIAR UN PAÍS VALIDO
+            'national_id' => [
+                'nullable', // Cambia a 'required' si el documento es estrictamente obligatorio para el estudio
+                'string',
+                'max:255',
+                new ValidDocument($countryCode), // Valida según sea 'CL' o 'OT'
+                Rule::unique('students', 'national_id')->where(function ($query) use ($studioId) {
+                    return $query->where('studio_id', $studioId);
                 })
             ],
-            'phone' => 'nullable|string'
+            'email'       => 'nullable|email|max:255',
+            'phone'       => 'nullable|string|max:255'
         ]);
 
         Student::create($request->all());
-        return back()->with('success', 'alumna/ocreada correctamente.');
+        return back()->with('success', 'Alumna/o creada correctamente.');
     }
 
     public function update(Request $request, $subdomain, Student $student)
     {
+        $studioId = Config::get('tenant.studio_id');
+        
+        // 1. OBTENER EL CÓDIGO DEL PAÍS SELECCIONADO DESDE LA BD
+        $countryCode = 'OT';
+        if ($request->filled('country_id')) {
+            $countryObj = Country::find($request->country_id);
+            $countryCode = $countryObj ? $countryObj->code : 'OT';
+        }
+
+        // 2. ESTANDARIZAR EL RUT O DOCUMENTO
+        if ($request->filled('national_id')) {
+            $request->merge([
+                'national_id' => DocumentService::standardize($request->national_id, $countryCode)
+            ]);
+        }
+
         $request->validate([
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'nullable|string|max:255',
-            'email' => [
-                'required',
-                'email',
-                // Ignoramos el ID de esta alumna/oal validar la unicidad del correo
-                Rule::unique('students', 'email')
+            'first_name'  => 'required|string|max:255',
+            'last_name'   => 'nullable|string|max:255',
+            'country_id'  => 'required|exists:countries,id', // <-- OBLIGAMOS A ENVIAR UN PAÍS VALIDO
+            'national_id' => [
+                'nullable',
+                'string',
+                'max:255',
+                new ValidDocument($countryCode),
+                Rule::unique('students', 'national_id')
                     ->ignore($student->id)
-                    ->where(function ($query) {
-                        return $query->where('studio_id', session('current_studio_id'));
+                    ->where(function ($query) use ($studioId) {
+                        return $query->where('studio_id', $studioId);
                     })
             ],
-            'phone' => 'nullable|string'
+            'email'       => 'nullable|email|max:255',
+            'phone'       => 'nullable|string|max:255'
         ]);
 
         $student->update($request->all());
@@ -72,57 +136,43 @@ class StudentController extends Controller
     public function destroy($subdomain, Student $student)
     {
         $student->delete();
-        return back()->with('success', 'alumna/odesactivada. Podrás encontrarla en la pestaña de Inactivas.');
+        return back()->with('success', 'Alumna/o desactivada. Podrás encontrarla en la pestaña de Inactivas.');
     }
 
     public function restore($subdomain, $id)
     {
         $student = Student::withTrashed()->findOrFail($id);
         $student->restore();
-        return back()->with('success', 'alumna/oreactivada correctamente.');
+        return back()->with('success', 'Alumna/o reactivada correctamente.');
     }
 
     public function forceDelete($subdomain, $id)
     {
         $student = Student::withTrashed()->findOrFail($id);
         $student->forceDelete();
-        return back()->with('success', 'alumna/oeliminada permanentemente del sistema.');
+        return back()->with('success', 'Alumna/o eliminada permanentemente del sistema.');
     }
 
     public function calendar($subdomain, $studentId, $month = null)
     {
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
         $student = Student::withTrashed()->findOrFail($studentId);
         $monthDate = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
 
-        $allAttendances = Attendance::with('classSession.workshop')
-            ->where('student_id', $student->id)
-            ->get()
-            ->sortByDesc(function ($att) {
-                return $att->classSession->date . ' ' . $att->classSession->start_time;
-            });
+        $sessions = ClassSession::with(['workshop', 'students', 'attendances'])
+            ->where('studio_id', $studio->id)
+            ->whereYear('date', $monthDate->year)
+            ->whereMonth('date', $monthDate->month)
+            ->orderBy('start_time', 'asc')
+            ->get();
+
+        $sessionsByDate = $sessions->groupBy('date');
 
         $paidSessionIds = DB::table('class_session_payment')
             ->where('student_id', $student->id)
             ->pluck('class_session_id')
             ->toArray();
 
-        $unpaidIds = [];
-        foreach ($allAttendances as $att) {
-            if (!in_array($att->class_session_id, $paidSessionIds)) {
-                $unpaidIds[] = $att->id;
-            }
-        }
-
-        $monthlyAttendances = clone $allAttendances;
-        $monthlyAttendances = $monthlyAttendances->filter(function($att) use ($monthDate) {
-            $date = Carbon::parse($att->classSession->date);
-            return $date->year == $monthDate->year && $date->month == $monthDate->month;
-        });
-
-        $attendancesByDate = $monthlyAttendances->groupBy(function($att) {
-            return $att->classSession->date;
-        });
-
-        return view('students.calendar', compact('student', 'monthDate', 'attendancesByDate', 'unpaidIds'));
+        return view('students.calendar', compact('student', 'monthDate', 'sessionsByDate', 'paidSessionIds'));
     }
 }

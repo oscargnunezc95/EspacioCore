@@ -20,7 +20,6 @@
                 </div>
             @endif
 
-            <!-- Botón de Registro con Google -->
             <a href="{{ route('google.redirect') }}" class="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-zinc-700 bg-white border border-zinc-300 rounded-xl hover:bg-zinc-50 hover:text-zinc-900 transition-all duration-200 shadow-sm gap-3 active:scale-[0.98]">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
@@ -31,7 +30,6 @@
                 Registrarse con Google
             </a>
 
-            <!-- Separador Visual -->
             <div class="relative mt-8 mb-6">
                 <div class="absolute inset-0 flex items-center" aria-hidden="true">
                     <div class="w-full border-t border-zinc-200"></div>
@@ -41,7 +39,6 @@
                 </div>
             </div>
 
-            <!-- Formulario Tradicional -->
             <form action="{{ route('register') }}" method="POST" class="space-y-4">
                 @csrf
 
@@ -57,6 +54,32 @@
                     <label for="email" class="block text-sm font-bold text-zinc-700">Correo electrónico</label>
                     <div class="mt-1.5">
                         <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email"
+                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label for="country_id" class="block text-sm font-bold text-zinc-700">País</label>
+                    <div class="mt-1.5">
+                        <select id="country_id" name="country_id" required
+                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            @foreach($countries as $country)
+                                <option value="{{ $country->id }}" {{ old('country_id') == $country->id ? 'selected' : '' }}>
+                                    {{ $country->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <div class="flex justify-between items-baseline">
+                        <label for="national_id" class="block text-sm font-bold text-zinc-700">Documento de Identidad</label>
+                    </div>
+                    <p class="text-xs text-zinc-500 mb-1.5 mt-0.5 font-medium">Para vincularte automáticamente a tus clases.</p>
+                    <div class="mt-1.5">
+                        <input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" required
+                            placeholder="Ej: 12345678-9"
                             class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
                     </div>
                 </div>
@@ -82,7 +105,6 @@
                         class="flex w-full justify-center px-4 py-3 text-sm font-bold text-white bg-zinc-900 rounded-xl hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 active:scale-[0.98] transition-all duration-200 shadow-sm">
                         Crear mi cuenta
                     </button>
-                    <!-- Aviso de verificación UX -->
                     <p class="mt-3 text-center text-xs text-zinc-500 font-medium">
                         Te enviaremos un correo para verificar tu cuenta de forma segura.
                     </p>
@@ -99,7 +121,6 @@
         </div>
     </div>
 
-    <!-- Columna Imagen -->
     <div class="hidden lg:flex lg:flex-1 relative bg-zinc-900 overflow-hidden">
         <img class="absolute inset-0 h-full w-full object-cover opacity-[0.65] mix-blend-overlay scale-105 grayscale-[30%]" 
              src="https://images.unsplash.com/photo-1518834107812-67b0b7c58434?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 

@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ClassSession;
 use App\Models\Student;
+use App\Models\Teacher;
 use Carbon\Carbon;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\DB;
 
-class ClassSessionController extends Controller
+class SessionController extends Controller
 {
     public function show($subdomain, ClassSession $session)
     {
@@ -43,15 +44,41 @@ class ClassSessionController extends Controller
             ->get();
         
         $monthId = Carbon::parse($session->date)->format('Y-m');
+            
+        // Sacamos el studio_id directamente de la relación de la sesión o del taller
+        $teachers = Teacher::where('studio_id', $session->studio_id ?? $session->workshop->studio_id)->orderBy('first_name')->get();
         
-        return view('sessions.show', compact('session', 'students', 'otherStudents', 'paidStudentIds', 'monthId'));
+        return view('sessions.show', compact('session', 'students', 'paidStudentIds', 'otherStudents', 'monthId', 'teachers'));
     }
 
-    public function cancel($subdomain, ClassSession $session)
+    public function update(Request $request, $subdomain, ClassSession $session)
     {
-        $session->update(['is_cancelled' => !$session->is_cancelled]);
-        $status = $session->is_cancelled ? 'cancelada' : 'restaurada';
-        return back()->with('success', "Clase $status correctamente.");
+        // 1. Validamos todos los campos posibles de edición
+        $request->validate([
+            'date' => 'required|date',
+            'start_time' => 'required',
+            'teacher_id' => 'nullable|exists:teachers,id',
+            'is_cancelled' => 'boolean'
+        ]);
+
+        // 2. Aplicamos los cambios a la sesión específica
+        $session->update([
+            'date' => $request->date,
+            'start_time' => $request->start_time,
+            'teacher_id' => $request->teacher_id, 
+            'is_cancelled' => $request->boolean('is_cancelled') 
+        ]);
+
+        // 3. Redirigimos de vuelta. 
+        // OJO: Como la fecha cambió, si rediriges a la URL anterior (que dependía del mes viejo) podría haber un salto extraño.
+        // Lo más seguro es redirigir al calendario del mes al que pertenece la NUEVA fecha.
+        // 3. Redirigimos de vuelta a trainingmonth.show
+        $newMonthId = \Carbon\Carbon::parse($request->date)->format('Y-m');
+        
+        return redirect()->route('trainingmonth.show', [
+            'subdomain' => $subdomain, 
+            'month' => $newMonthId
+        ])->with('success', 'Sesión específica actualizada correctamente.');
     }
 
     // Renombramos de storeInfrequent a enrollStudent
@@ -97,4 +124,5 @@ class ClassSessionController extends Controller
 
         return back()->with('success', 'Alumna inscrita en la clase y marcada como presente.');
     }
+
 }

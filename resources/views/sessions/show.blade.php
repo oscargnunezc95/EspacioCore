@@ -6,8 +6,8 @@
             <x-studio-header 
                 title="{{ $session->workshop->name }}" 
                 :breadcrumbs="[
-                    ['name' => 'Planificación', 'url' => route('entrenamientos.index', ['subdomain' => request()->route('subdomain')])],
-                    ['name' => ucfirst(\Carbon\Carbon::parse($session->date)->translatedFormat('F')), 'url' => route('entrenamientos.show', ['subdomain' => request()->route('subdomain'), 'month' => $monthId])],
+                    ['name' => 'Planificación', 'url' => route('trainingmonth.index', ['subdomain' => request()->route('subdomain')])],
+                    ['name' => ucfirst(\Carbon\Carbon::parse($session->date)->translatedFormat('F')), 'url' => route('trainingmonth.show', ['subdomain' => request()->route('subdomain'), 'month' => $monthId])],
                     ['name' => 'Lista de Clase']
                 ]"
             >
@@ -48,7 +48,7 @@
         @if ($errors->any())
             <div class="mb-6 p-4 bg-rose-50 text-rose-700 rounded-xl text-sm font-bold border border-rose-200 flex items-center gap-2">
                 <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Hubo un error al inscribir. Revisa los datos del formulario.
+                Hubo un error en tu solicitud. Revisa el formulario.
             </div>
         @endif
 
@@ -67,16 +67,17 @@
                     </div>
 
                     <div class="flex items-center gap-4">
-                        @if(!$session->is_cancelled)
-                            <form action="{{ route('sessions.cancel', ['subdomain' => request()->route('subdomain'), 'session' => $session->id]) }}" method="POST" class="m-0">
-                                @csrf @method('PATCH')
-                                <button onclick="return confirm('¿Suspender esta clase?')" class="text-sm font-bold text-rose-600 hover:text-rose-800 transition-colors px-3 py-2 rounded-lg hover:bg-rose-50">Suspender Clase</button>
-                            </form>
-                        @else
+                        @if($session->is_cancelled)
                             <span class="bg-rose-100 text-rose-700 text-xs font-black px-3 py-1 rounded-md uppercase tracking-wider border border-rose-200 flex items-center gap-1">
                                 <span class="w-2 h-2 rounded-full bg-rose-500"></span> Cancelada
                             </span>
                         @endif
+                        
+                        {{-- BOTÓN EDITAR SESIÓN --}}
+                        <button onclick="document.getElementById('editSessionModal').classList.remove('hidden')" class="text-sm font-bold text-zinc-600 hover:text-zinc-900 transition-colors px-4 py-2 rounded-xl border border-zinc-200 shadow-sm flex items-center gap-2 bg-white hover:bg-zinc-50 active:scale-95">
+                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            Editar Clase
+                        </button>
                     </div>
                 </div>
             </div>
@@ -116,7 +117,75 @@
         </div>
     </div>
 
-    {{-- MODAL: INSCRIBIR ALUMNA MANUALMENTE --}}
+    {{-- MODAL 1: EDITAR SESIÓN --}}
+    <div id="editSessionModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all">
+            
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h3 class="text-xl font-bold text-zinc-900">Editar Sesión</h3>
+                    <p class="text-xs text-zinc-500 mt-1 leading-tight">Modifica la hora, asigna un reemplazo o suspende.</p>
+                </div>
+                <button type="button" onclick="document.getElementById('editSessionModal').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <form action="{{ route('sessions.update', ['subdomain' => request()->route('subdomain'), 'session' => $session->id]) }}" method="POST">
+                @csrf
+                @method('PUT')
+                
+                <div class="space-y-5 mb-6">
+                    <div class="grid grid-cols-2 gap-4">
+                        {{-- Input NUEVO: Fecha --}}
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Día de la Clase</label>
+                            <input type="date" name="date" value="{{ \Carbon\Carbon::parse($session->date)->format('Y-m-d') }}" 
+                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all" required>
+                        </div>
+
+                        {{-- Input: Hora --}}
+                        <div class="col-span-2 sm:col-span-1">
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio</label>
+                            <input type="time" name="start_time" value="{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}" 
+                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all" required>
+                        </div>
+                    </div>
+
+                    {{-- Select: Profesor Reemplazante --}}
+                    <div>
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Profesor (Opcional)</label>
+                        <select name="teacher_id" class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all cursor-pointer">
+                            <option value="">Mantener original ({{ $session->workshop->teacher->name ?? 'Sin asignar' }})</option>
+                            @if(isset($teachers))
+                                @foreach($teachers as $teacher)
+                                    <option value="{{ $teacher->id }}" {{ $session->teacher_id == $teacher->id ? 'selected' : '' }}>{{ $teacher->name }}</option>
+                                @endforeach
+                            @endif
+                        </select>
+                    </div>
+
+                    {{-- Checkbox: Suspender --}}
+                    <label class="flex items-start gap-3 p-4 rounded-xl border border-rose-200 bg-rose-50 cursor-pointer group transition-colors hover:bg-rose-100">
+                        <div class="flex items-center h-5 mt-0.5">
+                            <input type="checkbox" name="is_cancelled" value="1" {{ $session->is_cancelled ? 'checked' : '' }} class="w-4 h-4 text-rose-600 border-rose-300 rounded focus:ring-rose-600 cursor-pointer">
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-bold text-rose-800">Suspender Clase</span>
+                            <span class="text-xs text-rose-600 mt-1">La clase aparecerá cancelada y el profesor no podrá pasar lista.</span>
+                        </div>
+                    </label>
+                </div>
+
+                <div class="flex gap-3 pt-2 border-t border-zinc-100">
+                    <button type="button" onclick="document.getElementById('editSessionModal').classList.add('hidden')" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors duration-200 text-sm">Cancelar</button>
+                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all duration-200 active:scale-95 text-sm">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- MODAL 2: INSCRIBIR ALUMNA MANUALMENTE (Se mantiene igual) --}}
     <div id="enrollModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all">
             
@@ -255,16 +324,22 @@
                 }
             }
 
-            fetch(`/{{ request()->route('subdomain') }}/sessions/${sid}/attendance/${stid}`, {
+            fetch(`/sessions/${sid}/attendance/${stid}`, {
                 method: 'POST', 
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' }
             });
         }
 
-        @if($errors->any())
+        @if($errors->any() && !$errors->has('start_time'))
             document.addEventListener("DOMContentLoaded", function() {
                 document.getElementById('enrollModal').classList.remove('hidden');
                 toggleEnrollMode();
+            });
+        @endif
+        
+        @if($errors->has('start_time'))
+            document.addEventListener("DOMContentLoaded", function() {
+                document.getElementById('editSessionModal').classList.remove('hidden');
             });
         @endif
     </script>

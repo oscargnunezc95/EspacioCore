@@ -8,20 +8,10 @@
             <x-studio-header 
                 title="{{ ucfirst($monthDate->translatedFormat('F Y')) }}" 
                 :breadcrumbs="[
-                    ['name' => 'Planificación', 'url' => route('entrenamientos.index')],
+                    ['name' => 'Planificación', 'url' => route('trainingmonth.index')],
                     ['name' => ucfirst($monthDate->translatedFormat('F'))]
                 ]"
             >
-                <x-slot name="actions">
-                    <form action="{{ route('entrenamientos.destroyMonth', $monthId) }}" method="POST" class="m-0">
-                        @csrf 
-                        @method('DELETE')
-                        <button type="submit" onclick="return confirm('¿Estás segura de eliminar TODO el mes y sus registros? Las clases únicas no se borrarán.')" class="bg-white border border-red-200 text-red-600 font-bold px-4 py-2 rounded-xl text-sm hover:bg-red-50 hover:border-red-300 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                            Eliminar Mes
-                        </button>
-                    </form>
-                </x-slot>
             </x-studio-header>
         </div>
     </x-slot>
@@ -79,14 +69,20 @@
                         <div class="space-y-1.5 md:space-y-2">
                             @foreach($sessionsInDay as $s)
                                 @php 
-                                    $c = $s->workshop->color ?? 'blue'; 
+                                    $colorTaller = $s->workshop->color ?? 'blue'; 
+                                    $bgClass = match($colorTaller) {
+                                        'emerald' => 'bg-emerald-500', 'rose' => 'bg-rose-500', 'purple' => 'bg-purple-500',
+                                        'amber' => 'bg-amber-500', 'indigo' => 'bg-indigo-500', 'teal' => 'bg-teal-500',
+                                        'cyan' => 'bg-cyan-500', 'fuchsia' => 'bg-fuchsia-500', 'slate' => 'bg-slate-500',
+                                        default => 'bg-blue-500',
+                                    };
                                 @endphp
-                                
-                                <a href="{{ route('sessions.show', $s->id) }}" 
-                                   class="relative block p-2 pl-3 md:p-2.5 md:pl-3.5 bg-white border border-zinc-200 rounded-lg shadow-sm hover:shadow-md hover:border-zinc-400 transition-all duration-200 group overflow-hidden">
-                                    
-                                    {{-- Barra de Color Identificadora (Mantiene el color dinámico del taller) --}}
-                                    <div class="absolute left-0 top-0 bottom-0 w-1.5 bg-{{$c}}-500"></div>
+                                                                
+                                <a href="{{ route('sessions.show', ['subdomain' => request()->route('subdomain'), 'session' => $s->id]) }}" 
+                                class="relative block p-2 pl-3 md:p-2.5 md:pl-3.5 bg-white border border-zinc-200 rounded-lg shadow-sm hover:shadow-md hover:border-zinc-400 transition-all duration-200 group overflow-hidden">
+                                                                    
+                                    {{-- Barra de Color Identificadora (A prueba de Tailwind Purge) --}}
+                                    <div class="absolute left-0 top-0 bottom-0 w-1.5 {{ $bgClass }}"></div>
                                     
                                     {{-- Hora --}}
                                     <div class="text-[10px] md:text-xs font-extrabold text-zinc-900 group-hover:text-zinc-600 transition-colors">

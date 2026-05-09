@@ -11,12 +11,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Registramos el alias para usarlo en web.php como 'identify.studio'
+        // Registramos los alias para usarlos en web.php
         $middleware->alias([
             'identify.studio' => \App\Http\Middleware\IdentifyStudio::class,
+            // NUESTRO NUEVO GUARDIA DE SEGURIDAD
+            'check.profile'   => \App\Http\Middleware\CheckProfileCompletion::class,
         ]);
 
-        // ¡ESTA ES LA LÍNEA MÁGICA QUE FALTA!
         // Le dice a Laravel que redirija a los usuarios logueados al Lobby, no al dashboard genérico.
         $middleware->redirectUsersTo('/mis-estudios');
     })

@@ -12,6 +12,8 @@ class Studio extends Model
     protected $fillable = [
         'user_id',
         'name',
+        'country_id',
+        'subdomain',
         'logo_path',
         'address',
         'latitude',
@@ -25,7 +27,10 @@ class Studio extends Model
     {
         return $this->belongsTo(User::class);
     }
-
+    public function country()
+    {
+        return $this->belongsTo(Country::class);
+    }
     public function students()
     {
         return $this->hasMany(Student::class);

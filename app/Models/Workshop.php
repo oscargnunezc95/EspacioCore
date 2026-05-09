@@ -16,6 +16,7 @@ class Workshop extends Model
         'teacher_id',
         'name',
         'discipline_id',
+        'image_path',
         'target_audience',
         'color',
         'start_time',
@@ -74,4 +75,27 @@ class Workshop extends Model
     {
         return $this->belongsTo(Discipline::class);
     }
+    // En App\Models\Workshop.php
+
+    /**
+     * Obtiene la imagen del taller. Si no tiene, devuelve el logo del estudio.
+     * Si el estudio tampoco tiene, devuelve una imagen por defecto.    
+     */
+    public function getCoverImageUrlAttribute()
+    {
+        if ($this->image_path) {
+            return asset('storage/' . $this->image_path);
+        }
+
+        if ($this->studio && $this->studio->logo_path) {
+            return asset('storage/' . $this->studio->logo_path);
+        }
+
+        // Imagen por defecto genérica si nadie subió nada
+        return asset('images/default-workshop.jpg'); 
+    }
+    public function schedules()
+{
+    return $this->hasMany(WorkshopSchedule::class);
+}
 }

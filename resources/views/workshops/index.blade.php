@@ -33,7 +33,7 @@
                         <option value="">Todos los profesores</option>
                         <option value="unassigned">Sin profesor asignado</option>
                         @foreach($teachers as $teacher)
-                            <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
+                            <option value="{{ $teacher->id }}">{{ $teacher->first_name }} {{ $teacher->last_name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -73,7 +73,6 @@
                     <tbody class="divide-y divide-zinc-100">
                         @forelse($workshops as $workshop)
                             @php 
-                                $diasStr = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']; 
                                 $borderColor = match($workshop->color) {
                                     'emerald' => 'border-emerald-500', 'rose' => 'border-rose-500', 'purple' => 'border-purple-500',
                                     'amber' => 'border-amber-500', 'indigo' => 'border-indigo-500', 'teal' => 'border-teal-500',
@@ -91,12 +90,19 @@
                                 <td class="px-6 py-4 border-l-4 {{ $borderColor }}">
                                     <div class="font-bold text-zinc-900 flex flex-wrap items-center gap-2 text-sm">
                                         {{ $workshop->name }}
-                                        @if($workshop->is_single_class) <span class="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-black">Clase Única</span> @endif
-                                        @if($workshop->max_students) <span class="bg-zinc-50 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1" title="Cupo Máximo"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> Max {{ $workshop->max_students }}</span> @endif
+                                        @if($workshop->is_single_class) 
+                                            <span class="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-black">Clase Única</span> 
+                                            @if($workshop->max_students) 
+                                                <span class="bg-zinc-50 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1" title="Cupo Máximo">
+                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> 
+                                                    Max {{ $workshop->max_students }}
+                                                </span> 
+                                            @endif
+                                        @endif
                                     </div>
                                     <div class="text-xs text-zinc-500 mt-1.5 flex items-center gap-1.5 font-medium">
                                         <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                        {{ $workshop->teacher ? $workshop->teacher->name : 'Sin profesor asignado' }} 
+                                        {{ $workshop->teacher ? $workshop->teacher->first_name . ' ' . $workshop->teacher->last_name : 'Sin profesor asignado' }} 
                                     </div>
                                 </td>
 
@@ -120,21 +126,34 @@
                                 <td class="px-6 py-4 text-sm font-bold text-zinc-700">
                                     @if($workshop->is_single_class && $workshop->specific_date)
                                         <span class="text-zinc-900">{{ \Carbon\Carbon::parse($workshop->specific_date)->translatedFormat('d \d\e F') }}</span> 
+                                        <div class="text-xs text-zinc-500 font-medium mt-0.5">
+                                            a las <span class="text-zinc-900 font-bold">{{ \Carbon\Carbon::parse($workshop->start_time)->format('H:i') }}</span>
+                                        </div>
                                     @else
-                                        @if(is_array($workshop->repeat_days))
-                                            {{ implode(', ', array_map(fn($d) => $diasStr[$d], $workshop->repeat_days)) }}
+                                        @if($workshop->schedules && $workshop->schedules->count() > 0)
+                                            <div class="space-y-1.5">
+                                                @foreach($workshop->schedules->sortBy('day_of_week') as $schedule)
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded text-[10px] border border-zinc-200 uppercase font-black w-10 text-center">
+                                                            {{ ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][$schedule->day_of_week] ?? '' }}
+                                                        </span>
+                                                        <span class="text-zinc-900 font-bold text-xs">{{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }}</span>
+                                                        @if($schedule->max_students)
+                                                            <span class="text-[10px] text-zinc-500 font-medium">(Cupo: {{ $schedule->max_students }})</span>
+                                                        @endif
+                                                    </div>
+                                                @endforeach
+                                            </div>
                                         @else
-                                            <span class="text-rose-500 italic">Sin días</span>
+                                            <span class="text-rose-500 italic text-xs font-normal">Sin horarios configurados</span>
                                         @endif
                                     @endif
-                                    <div class="text-xs text-zinc-500 font-medium mt-0.5">
-                                        a las <span class="text-zinc-900 font-bold">{{ \Carbon\Carbon::parse($workshop->start_time)->format('H:i') }}</span>
-                                    </div>
                                 </td>
 
                                 {{-- Columna 4: Acciones --}}
                                 <td class="px-6 py-4 text-right space-x-3 flex justify-end items-center">
-                                    <button type="button" data-workshop="{{ json_encode($workshop) }}" onclick="openEditWorkshopModal(this)" class="text-sm font-bold text-zinc-500 hover:text-zinc-900 bg-zinc-50 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors duration-200">
+                                    {{-- LA CORRECCIÓN N+1: $workshop->toJson() --}}
+                                    <button type="button" data-workshop="{{ $workshop->toJson() }}" onclick="openEditWorkshopModal(this)" class="text-sm font-bold text-zinc-500 hover:text-zinc-900 bg-zinc-50 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors duration-200">
                                         Editar
                                     </button>
                                     <form action="{{ route('workshops.destroy', ['subdomain' => request()->route('subdomain'), 'workshop' => $workshop->id]) }}" method="POST" class="inline m-0">
@@ -154,7 +173,7 @@
     </div>
 
     {{-- MODAL DEL TALLER --}}
-    <div id="workshopModal" onclick="if(event.target === this) closeWorkshopModal()" class="fixed inset-0 z-50 hidden flex items-start justify-center p-4 sm:p-6 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto transition-opacity custom-scrollbar">
+    <div id="workshopModal" class="fixed inset-0 z-50 hidden flex items-start justify-center p-4 sm:p-6 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto transition-opacity custom-scrollbar">
         <div class="bg-white rounded-2xl p-6 md:p-8 max-w-3xl w-full shadow-xl border border-zinc-100 my-auto transform transition-all">
             
             <div class="flex justify-between items-center mb-6">
@@ -171,7 +190,7 @@
                 </div>
             @endif
 
-            <form id="workshopForm" method="POST">
+            <form id="workshopForm" method="POST" enctype="multipart/form-data">
                 @csrf
                 <div id="workshopMethod"></div>
                 <input type="hidden" name="workshop_id" id="w_id" value="{{ old('workshop_id') }}">
@@ -184,6 +203,14 @@
                         <input type="text" name="name" id="w_name" value="{{ old('name') }}" placeholder="Ej: Telas Principiante" 
                             class="w-full rounded-xl border {{ $errors->has('name') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all" required>
                         @error('name') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                    </div>
+                    
+                    {{-- Subida de Imagen --}}
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Imagen del Taller <span class="text-zinc-400 font-normal">(Opcional, máx 12MB)</span></label>
+                        <input type="file" name="image" id="w_image" accept="image/jpeg,image/png,image/jpg,image/webp"
+                            class="w-full rounded-xl border {{ $errors->has('image') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-3 py-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 cursor-pointer bg-white">
+                        @error('image') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     {{-- Área y Disciplina --}}
@@ -217,7 +244,7 @@
 
                     {{-- Público Objetivo --}}
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Público Objetivo (Edad aprox) *</label>
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Público Objetivo *</label>
                         <select name="target_audience" id="w_target_audience" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none cursor-pointer">
                             <option value="all" {{ old('target_audience') == 'all' ? 'selected' : '' }}>Todas las edades</option>
                             <option value="kids" {{ old('target_audience') == 'kids' ? 'selected' : '' }}>Niñas/os (hasta 12 años)</option>
@@ -227,13 +254,15 @@
                         @error('target_audience') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- SELECTOR DE PROFESOR --}}
+                    {{-- Entrenador --}}
                     <div>
                         <label class="block text-sm font-bold text-zinc-700 mb-1.5">Entrenador(a) Principal</label>
                         <select name="teacher_id" id="w_teacher_id" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
                             <option value="">-- Sin profesor asignado --</option>
                             @foreach($teachers as $teacher)
-                                <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>{{ $teacher->name }}</option>
+                                <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>
+                                    {{ $teacher->first_name }} {{ $teacher->last_name }}
+                                </option>
                             @endforeach
                         </select>
                         @error('teacher_id') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
@@ -269,7 +298,7 @@
 
                     {{-- Color --}}
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Color (Etiqueta de Calendario) *</label>
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Color (Calendario) *</label>
                         <select name="color" id="w_color" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer" required>
                             @foreach(['blue'=>'Azul Intenso','emerald'=>'Verde Esmeralda','teal'=>'Turquesa','cyan'=>'Celeste','indigo'=>'Índigo','purple'=>'Púrpura','fuchsia'=>'Fucsia','rose'=>'Rosa / Rojo','amber'=>'Ámbar / Naranja','slate'=>'Gris Oscuro'] as $val => $label)
                                 <option value="{{ $val }}" {{ old('color') == $val ? 'selected' : '' }}>{{ $label }}</option>
@@ -278,7 +307,7 @@
                         @error('color') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- TIPO DE CLASE --}}
+                    {{-- TIPO DE CLASE Y HORARIOS --}}
                     <div class="col-span-1 md:col-span-2 bg-zinc-50 p-5 rounded-xl border border-zinc-200 mt-2">
                         <label class="block text-[11px] font-black text-zinc-400 mb-3 uppercase tracking-widest">Frecuencia del Taller</label>
                         <div class="flex flex-col sm:flex-row gap-6 mb-4">
@@ -292,40 +321,41 @@
                             </label>
                         </div>
 
-                        <div id="container_repeat_day">
-                            <label class="block text-sm font-bold text-zinc-700 mb-2">Selecciona los días que se dicta *</label>
-                            <div class="flex flex-wrap gap-3">
-                                @foreach(['1'=>'Lun', '2'=>'Mar', '3'=>'Mié', '4'=>'Jue', '5'=>'Vie', '6'=>'Sáb', '0'=>'Dom'] as $val => $label)
-                                    <label class="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border {{ $errors->has('repeat_days') ? 'border-rose-300' : 'border-zinc-200' }} cursor-pointer hover:border-zinc-400 hover:shadow-sm transition-all">
-                                        <input type="checkbox" name="repeat_days[]" value="{{ $val }}" class="day-checkbox w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900" {{ in_array($val, old('repeat_days', [])) ? 'checked' : '' }}>
-                                        <span class="text-sm font-bold text-zinc-700">{{ $label }}</span>
-                                    </label>
-                                @endforeach
+                        {{-- Contenedor Horarios Múltiples (Mensual) --}}
+                        <div id="container_schedules" class="mt-2 border-t border-zinc-200/60 pt-4">
+                            <div class="flex justify-between items-center mb-4">
+                                <div>
+                                    <h4 class="text-sm font-bold text-zinc-900">Horarios Semanales</h4>
+                                    <p class="text-xs text-zinc-500">Agrega todos los bloques que necesites para este taller.</p>
+                                </div>
+                                <button type="button" onclick="addScheduleRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
+                                    + Agregar Horario
+                                </button>
                             </div>
-                            @error('repeat_days') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                            <div id="schedules_container" class="space-y-3"></div>
+                            @error('schedules') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
 
-                        <div id="container_specific_date" class="hidden">
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Fecha Exacta *</label>
-                            <input type="date" name="specific_date" id="w_specific_date" value="{{ old('specific_date') }}" onclick="try { this.showPicker(); } catch(e) {}"
-                                class="w-full md:w-1/2 rounded-xl border {{ $errors->has('specific_date') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
-                            @error('specific_date') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                        {{-- Contenedor Clase Única (Masterclass) --}}
+                        <div id="container_single_class_details" class="hidden mt-2 border-t border-zinc-200/60 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Fecha Exacta *</label>
+                                <input type="date" name="specific_date" id="w_specific_date" value="{{ old('specific_date') }}" onclick="try { this.showPicker(); } catch(e) {}"
+                                    class="w-full rounded-xl border {{ $errors->has('specific_date') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                                @error('specific_date') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio *</label>
+                                <input type="time" name="start_time" id="w_start_time" value="{{ old('start_time') }}" onclick="try { this.showPicker(); } catch(e) {}"
+                                    class="w-full rounded-xl border {{ $errors->has('start_time') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                                @error('start_time') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                            </div>
+                            <div>
+                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Cupo Máximo <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                                <input type="number" name="max_students" id="w_max_students" value="{{ old('max_students') }}" placeholder="Ej: 15" min="1"
+                                    class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
+                            </div>
                         </div>
-                    </div>
-                    
-                    {{-- Hora --}}
-                    <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio *</label>
-                        <input type="time" name="start_time" id="w_start_time" value="{{ old('start_time') }}" onclick="try { this.showPicker(); } catch(e) {}"
-                            class="w-full rounded-xl border {{ $errors->has('start_time') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer" required>
-                        @error('start_time') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
-                    </div>
-
-                    {{-- Cupo Máximo --}}
-                    <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Cupo Máximo <span class="text-zinc-400 font-normal">(Opcional)</span></label>
-                        <input type="number" name="max_students" id="w_max_students" value="{{ old('max_students') }}" placeholder="Ej: 15" min="1"
-                            class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none">
                     </div>
                     
                     {{-- PLANES DE PRECIOS --}}
@@ -333,14 +363,15 @@
                         <div class="flex justify-between items-center mb-4">
                             <div>
                                 <h4 class="text-sm font-bold text-zinc-900">Planes de Precios</h4>
-                                <p class="text-xs text-zinc-500">Configura cuánto cuestan los paquetes de clases para este taller.</p>
+                                <p class="text-xs text-zinc-500">Configura los paquetes estándar y los descuentos de bienvenida.</p>
                             </div>
                             <button type="button" onclick="addPriceRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
                                 + Agregar Plan
                             </button>
                         </div>
-                        <div id="prices_container" class="space-y-3"></div>
+                        <div id="prices_container" class="space-y-4"></div>
                         @error('prices') <p class="text-xs text-rose-500 font-bold mt-1">Error en la configuración de precios.</p> @enderror
+                        @error('prices.*.introductory_price') <p class="text-xs text-rose-500 font-bold mt-1">Revisa el precio promocional. Debe ser un número válido.</p> @enderror
                     </div>
 
                     {{-- Info Pago --}}
@@ -368,6 +399,7 @@
     <script>
         const categoryTree = @json($categoryTree ?? []);
         let priceIndex = 0;
+        let scheduleIndex = 0;
         let map;
         let marker;
 
@@ -485,47 +517,111 @@
             applyFilters();
         }
 
-        function addPriceRow(count = '', price = '', isMonthly = false) {
+        function toggleIntroPrice(checkbox, index) {
+            const container = document.getElementById(`intro_container_${index}`);
+            const input = document.getElementById(`intro_input_${index}`);
+            if(checkbox.checked) {
+                container.classList.remove('hidden');
+                input.setAttribute('required', 'required');
+            } else {
+                container.classList.add('hidden');
+                input.removeAttribute('required');
+                input.value = '';
+            }
+        }
+
+        function addPriceRow(count = '', price = '', isMonthly = false, introPrice = '', isIntroActive = false) {
             const container = document.getElementById('prices_container');
             const html = `
-                <div class="flex flex-col sm:flex-row items-end gap-3 p-4 bg-zinc-50 border border-zinc-200 rounded-xl relative group transition-all hover:border-zinc-300">
-                    <div class="w-full sm:w-1/4">
-                        <label class="block text-xs font-bold text-zinc-600 mb-1.5">N° Clases</label>
-                        <input type="number" name="prices[${priceIndex}][class_count]" value="${count}" placeholder="Ej: 4" min="1" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all">
+                <div class="p-5 bg-white border border-zinc-200 rounded-xl relative group transition-all hover:border-zinc-300 shadow-sm">
+                    <div class="flex flex-col sm:flex-row items-end gap-4">
+                        <div class="w-full sm:w-1/4">
+                            <label class="block text-xs font-bold text-zinc-600 mb-1.5">N° Clases</label>
+                            <input type="number" name="prices[${priceIndex}][class_count]" value="${count}" placeholder="Ej: 4" min="1" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white">
+                        </div>
+                        <div class="w-full sm:w-1/3">
+                            <label class="block text-xs font-bold text-zinc-600 mb-1.5">Precio Regular ($)</label>
+                            <input type="number" name="prices[${priceIndex}][price]" value="${price}" placeholder="Ej: 25000" min="0" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white">
+                        </div>
+                        <div class="w-full sm:w-1/3 pb-3 pl-1">
+                            <label class="flex items-center gap-2 cursor-pointer group/check">
+                                <input type="checkbox" name="prices[${priceIndex}][is_monthly]" value="1" ${isMonthly ? 'checked' : ''} class="w-4 h-4 text-zinc-900 rounded border-zinc-300 focus:ring-zinc-900 transition-all">
+                                <span class="text-xs font-bold text-zinc-700 group-hover/check:text-zinc-900">Aplica regla Mensual</span>
+                            </label>
+                        </div>
                     </div>
-                    <div class="w-full sm:w-1/3">
-                        <label class="block text-xs font-bold text-zinc-600 mb-1.5">Precio Total ($)</label>
-                        <input type="number" name="prices[${priceIndex}][price]" value="${price}" placeholder="Ej: 25000" min="0" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all">
+
+                    <div class="mt-4 pt-4 border-t border-zinc-100 flex flex-col sm:flex-row gap-4 items-center bg-emerald-50/50 p-4 rounded-lg border border-emerald-100/50">
+                        <div class="w-full sm:w-1/2 flex items-center gap-2">
+                            <input type="checkbox" name="prices[${priceIndex}][is_introductory_active]" value="1" ${isIntroActive ? 'checked' : ''} onchange="toggleIntroPrice(this, ${priceIndex})" class="w-4 h-4 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-600 cursor-pointer">
+                            <label class="text-xs font-bold text-emerald-800 cursor-pointer" onclick="this.previousElementSibling.click()">Ofrecer Promo "Alumno Nuevo"</label>
+                        </div>
+                        <div class="w-full sm:w-1/2 ${isIntroActive ? '' : 'hidden'}" id="intro_container_${priceIndex}">
+                            <div class="flex items-center gap-3">
+                                <label class="text-xs font-bold text-emerald-700 whitespace-nowrap">Precio Descuento ($)</label>
+                                <input type="number" name="prices[${priceIndex}][introductory_price]" id="intro_input_${priceIndex}" value="${introPrice}" placeholder="Ej: 15000" min="0" class="w-full rounded-lg border border-emerald-200 p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                            </div>
+                        </div>
                     </div>
-                    <div class="w-full sm:w-1/3 pb-3">
-                        <label class="flex items-center gap-2 cursor-pointer group/check">
-                            <input type="checkbox" name="prices[${priceIndex}][is_monthly]" value="1" ${isMonthly ? 'checked' : ''} class="w-4 h-4 text-zinc-900 rounded border-zinc-300 focus:ring-zinc-900 transition-all">
-                            <span class="text-xs font-bold text-zinc-700 group-hover/check:text-zinc-900">Regla Mensualidad</span>
-                        </label>
-                    </div>
-                    <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-7 h-7 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all">
+
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-8 h-8 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all z-10" title="Eliminar Plan">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html);
+            if(isIntroActive) {
+                document.getElementById(`intro_input_${priceIndex}`).setAttribute('required', 'required');
+            }
             priceIndex++;
+        }
+
+        function addScheduleRow(day = '', time = '', maxStudents = '') {
+            const container = document.getElementById('schedules_container');
+            const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+            
+            let options = days.map((name, index) => `<option value="${index}" ${day !== '' && day == index ? 'selected' : ''}>${name}</option>`).join('');
+
+            const html = `
+                <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-200 group relative transition-all hover:border-zinc-300 shadow-sm">
+                    <div class="w-1/3">
+                        <select name="schedules[${scheduleIndex}][day]" required class="w-full rounded-lg border-zinc-300 text-sm focus:ring-zinc-900 cursor-pointer">
+                            <option value="">Día...</option>
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="w-1/3">
+                        <input type="time" name="schedules[${scheduleIndex}][time]" value="${time}" required class="w-full rounded-lg border-zinc-300 text-sm focus:ring-zinc-900 cursor-pointer" onclick="try { this.showPicker(); } catch(e) {}">
+                    </div>
+                    <div class="w-1/3">
+                        <input type="number" name="schedules[${scheduleIndex}][max_students]" value="${maxStudents}" placeholder="Cupos (Opc.)" min="1" class="w-full rounded-lg border-zinc-300 text-sm focus:ring-zinc-900 bg-zinc-50 focus:bg-white">
+                    </div>
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute -right-2 -top-2 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-6 h-6 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all z-10" title="Eliminar Horario">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', html);
+            scheduleIndex++;
         }
 
         function toggleDateFields() {
             const isSingle = document.getElementById('type_single').checked;
-            const containerDay = document.getElementById('container_repeat_day');
-            const containerDate = document.getElementById('container_specific_date');
+            const containerSchedules = document.getElementById('container_schedules');
+            const containerSingle = document.getElementById('container_single_class_details');
             const inputDate = document.getElementById('w_specific_date');
+            const inputTime = document.getElementById('w_start_time');
 
             if (isSingle) {
-                containerDay.classList.add('hidden');
-                containerDate.classList.remove('hidden');
+                containerSchedules.classList.add('hidden');
+                containerSingle.classList.remove('hidden');
                 inputDate.setAttribute('required', 'required');
+                inputTime.setAttribute('required', 'required');
             } else {
-                containerDay.classList.remove('hidden');
-                containerDate.classList.add('hidden');
+                containerSchedules.classList.remove('hidden');
+                containerSingle.classList.add('hidden');
                 inputDate.removeAttribute('required');
+                inputTime.removeAttribute('required');
             }
         }
 
@@ -548,16 +644,32 @@
             }
         }
 
+        // ==========================================
+        // CONTROL DE CIERRE SEGURO DEL MODAL
+        // ==========================================
+        const modalBackdrop = document.getElementById('workshopModal');
+        let isMouseDownOnBackdrop = false;
+
+        modalBackdrop.addEventListener('mousedown', function(e) {
+            isMouseDownOnBackdrop = (e.target === modalBackdrop);
+        });
+
+        modalBackdrop.addEventListener('mouseup', function(e) {
+            if (isMouseDownOnBackdrop && e.target === modalBackdrop) {
+                closeWorkshopModal();
+            }
+            isMouseDownOnBackdrop = false;
+        });
+
         function openWorkshopModal() {
             document.getElementById('workshopForm').action = "{{ route('workshops.store', ['subdomain' => request()->route('subdomain')]) }}";
             document.getElementById('workshopMethod').innerHTML = "";
             document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
             document.getElementById('w_id').value = '';
             
-            // Solo resetear completamente si no venimos de un error de "Nuevo Taller"
             @if(!$errors->any() || old('workshop_id')) 
                 document.getElementById('workshopForm').reset(); 
-                document.getElementById('w_max_students').value = ''; 
+                document.getElementById('w_image').value = ''; 
                 document.getElementById('w_teacher_id').value = ''; 
                 document.getElementById('type_monthly').checked = true;
                 
@@ -576,10 +688,20 @@
                 document.getElementById('w_room_location').value = '';
                 toggleLocationFields();
                 
-                document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
+                // Reiniciar Masterclass
+                document.getElementById('w_specific_date').value = '';
+                document.getElementById('w_start_time').value = '';
+                document.getElementById('w_max_students').value = '';
+
+                // Reiniciar Horarios Multiples
+                document.getElementById('schedules_container').innerHTML = '';
+                scheduleIndex = 0;
+                addScheduleRow();
+
                 document.getElementById('prices_container').innerHTML = '';
                 priceIndex = 0;
                 addPriceRow(); 
+                
                 toggleDateFields();
             @endif
             
@@ -590,15 +712,15 @@
         function openEditWorkshopModal(buttonElement) {
             const w = JSON.parse(buttonElement.getAttribute('data-workshop'));
             
-            document.getElementById('workshopForm').action = `/workshops/${w.id}`;
+            let updateUrl = "{{ route('workshops.update', ['subdomain' => request()->route('subdomain'), 'workshop' => ':id']) }}";
+            document.getElementById('workshopForm').action = updateUrl.replace(':id', w.id);
             document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
             document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
             document.getElementById('w_id').value = w.id;
+            document.getElementById('w_image').value = ''; 
             
             document.getElementById('w_name').value = w.name;
             document.getElementById('w_color').value = w.color || 'blue';
-            document.getElementById('w_start_time').value = w.start_time;
-            document.getElementById('w_max_students').value = w.max_students || '';
             document.getElementById('w_payment').value = w.payment_info || '';
             document.getElementById('w_teacher_id').value = w.teacher_id || '';
             document.getElementById('w_target_audience').value = w.target_audience || 'adults';
@@ -630,27 +752,35 @@
                 document.getElementById('map').classList.remove('hidden');
                 setTimeout(() => google.maps.event.trigger(map, 'resize'), 50);
             }
-            
-            document.querySelectorAll('.day-checkbox').forEach(cb => cb.checked = false);
-            if (w.repeat_days && Array.isArray(w.repeat_days)) {
-                w.repeat_days.forEach(day => {
-                    const cb = document.querySelector(`.day-checkbox[value="${day}"]`);
-                    if(cb) cb.checked = true;
+
+            // Lógica Masterclass
+            document.getElementById('w_specific_date').value = w.specific_date || '';
+            document.getElementById('w_start_time').value = w.start_time || '';
+            document.getElementById('w_max_students').value = w.max_students || '';
+
+            // Lógica Horarios Dinámicos
+            document.getElementById('schedules_container').innerHTML = '';
+            scheduleIndex = 0;
+            if (!w.is_single_class && w.schedules && w.schedules.length > 0) {
+                w.schedules.forEach(sch => {
+                    addScheduleRow(sch.day_of_week, sch.start_time, sch.max_students || '');
                 });
+            } else {
+                addScheduleRow();
             }
 
             if (w.is_single_class) {
                 document.getElementById('type_single').checked = true;
-                document.getElementById('w_specific_date').value = w.specific_date;
             } else {
                 document.getElementById('type_monthly').checked = true;
             }
             toggleDateFields();
 
+            // Precios
             document.getElementById('prices_container').innerHTML = '';
             priceIndex = 0;
             if (w.prices && w.prices.length > 0) {
-                w.prices.forEach(p => addPriceRow(p.class_count, p.price, p.is_monthly));
+                w.prices.forEach(p => addPriceRow(p.class_count, p.price, p.is_monthly, p.introductory_price, p.is_introductory_active));
             } else {
                 addPriceRow();
             }
@@ -663,12 +793,13 @@
             document.body.style.overflow = '';
             document.getElementById('workshopModal').classList.add('hidden'); 
         }
-
+    
         @if($errors->any())
             document.addEventListener("DOMContentLoaded", function() {
                 const oldId = "{{ old('workshop_id') }}";
                 if (oldId) {
-                    document.getElementById('workshopForm').action = `/{{ request()->route('subdomain') }}/workshops/${oldId}`;
+                    let errorUrl = "{{ route('workshops.update', ['subdomain' => request()->route('subdomain'), 'workshop' => ':id']) }}";
+                    document.getElementById('workshopForm').action = errorUrl.replace(':id', oldId);
                     document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
                     document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
                 } else {
@@ -677,12 +808,32 @@
                     document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
                 }
 
-                // Restaurar Precios enviados si hay error
+                // Recuperar Horarios Dinamicos con error
+                const oldSchedules = @json(old('schedules', []));
+                document.getElementById('schedules_container').innerHTML = '';
+                scheduleIndex = 0;
+                if(oldSchedules && Object.keys(oldSchedules).length > 0) {
+                    Object.values(oldSchedules).forEach(sch => {
+                        addScheduleRow(sch.day, sch.time, sch.max_students || '');
+                    });
+                } else {
+                    addScheduleRow();
+                }
+
+                // Recuperar Precios con error
                 const oldPrices = @json(old('prices', []));
                 document.getElementById('prices_container').innerHTML = '';
                 priceIndex = 0;
                 if(oldPrices && Object.keys(oldPrices).length > 0) {
-                    Object.values(oldPrices).forEach(p => addPriceRow(p.class_count, p.price, p.is_monthly));
+                    Object.values(oldPrices).forEach(p => {
+                        addPriceRow(
+                            p.class_count, 
+                            p.price, 
+                            p.is_monthly, 
+                            p.introductory_price, 
+                            p.is_introductory_active
+                        );
+                    });
                 } else {
                     addPriceRow();
                 }

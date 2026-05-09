@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
+use Illuminate\Support\Facades\Config;
 use App\Models\Studio;
 
 class IdentifyStudio
@@ -20,8 +21,9 @@ class IdentifyStudio
             return redirect()->route('studios.index')->with('error', 'El estudio solicitado no existe.');
         }
 
-        // Guardamos el ID para los modelos (Global Scopes)
-        session(['current_studio_id' => $studio->id]);
+        // LA CURA: Guardamos el ID en la configuración del Request, NO en la sesión web.
+        // Esto muere automáticamente cuando la página termina de cargar.
+        Config::set('tenant.studio_id', $studio->id);
 
         // TRUCO 1: Automatizar el parámetro {subdomain} en todas las rutas route()
         URL::defaults(['subdomain' => $subdomain]);

@@ -20,7 +20,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('target_audience')->default('adults');
             $table->string('color')->default('blue');
-            $table->time('start_time');
+            $table->time('start_time')->nullable();
             $table->integer('max_students')->nullable();
             $table->text('payment_info')->nullable();
             
@@ -38,6 +38,8 @@ return new class extends Migration
             $table->string('region')->nullable();
             $table->string('country')->nullable();
             $table->string('room_location')->nullable();
+
+            $table->string('image_path')->nullable()->after('name');
             
             $table->timestamps();
         });

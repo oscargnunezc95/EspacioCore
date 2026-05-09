@@ -7,103 +7,123 @@ use App\Models\Student;
 use App\Models\Workshop;
 use App\Models\Payment;
 use App\Models\ClassSession;
+use App\Models\Attendance;
+use App\Models\Studio;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
 {
-    // Muestra la vista para registrar el pago
-    public function create(Student $student)
+    /**
+     * Procesa el pago manual (Efectivo/Transferencia) realizado por la dueña del estudio.
+     * Vincula el monto a sesiones específicas y automatiza la asistencia.
+     */
+    public function store(Request $request, $subdomain, Student $student)
     {
-        $workshops = Workshop::orderBy('name', 'asc')->get();
-        return view('payments.create', compact('student', 'workshops'));
-    }
-
-    // Procesa el pago y lo amarra a las fechas específicas
-    public function store(Request $request, Student $student)
-    {
+        // 1. Validación estricta de la entrada
         $request->validate([
-            'workshop_id' => 'required|exists:workshops,id',
             'amount' => 'required|numeric|min:0',
-            'receipt' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:10240',
-            'sessions' => 'required|array|min:1', // Exige que seleccione al menos 1 clase
-            'sessions.*' => 'exists:class_sessions,id'
+            'receipt' => 'nullable|file|mimes:jpeg,png,jpg,webp,pdf|max:10240',
+            'session_ids' => 'required|array|min:1', 
+            'session_ids.*' => 'exists:class_sessions,id'
         ], [
-            'sessions.required' => 'Debes seleccionar al menos una clase del calendario para aplicar el pago.',
-            'amount.required' => 'Debes ingresar el monto del pago.'
+            'session_ids.required' => 'Debes seleccionar al menos una clase del calendario.',
+            'amount.required' => 'El monto del pago es obligatorio.'
         ]);
 
-        // 1. Manejar el archivo del comprobante
+        // 2. Gestión de archivo de comprobante
         $path = null;
         if ($request->hasFile('receipt')) {
             $path = $request->file('receipt')->store('receipts', 'public');
         }
 
-        // 2. Guardar el registro del pago principal
-        $payment = Payment::create([
-            'student_id' => $student->id,
-            'workshop_id' => $request->workshop_id,
-            'payment_type' => count($request->sessions) == 1 ? 'single' : 'pack',
-            'amount' => $request->amount,
-            'receipt_path' => $path
-        ]);
+        // Recuperamos la primera sesión para determinar el taller asociado (contexto contable)
+        $firstSession = ClassSession::findOrFail($request->session_ids[0]);
 
-        // 3. LA MAGIA: Amarrar el pago a las sesiones seleccionadas
-        $pivotData = [];
-        foreach ($request->sessions as $sessionId) {
-            // Guardamos también el student_id en la tabla pivot para saber de quién es el cupo
-            $pivotData[$sessionId] = ['student_id' => $student->id];
-        }
-        $payment->classSessions()->attach($pivotData);
+        return DB::transaction(function () use ($request, $student, $path, $firstSession, $subdomain) {
+            
+            // 3. Crear el registro maestro del Pago
+            $payment = Payment::create([
+                'student_id'   => $student->id,
+                'workshop_id'  => $firstSession->workshop_id,
+                'payment_type' => count($request->session_ids) == 1 ? 'single' : 'pack',
+                'amount'       => $request->amount,
+                'receipt_path' => $path
+            ]);
 
-        // 4. (Opcional) Asegurarnos de que la alumna/oesté vinculada al taller en general
-        $student->workshops()->syncWithoutDetaching([$request->workshop_id]);
+            // 4. Vinculación en tabla pivot (Conciliación de clases pagadas)
+            $pivotData = [];
+            foreach ($request->session_ids as $sessionId) {
+                $pivotData[$sessionId] = ['student_id' => $student->id];
+            }
+            $payment->classSessions()->attach($pivotData);
 
-        return redirect()->route('students.index')->with('success', '¡Pago registrado! Las clases seleccionadas ya están cubiertas.');
+            // 5. AUTOMATIZACIÓN DE FLUJO: Inscripción + Asistencia (Regla "Cupo Pagado = Cupo Consumido")
+            foreach ($request->session_ids as $sessionId) {
+                $session = ClassSession::find($sessionId);
+                
+                // 5.1 Asegurar inscripción (reserva de cupo)
+                $session->students()->syncWithoutDetaching([$student->id]);
+                
+                // 5.2 Marcar presente automáticamente
+                // Esto elimina la deuda visual en el calendario (pasa de rojo a azul/verde)
+                Attendance::firstOrCreate([
+                    'class_session_id' => $sessionId,
+                    'student_id'       => $student->id
+                ]);
+            }
+
+            return back()->with('success', '¡Pago y asistencia registrados correctamente!');
+        });
     }
 
-    // -------------------------------------------------------------
-    // NUEVO MÉTODO: Busca las clases impagas para el JavaScript
-    // -------------------------------------------------------------
-    public function getAvailableSessions(Student $student)
+    /**
+     * Anula un pago realizado.
+     * Gracias a cascadeOnDelete, se limpia la relación de clases pagadas,
+     * pero mantenemos la asistencia por integridad histórica.
+     */
+    public function destroy($subdomain, Payment $payment)
     {
-        // 1. Buscar los IDs de las sesiones que esta alumna/oYA PAGÓ
+        if ($payment->receipt_path) {
+            Storage::disk('public')->delete($payment->receipt_path);
+        }
+
+        $payment->delete();
+
+        return back()->with('success', 'Pago anulado. Las clases vuelven a figurar como pendientes de pago.');
+    }
+
+    /**
+     * API Endpoint: Retorna sesiones disponibles para cobro (que no han sido pagadas aún)
+     */
+    public function getAvailableSessions($subdomain, Student $student)
+    {
+        // IDs de sesiones ya pagadas por este alumno
         $paidSessionIds = DB::table('class_session_payment')
             ->where('student_id', $student->id)
             ->pluck('class_session_id')
             ->toArray();
 
-        // 2. Buscamos TODAS las sesiones desde inicio de mes (sin importar el taller)
+        // Buscamos sesiones del estudio no pagadas por él
         $sessions = ClassSession::with('workshop')
+            ->where('studio_id', function($query) use ($subdomain) {
+                $query->select('id')->from('studios')->where('subdomain', $subdomain);
+            })
             ->where('date', '>=', now()->startOfMonth())
             ->whereNotIn('id', $paidSessionIds)
             ->orderBy('date', 'asc')
             ->get();
 
-        // 3. Formateamos enviando el nombre del taller incluido
-        $formattedSessions = $sessions->map(function ($session) {
-            $date = Carbon::parse($session->date);
+        $formatted = $sessions->map(function ($session) {
             return [
-                'id' => $session->id,
-                'workshop_name' => $session->workshop->name, // <- AHORA MANDAMOS EL NOMBRE
-                'formatted_date' => ucfirst($date->translatedFormat('l d \d\e F')),
-                'time' => Carbon::parse($session->start_time)->format('H:i')
+                'id'            => $session->id,
+                'workshop_name' => $session->workshop->name,
+                'formatted_date'=> ucfirst(Carbon::parse($session->date)->translatedFormat('l d \d\e F')),
+                'time'          => Carbon::parse($session->start_time)->format('H:i')
             ];
         });
 
-        return response()->json($formattedSessions);
-    }
-    public function destroy(Payment $payment)
-    {
-        // 1. Borrar la foto del comprobante del servidor (opcional pero recomendado)
-        if ($payment->receipt_path) {
-            \Illuminate\Support\Facades\Storage::disk('public')->delete($payment->receipt_path);
-        }
-
-        // 2. Borrar el pago. Gracias al "cascadeOnDelete" de la base de datos, 
-        // las clases asociadas volverán a estar pendientes automáticamente.
-        $payment->delete();
-
-        return back()->with('success', 'Pago anulado correctamente. Las clases volvieron a quedar pendientes.');
+        return response()->json($formatted);
     }
 }

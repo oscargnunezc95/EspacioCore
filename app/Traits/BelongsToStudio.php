@@ -4,6 +4,7 @@ namespace App\Traits;
 
 use App\Models\Studio;
 use App\Models\Scopes\StudioScope;
+use Illuminate\Support\Facades\Config;
 
 trait BelongsToStudio
 {
@@ -14,8 +15,11 @@ trait BelongsToStudio
 
         // 2. Al crear (Insert): Inyectar el ID del estudio silenciosamente
         static::creating(function ($model) {
-            if (session()->has('current_studio_id')) {
-                $model->studio_id = session('current_studio_id');
+            // LA CURA FINAL: Inyectamos el ID basado en el ciclo de vida de la petición
+            $studioId = Config::get('tenant.studio_id');
+            
+            if ($studioId !== null) {
+                $model->studio_id = $studioId;
             }
         });
     }
