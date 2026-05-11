@@ -21,16 +21,17 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Cada vez que Laravel vaya a renderizar la vista de navegación, ejecutará esto:
-        View::composer('layouts.navigation', function ($view) {
-            $portalBadgeCount = 0;
-            
-            if (Auth::check()) {
-                $portalBadgeCount = Auth::user()->getUnpaidClassesCount();
+        // Ampliamos el "radar" para que la variable llegue sin importar 
+        // cómo se llame exactamente el archivo de tu navbar
+        View::composer(
+            ['layouts.navigation', 'layouts.app', 'components.navigation', 'navigation'], 
+            function ($view) {
+                $count = 0;
+                if (Auth::check()) {
+                    $count = Auth::user()->pending_reservations_count;
+                }
+                $view->with('portalBadgeCount', $count);
             }
-
-            // Inyectamos la variable limpia a la vista
-            $view->with('portalBadgeCount', $portalBadgeCount);
-        });
+        );
     }
 }

@@ -40,6 +40,4 @@ class Studio extends Model
     {
         return $this->hasMany(Workshop::class);
     }
-
-    // Puedes agregar las demás relaciones (payments, classSessions, etc) si las necesitas
 }

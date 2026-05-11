@@ -6,6 +6,10 @@
     // CLASES DE ESTILO PARA MÓVILES
     $mobileActive = 'border-zinc-900 text-zinc-900 bg-zinc-50 font-bold';
     $mobileInactive = 'border-transparent text-zinc-600 font-medium hover:bg-zinc-50 hover:border-zinc-300 hover:text-zinc-900';
+
+    // LÓGICA DE RUTA ACTIVA PARA "MIS ESPACIOS"
+    // Estará encendido si estamos en la lista principal O si estamos navegando dentro de un subdominio
+    $isStudioRouteActive = request()->routeIs('studios.*') || request()->route('subdomain') !== null;
 @endphp
 
 <nav x-data="{ mobileMenuOpen: false }" class="bg-white border-b border-zinc-200/80 sticky top-0 z-50">
@@ -32,6 +36,7 @@
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
                             </svg>
+                            {{-- GLOBO ROJO ALIMENTADO POR EL VIEW COMPOSER --}}
                             <span id="portal-badge" style="{{ $portalBadgeCount > 0 ? 'display:flex;' : 'display:none;' }}" 
                                 class="absolute -top-1.5 -right-2 bg-rose-500 text-white text-[10px] font-black w-4 h-4 rounded-full items-center justify-center shadow-sm">
                                 {{ $portalBadgeCount }}
@@ -57,9 +62,9 @@
                             <span>Portal Profesor</span>
                         </a>
                         
-                        {{-- Mis Espacios --}}
-                        <a href="{{ route('studios.index') }}" class="inline-flex items-center gap-1.5 px-4 py-3.5 border-b-2 text-sm transition-all duration-200 {{ request()->routeIs('studios.*') ? $desktopActive : $desktopInactive }}">
-                            <svg class="w-5 h-5 transition-colors {{ request()->routeIs('studios.*') ? 'text-zinc-900' : 'text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        {{-- Mis Espacios (LÓGICA ACTUALIZADA) --}}
+                        <a href="{{ route('studios.index') }}" class="inline-flex items-center gap-1.5 px-4 py-3.5 border-b-2 text-sm transition-all duration-200 {{ $isStudioRouteActive ? $desktopActive : $desktopInactive }}">
+                            <svg class="w-5 h-5 transition-colors {{ $isStudioRouteActive ? 'text-zinc-900' : 'text-zinc-400' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5-.615a3.001 3.001 0 013.75-.615m0 0a3.001 3.001 0 003.75-.615m0 0a3.001 3.001 0 013.75-.615m0 0a3.001 3.001 0 003.75-.615m0 0V5.25A2.25 2.25 0 0019.5 3h-15a2.25 2.25 0 00-2.25 2.25v.894M7.5 15h9m-9 0V15h9"></path>
                             </svg>
                             <span>Mis Espacios</span>
@@ -105,6 +110,11 @@
                             </div>
                             <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">Configuración de Perfil</a>
                             
+                            {{-- ENLACE AL HISTORIAL DE PAGOS --}}
+                            <a href="{{ route('global.payments.index') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">
+                                Historial de Pagos
+                            </a>
+                            
                             <form method="POST" action="{{ route('logout') }}">
                                 @csrf
                                 <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-rose-600 font-bold hover:bg-rose-50 transition">
@@ -149,7 +159,8 @@
             @endguest
 
             @auth
-                <a href="{{ route('studios.index') }}" class="block pl-4 pr-4 py-3 border-l-4 text-base transition-colors {{ request()->routeIs('studios.*') ? $mobileActive : $mobileInactive }}">
+                {{-- LÓGICA ACTUALIZADA PARA MIS ESPACIOS MÓVIL --}}
+                <a href="{{ route('studios.index') }}" class="block pl-4 pr-4 py-3 border-l-4 text-base transition-colors {{ $isStudioRouteActive ? $mobileActive : $mobileInactive }}">
                     Mis Espacios (Lobby)
                 </a>
                 
@@ -183,6 +194,12 @@
                             <div class="text-sm font-medium text-zinc-500">{{ Auth::user()->email }}</div>
                         </div>
                     </div>
+                    
+                    {{-- HISTORIAL DE PAGOS MÓVIL --}}
+                    <a href="{{ route('global.payments.index') }}" class="block pl-4 pr-4 py-3 text-base font-medium text-zinc-600 hover:bg-zinc-50 transition">
+                        Historial de Pagos
+                    </a>
+
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="block w-full text-left pl-4 pr-4 py-3 text-base font-bold text-rose-600 hover:bg-rose-50 transition">Cerrar Sesión</button>

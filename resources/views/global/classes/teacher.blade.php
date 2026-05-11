@@ -50,19 +50,30 @@
                         
                         @if($classCount > 0)
                             @php
-                                // Preparamos la data para el JS inyectando la imagen
+                                // Preparamos la data para el JS inyectando la imagen y el estado de cancelación
                                 $dayData = $sessionsInDay->map(function($s) {
+                                    
                                     $imageUrl = $s->workshop->image_path 
                                         ? asset('storage/' . $s->workshop->image_path) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
-                                        
+                                    
+                                    $studioLogo = $s->workshop->studio->icon_path ?? $s->workshop->studio->logo_path ?? null;
+                                    $studioAvatar = $studioLogo 
+                                        ? asset('storage/' . $studioLogo) 
+                                        : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
+
+                                    // LÓGICA DE CANCELACIÓN: Ajusta esto según el nombre real de tu columna en MySQL
+                                    $isCancelled = $s->is_cancelled ?? ($s->status === 'cancelled') ?? false;
+
                                     return [
                                         'id' => $s->id,
                                         'time' => \Carbon\Carbon::parse($s->start_time)->format('H:i'),
                                         'name' => $s->workshop->name,
                                         'studio' => $s->workshop->studio->name,
+                                        'studio_avatar' => $studioAvatar,
                                         'url' => route('global.classes.teacher.session', $s->id),
-                                        'image' => $imageUrl
+                                        'image' => $imageUrl,
+                                        'is_cancelled' => (bool) $isCancelled // <-- Pasamos el estado
                                     ];
                                 })->toJson();
                                 $formattedDate = \Carbon\Carbon::parse($cur)->translatedFormat('l d \d\e F');
@@ -88,6 +99,7 @@
         </div>
     </div>
 
+    {{-- MODAL CON LA LISTA DE CLASES DEL DÍA --}}
     <div id="dayClassesModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 sm:p-6">
         <div class="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity" onclick="closeDayClasses()"></div>
         
@@ -116,29 +128,47 @@
         function openDayClasses(dateStr, classesArray) {
             document.getElementById('modalDayDate').innerText = dateStr;
             
-            // Limpiamos el contenedor
             listContainer.innerHTML = '';
 
-            // Pintamos las clases (AHORA CON IMAGEN)
+            // Pintamos las clases evaluando si están canceladas
             classesArray.forEach(cls => {
                 const link = document.createElement('a');
                 link.href = cls.url;
-                link.className = "block bg-white border border-zinc-200 hover:border-indigo-300 hover:shadow-md rounded-2xl p-3 md:p-4 transition-all duration-200 group";
                 
+                // Si está cancelada, aplicamos estilos opacos y sin hover. Si está activa, aplicamos los estilos de siempre.
+                link.className = cls.is_cancelled 
+                    ? "block bg-zinc-50 border border-zinc-200 rounded-2xl p-3 md:p-4 opacity-75 grayscale-[30%] cursor-not-allowed"
+                    : "block bg-white border border-zinc-200 hover:border-indigo-300 hover:shadow-md rounded-2xl p-3 md:p-4 transition-all duration-200 group";
+                
+                // Textos dinámicos
+                const titleClass = cls.is_cancelled ? "text-zinc-500 line-through" : "text-zinc-900 group-hover:text-indigo-600 transition-colors";
+                const timeBadgeClass = cls.is_cancelled ? "bg-zinc-200 text-zinc-500 border-zinc-300" : "bg-indigo-50 text-indigo-600 border-indigo-100";
+                
+                // Badge de Cancelado (solo si es true)
+                const cancelledBadge = cls.is_cancelled 
+                    ? `<span class="bg-rose-100 text-rose-700 text-[9px] font-black px-2 py-0.5 rounded border border-rose-200 uppercase tracking-widest ml-2">Cancelada</span>` 
+                    : ``;
+
                 link.innerHTML = `
-                    <div class="flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                            <img src="${cls.image}" alt="cover" class="w-12 h-12 rounded-xl object-cover border border-zinc-100 shadow-sm">
-                            <div>
-                                <h4 class="text-sm font-bold text-zinc-900 group-hover:text-indigo-600 transition-colors leading-tight">${cls.name}</h4>
-                                <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1 line-clamp-1">${cls.studio}</p>
+                    <div class="flex justify-between items-center relative">
+                        <div class="flex items-center gap-4 min-w-0">
+                            <img src="${cls.image}" alt="cover" class="w-12 h-12 rounded-xl object-cover border border-zinc-100 shadow-sm shrink-0">
+                            <div class="min-w-0">
+                                <h4 class="text-sm font-bold leading-tight truncate flex items-center ${titleClass}">
+                                    ${cls.name}
+                                </h4>
+                                <div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                                    <img src="${cls.studio_avatar}" class="w-4 h-4 rounded-[5px] object-cover bg-zinc-900 shadow-sm border border-zinc-100 shrink-0">
+                                    <p class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest truncate">${cls.studio}</p>
+                                    ${cancelledBadge}
+                                </div>
                             </div>
                         </div>
-                        <div class="flex items-center gap-3">
-                            <div class="bg-indigo-50 text-indigo-600 font-black text-sm px-3 py-1.5 rounded-lg border border-indigo-100">
+                        <div class="flex items-center gap-3 shrink-0 ml-2">
+                            <div class="font-black text-sm px-3 py-1.5 rounded-lg border ${timeBadgeClass}">
                                 ${cls.time}
                             </div>
-                            <svg class="w-5 h-5 text-zinc-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            ${!cls.is_cancelled ? `<svg class="w-5 h-5 text-zinc-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>` : ''}
                         </div>
                     </div>
                 `;

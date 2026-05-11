@@ -12,7 +12,8 @@ class TrainingMonthController extends Controller
 {
     public function index($subdomain)
     {
-        $months = ClassSession::selectRaw('strftime("%Y-%m", date) as month_id, MIN(date) as first_date')
+        // CORRECCIÓN CRÍTICA: Sintaxis nativa de MySQL para producción
+        $months = ClassSession::selectRaw('DATE_FORMAT(date, "%Y-%m") as month_id, MIN(date) as first_date')
             ->groupBy('month_id')
             ->orderBy('first_date', 'desc')
             ->get();

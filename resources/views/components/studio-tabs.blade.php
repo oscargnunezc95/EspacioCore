@@ -39,7 +39,7 @@
     </div>
 
     {{-- Espaciador para el logo que sobresale --}}
-    <div class="h-8 w-full bg-white border-b border-zinc-100"></div>
+    <div class="h-full w-full bg-white border-b border-zinc-100"></div>
 
     {{-- ========================================== --}}
     {{-- NAVEGACIÓN (TABS) --}}

@@ -38,9 +38,9 @@ class Workshop extends Model
     protected $casts = [
         'is_single_class' => 'boolean',
         'use_main_location' => 'boolean',
-        'repeat_days' => 'array', // Convierte el JSON de la BD a un array de PHP y viceversa
+        'repeat_days' => 'array', 
         'specific_date' => 'date',
-        'start_time' => 'datetime:H:i', // Para que Blade lo formatee fácil si usas Carbon
+        'start_time' => 'datetime:H:i', 
         'latitude' => 'decimal:8',
         'longitude' => 'decimal:8',
     ];
@@ -66,36 +66,41 @@ class Workshop extends Model
         return $this->hasMany(ClassSession::class);
     }
 
-    // ---> ESTA ES LA RELACIÓN QUE FALTABA <---
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
     }
+
     public function discipline()
     {
         return $this->belongsTo(Discipline::class);
     }
-    // En App\Models\Workshop.php
 
     /**
-     * Obtiene la imagen del taller. Si no tiene, devuelve el logo del estudio.
+     * Obtiene la imagen del taller. Si no tiene, devuelve el icono/logo del estudio.
      * Si el estudio tampoco tiene, devuelve una imagen por defecto.    
      */
     public function getCoverImageUrlAttribute()
     {
+        // 1. Imagen propia del taller
         if ($this->image_path) {
             return asset('storage/' . $this->image_path);
         }
 
-        if ($this->studio && $this->studio->logo_path) {
-            return asset('storage/' . $this->studio->logo_path);
+        // 2. OPTIMIZACIÓN ARQUITECTÓNICA: Priorizamos el icon_path ligero del estudio
+        if ($this->studio) {
+            $studioImage = $this->studio->icon_path ?? $this->studio->logo_path;
+            if ($studioImage) {
+                return asset('storage/' . $studioImage);
+            }
         }
 
-        // Imagen por defecto genérica si nadie subió nada
+        // 3. Imagen por defecto genérica
         return asset('images/default-workshop.jpg'); 
     }
+
     public function schedules()
-{
-    return $this->hasMany(WorkshopSchedule::class);
-}
+    {
+        return $this->hasMany(WorkshopSchedule::class);
+    }
 }

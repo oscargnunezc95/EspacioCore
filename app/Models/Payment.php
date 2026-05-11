@@ -20,8 +20,6 @@ class Payment extends Model
 
     public function student()
     {
-        // Usamos withTrashed() por si la alumna/ofue eliminada (Soft Delete), 
-        // para que el historial de pagos no se rompa y siga mostrando su nombre.
         return $this->belongsTo(Student::class)->withTrashed();
     }
 
@@ -30,7 +28,6 @@ class Payment extends Model
         return $this->belongsTo(Workshop::class);
     }
 
-    // Permite saber exactamente qué sesiones específicas cubrió este pago
     public function classSessions()
     {
         return $this->belongsToMany(ClassSession::class, 'class_session_payment')

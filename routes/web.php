@@ -9,7 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\WorkshopController;
 use App\Http\Controllers\TrainingMonthController;
-use App\Http\Controllers\SessionController;
+use App\Http\Controllers\ClassSessionController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StudioController;
@@ -45,6 +45,7 @@ Route::domain($baseDomain)->group(function () {
         
         // Carrito
         Route::get('/mis-reservas', [App\Http\Controllers\Global\CartController::class, 'index'])->name('cart.index');
+        Route::post('/api/cart/calculate', [App\Http\Controllers\Global\CartController::class, 'calculate'])->name('api.cart.calculate');
         Route::post('/api/cart/guest-sessions', [App\Http\Controllers\Global\CartController::class, 'getGuestSessions']);
 
         // Selección y Creación de Estudios (Lobby)
@@ -62,6 +63,9 @@ Route::domain($baseDomain)->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update'); 
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+        // Historial de Pagos del Usuario
+        Route::get('/mis-pagos', [\App\Http\Controllers\Global\PaymentHistoryController::class, 'index'])->name('global.payments.index');
         
         Route::post('/api/student/enroll-toggle', [UserClassController::class, 'toggleEnrollment'])->name('global.student.enroll.toggle');
     });
@@ -112,10 +116,10 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
         Route::get('/trainingmonth/{month}', [TrainingMonthController::class, 'show'])->name('trainingmonth.show');
 
         // Sesiones y Asistencias (Nueva ruta de Drop-in/Inscripción individual)
-        Route::get('/sessions/{session}', [SessionController::class, 'show'])->name('sessions.show');
-        Route::put('/sessions/{session}', [SessionController::class, 'update'])->name('sessions.update');
-        Route::patch('/sessions/{session}/cancel', [SessionController::class, 'cancel'])->name('sessions.cancel');
-        Route::post('/sessions/{session}/enroll', [SessionController::class, 'enrollStudent'])->name('sessions.enroll');
+        Route::get('/sessions/{session}', [ClassSessionController::class, 'show'])->name('sessions.show');
+        Route::put('/sessions/{session}', [ClassSessionController::class, 'update'])->name('sessions.update');
+        Route::patch('/sessions/{session}/cancel', [ClassSessionController::class, 'cancel'])->name('sessions.cancel');
+        Route::post('/sessions/{session}/enroll', [ClassSessionController::class, 'enrollStudent'])->name('sessions.enroll');
         Route::post('/sessions/{session}/attendance/{student}', [AttendanceController::class, 'toggle'])->name('attendance.toggle');
 
         // Pagos

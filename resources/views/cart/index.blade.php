@@ -241,8 +241,18 @@
             calculateCart();
         }
 
+        // ==========================================
+        // 5. MOTOR DE PRECIOS Y CHECKBOXES
+        // ==========================================
+        function toggleStudioSelection(masterCheckbox, studioId) {
+            const checkboxes = document.querySelectorAll(`input.session-checkbox[data-studio-id="${studioId}"]`);
+            checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
+            calculateCart();
+        }
+
         function calculateCart() {
             const studioGroups = document.querySelectorAll('.studio-cart-group');
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             
             studioGroups.forEach(group => {
                 const studioId = group.getAttribute('data-studio-id');
@@ -252,71 +262,81 @@
                 const totalEl = document.getElementById(`total-${studioId}`);
                 const breakdownEl = document.getElementById(`breakdown-${studioId}`);
 
+                // Si no hay nada seleccionado, apagamos todo y salimos
                 if (checkedBoxes.length === 0) {
                     btnPay.disabled = true;
+                    btnPay.innerHTML = `Pagar Selección`;
                     totalEl.innerText = "$0";
                     breakdownEl.innerHTML = "<span class='text-zinc-400'>0 clases seleccionadas</span>";
                     return;
                 }
 
-                btnPay.disabled = false;
+                // 1. BLOQUEO UI: Desactivamos el botón y ponemos el spinner
+                btnPay.disabled = true; 
+                btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
                 
-                let tallyByWorkshop = {};
-                let totalCents = 0;
+                totalEl.innerHTML = `<span class="animate-pulse text-zinc-400 text-lg">Calculando...</span>`;
 
-                checkedBoxes.forEach(cb => {
-                    const wId = cb.getAttribute('data-workshop-id');
-                    const price = parseInt(cb.getAttribute('data-base-price'));
-                    
-                    let rawPromos = cb.getAttribute('data-promotions');
-                    let promos = rawPromos ? JSON.parse(rawPromos) : [];
+                const sessionIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
 
-                    if (!tallyByWorkshop[wId]) {
-                        tallyByWorkshop[wId] = { 
-                            count: 0, 
-                            basePrice: price, 
-                            name: cb.closest('li').querySelector('p.font-bold').innerText,
-                            promotions: promos 
-                        };
+                // 2. FETCH AL SERVIDOR
+                fetch("{{ route('api.cart.calculate') }}", {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'X-CSRF-TOKEN': token, 
+                        'Accept': 'application/json' 
+                    },
+                    body: JSON.stringify({ 
+                        studio_id: parseInt(studioId), 
+                        session_ids: sessionIds 
+                    })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.error) {
+                        alert(data.error);
+                        totalEl.innerText = "$0";
+                        btnPay.innerHTML = `Pagar Selección`;
+                    } else {
+                        // 3. DESBLOQUEO UI: Restauramos el botón y pintamos datos
+                        breakdownEl.innerHTML = data.breakdown_html;
+                        totalEl.innerText = data.total_formatted;
+                        btnPay.innerHTML = `Pagar Selección`;
+                        btnPay.disabled = false; // Solo se habilita cuando ya tenemos el total real
                     }
-                    tallyByWorkshop[wId].count++;
+                })
+                .catch(err => {
+                    console.error("Error al calcular:", err);
+                    totalEl.innerText = "Error";
+                    btnPay.innerHTML = `Pagar Selección`;
                 });
-
-                let breakdownHtml = '';
-
-                for (const wId in tallyByWorkshop) {
-                    const data = tallyByWorkshop[wId];
-                    let remainingCount = data.count;
-                    let subtotal = 0;
-                    let hasPromoApplied = false;
-
-                    if(data.promotions && data.promotions.length > 0) {
-                        data.promotions.forEach(promo => {
-                            if(remainingCount >= promo.classes) {
-                                let packs = Math.floor(remainingCount / promo.classes);
-                                subtotal += packs * promo.price;
-                                remainingCount = remainingCount % promo.classes; 
-                                hasPromoApplied = true;
-                            }
-                        });
-                    }
-
-                    subtotal += remainingCount * data.basePrice;
-                    totalCents += subtotal;
-                    
-                    let promoBadge = hasPromoApplied ? `<span class="bg-emerald-100 text-emerald-700 text-[10px] px-1.5 py-0.5 rounded ml-2 font-black uppercase">Promo Pack</span>` : '';
-
-                    breakdownHtml += `
-                        <div class="flex justify-between items-center mt-2 text-sm border-b border-zinc-100 pb-2 last:border-0">
-                            <span class="text-zinc-600 font-medium">${data.count}x ${data.name} ${promoBadge}</span>
-                            <span class="font-black text-zinc-900">$${new Intl.NumberFormat('es-CL').format(subtotal)}</span>
-                        </div>
-                    `;
-                }
-
-                breakdownEl.innerHTML = breakdownHtml;
-                totalEl.innerText = `$${new Intl.NumberFormat('es-CL').format(totalCents)}`;
             });
+        }
+
+        // ==========================================
+        // 6. CONTROLADORES DEL MODAL DE PROMOCIONES
+        // ==========================================
+        function openPromoModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const card = modal.querySelector('.modal-card');
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                card.classList.remove('scale-95', 'opacity-0');
+                card.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closePromoModal(modalId) {
+            const modal = document.getElementById(modalId);
+            const card = modal.querySelector('.modal-card');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
         }
 
         function payStudio(studioId) {

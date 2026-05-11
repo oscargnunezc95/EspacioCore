@@ -7,14 +7,12 @@ use Illuminate\Validation\Rule;
 use App\Models\Student;
 use App\Models\Studio;
 use App\Models\ClassSession;
-use App\Http\Controllers\SessionController;
-use App\Models\Attendance;
-use Illuminate\Support\Facades\DB;
+use App\Models\Payment; // <-- IMPORTACIÓN NECESARIA PARA REEMPLAZAR EL DB::table
 use Illuminate\Support\Facades\Config;
 use Carbon\Carbon;
 use App\Services\DocumentService;
 use App\Rules\ValidDocument;
-use App\Models\Country; // <-- IMPORTACIÓN CLAVE PARA BUSCAR EL PAÍS
+use App\Models\Country; 
 
 class StudentController extends Controller
 {
@@ -74,12 +72,12 @@ class StudentController extends Controller
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
-            'country_id'  => 'required|exists:countries,id', // <-- OBLIGAMOS A ENVIAR UN PAÍS VALIDO
+            'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
-                'nullable', // Cambia a 'required' si el documento es estrictamente obligatorio para el estudio
+                'nullable', 
                 'string',
                 'max:255',
-                new ValidDocument($countryCode), // Valida según sea 'CL' o 'OT'
+                new ValidDocument($countryCode),
                 Rule::unique('students', 'national_id')->where(function ($query) use ($studioId) {
                     return $query->where('studio_id', $studioId);
                 })
@@ -113,7 +111,7 @@ class StudentController extends Controller
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
-            'country_id'  => 'required|exists:countries,id', // <-- OBLIGAMOS A ENVIAR UN PAÍS VALIDO
+            'country_id'  => 'required|exists:countries,id',
             'national_id' => [
                 'nullable',
                 'string',
@@ -159,7 +157,8 @@ class StudentController extends Controller
         $student = Student::withTrashed()->findOrFail($studentId);
         $monthDate = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
 
-        $sessions = ClassSession::with(['workshop', 'students', 'attendances'])
+        // 1. Cargamos las relaciones completas para la grilla del calendario
+        $sessions = ClassSession::with(['workshop.studio', 'students', 'attendances'])
             ->where('studio_id', $studio->id)
             ->whereYear('date', $monthDate->year)
             ->whereMonth('date', $monthDate->month)
@@ -168,9 +167,14 @@ class StudentController extends Controller
 
         $sessionsByDate = $sessions->groupBy('date');
 
-        $paidSessionIds = DB::table('class_session_payment')
-            ->where('student_id', $student->id)
-            ->pluck('class_session_id')
+        // 2. Consulta Eloquent limpia para extraer los IDs pagados sin usar DB::table()
+        $paidSessionIds = Payment::where('student_id', $student->id)
+            ->with('classSessions')
+            ->get()
+            ->flatMap(function($payment) {
+                return $payment->classSessions->pluck('id');
+            })
+            ->unique()
             ->toArray();
 
         return view('students.calendar', compact('student', 'monthDate', 'sessionsByDate', 'paidSessionIds'));

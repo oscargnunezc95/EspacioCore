@@ -71,65 +71,85 @@
                                         default => 'bg-blue-500',
                                     };
                                     
-                                    // Evaluaciones de estado de la alumna
+                                    // CORRECCIÓN CRÍTICA: Cambiado $session por $s
+                                    $imageUrl = $s->workshop->image_path 
+                                        ? asset('storage/' . $s->workshop->image_path) 
+                                        : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
+
+                                    $studioLogo = $s->workshop->studio->icon_path ?? $s->workshop->studio->logo_path ?? null;
+                                    $studioImageUrl = $studioLogo 
+                                        ? asset('storage/' . $studioLogo) 
+                                        : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
+
+                                    // LÓGICA DE ESTADOS
                                     $isEnrolled = $s->students->contains('id', $student->id);
                                     $hasAttendance = $s->attendances->contains('student_id', $student->id);
-                                    
-                                    // ¿Pagó o no pagó?
                                     $isPaid = in_array($s->id, $paidSessionIds);
-                                    
-                                    // ¿Es una obligación cobrarle (porque vino o porque está inscrita)?
+                                    $isCancelled = $s->is_cancelled ?? ($s->status === 'cancelled') ?? false;
                                     $isObligation = $isEnrolled || $hasAttendance;
 
-                                    // Lógica de estilos de la tarjeta
-                                    if ($isPaid) {
+                                    // Estilos Dinámicos (Incluyendo Canceladas)
+                                    if ($isCancelled) {
+                                        $cardStyle = 'bg-zinc-50 border-zinc-200 opacity-75 grayscale';
+                                    } elseif ($isPaid) {
                                         $cardStyle = 'bg-white border-zinc-200';
                                     } elseif ($isObligation) {
                                         $cardStyle = 'bg-rose-50/40 border-rose-300 hover:border-rose-500';
                                     } else {
-                                        // Disponible para comprar/seleccionar
                                         $cardStyle = 'bg-zinc-50 border-zinc-200 hover:border-zinc-400 hover:shadow-md';
                                     }
                                 @endphp
                                 
-                                <div class="relative block p-2 md:p-2.5 pl-3 border rounded-lg shadow-sm overflow-hidden transition-all duration-200 {{ $cardStyle }}">
+                                <button onclick="openClassDetails(this)"
+                                        data-title="{{ $s->workshop->name }}"
+                                        data-studio="{{ $s->workshop->studio->name }}"
+                                        data-studio-image="{{ $studioImageUrl }}"
+                                        data-teacher="{{ $s->workshop->teacher->name ?? 'Por asignar' }}"
+                                        data-time="{{ \Carbon\Carbon::parse($s->start_time)->format('H:i') }}"
+                                        data-date="{{ \Carbon\Carbon::parse($s->date)->translatedFormat('l d \d\e F') }}"
+                                        data-subdomain="{{ $s->workshop->studio->subdomain }}"
+                                        data-image="{{ $imageUrl }}" 
+                                        data-address="{{ $s->workshop->studio->address ?? 'Dirección no especificada' }}"
+                                        data-status="{{ $isPaid ? 'paid' : 'unpaid' }}"
+                                        data-cancelled="{{ $isCancelled ? 'true' : 'false' }}"
+                                        class="relative w-full text-left p-2 md:p-2.5 pl-3 border rounded-lg shadow-sm overflow-hidden transition-all duration-200 {{ $cardStyle }} group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95">
                                     
-                                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $bgClass }}"></div>
+                                    {{-- Barra de Color --}}
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
 
                                     <div class="flex justify-between items-start">
-                                        <div class="text-[10px] md:text-xs font-extrabold text-zinc-900">
+                                        <div class="text-[10px] md:text-xs font-extrabold {{ $isCancelled ? 'text-zinc-500 line-through' : 'text-zinc-900' }}">
                                             {{ \Carbon\Carbon::parse($s->start_time)->format('H:i') }}
                                         </div>
                                         
-                                        {{-- Checkbox disponible para CUALQUIER clase no pagada --}}
-                                        @if(!$isPaid)
+                                        {{-- Checkbox de cobro: NO MOSTRAR si está pagado o cancelado --}}
+                                        @if(!$isPaid && !$isCancelled)
                                             <input type="checkbox" value="{{ $s->id }}" onchange="handlePaymentSelection()" class="payment-cb w-4 h-4 text-emerald-600 border-zinc-300 rounded focus:ring-emerald-500 cursor-pointer relative z-10" title="Seleccionar para pagar">
                                         @endif
                                     </div>
                                     
-                                    <div class="text-[9px] md:text-[10px] font-bold text-zinc-800 leading-tight mt-1 line-clamp-1">
+                                    <div class="text-[9px] md:text-[10px] font-bold leading-tight mt-1 line-clamp-1 {{ $isCancelled ? 'text-zinc-500' : 'text-zinc-800' }}">
                                         {{ $s->workshop->name }}
                                     </div>
 
-                                    {{-- Etiquetas de Estado --}}
                                     <div class="mt-1.5 flex flex-wrap gap-1">
-                                        @if($isPaid)
+                                        @if($isCancelled)
+                                            <span class="text-[8px] font-black uppercase tracking-wider text-rose-700 bg-rose-100 px-1 rounded border border-rose-200">Anulada</span>
+                                        @elseif($isPaid)
                                             <span class="text-[8px] font-black uppercase tracking-wider text-blue-600 bg-blue-50 px-1 rounded border border-blue-100">Pagada</span>
+                                        @elseif($isObligation)
+                                            <span class="text-[8px] font-black uppercase tracking-wider text-rose-600 bg-rose-100 px-1 rounded border border-rose-200">Debe</span>
                                         @else
-                                            @if($isObligation)
-                                                <span class="text-[8px] font-black uppercase tracking-wider text-rose-600 bg-rose-100 px-1 rounded border border-rose-200">Debe</span>
-                                            @else
-                                                <span class="text-[8px] font-black uppercase tracking-wider text-zinc-500 bg-zinc-200 px-1 rounded">Disponible</span>
-                                            @endif
+                                            <span class="text-[8px] font-black uppercase tracking-wider text-zinc-500 bg-zinc-200 px-1 rounded">Disponible</span>
                                         @endif
 
-                                        @if($hasAttendance)
+                                        @if($hasAttendance && !$isCancelled)
                                             <span class="text-[8px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-100">Presente</span>
-                                        @elseif($isEnrolled)
+                                        @elseif($isEnrolled && !$isCancelled)
                                             <span class="text-[8px] font-black uppercase tracking-wider text-amber-600 bg-amber-50 px-1 rounded border border-amber-100">Inscrita</span>
                                         @endif
                                     </div>
-                                </div>
+                                </button>
                             @endforeach
                         </div>
                     </div>
@@ -215,7 +235,6 @@
     {{-- MODAL DE PAGO --}}
     <div id="paymentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all relative">
-            
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold text-zinc-900">Registrar Pago</h3>
                 <button type="button" onclick="closePaymentModal()" class="text-zinc-400 hover:text-zinc-600 transition-colors">
@@ -249,6 +268,65 @@
                     <button type="submit" class="w-full bg-emerald-600 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-emerald-700 active:scale-95 transition-all duration-200 text-sm">Confirmar Pago</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    {{-- MODAL DETALLES DE CLASE --}}
+    <div id="classDetailsModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity" onclick="closeClassDetails()"></div>
+        
+        <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh]" id="modalCard">
+            <div class="h-32 sm:h-48 w-full bg-zinc-200 relative">
+                <img id="modalImage" src="" alt="Cover" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-zinc-900/60 to-transparent"></div>
+                <button onclick="closeClassDetails()" class="absolute top-4 right-4 p-2 text-zinc-700 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full transition-colors focus:outline-none shadow-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+                <div class="absolute bottom-4 left-6 flex items-center gap-3">
+                    <img id="modalStudioImage" src="" alt="Studio Icon" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/30 shadow-sm bg-zinc-900">
+                    <span id="modalStudio" class="px-2.5 py-1 bg-white/20 backdrop-blur-md text-white border border-white/30 text-[10px] font-black rounded-lg tracking-widest uppercase shadow-sm">Estudio</span>
+                </div>
+            </div>
+
+            <div id="modalStatusBanner" class="px-6 py-3 border-b flex items-center gap-2 font-bold text-sm"></div>
+
+            <div class="p-6 md:p-8 overflow-y-auto flex-1">
+                <div class="mb-6">
+                    <h3 id="modalTitle" class="text-2xl font-black text-zinc-900 leading-tight">Clase</h3>
+                </div>
+
+                <div class="space-y-3 mb-8">
+                    <div class="flex items-center gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
+                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-indigo-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <p id="modalDate" class="text-sm font-bold text-zinc-900 capitalize">Fecha</p>
+                            <p id="modalTime" class="text-xs font-medium text-zinc-500">Hora</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
+                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-emerald-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Profesor/a</p>
+                            <p id="modalTeacher" class="text-sm font-bold text-zinc-900">Nombre</p>
+                        </div>
+                    </div>
+
+                    <div class="flex items-start gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
+                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-rose-500 mt-1">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Ubicación</p>
+                            <p id="modalAddress" class="text-sm font-bold text-zinc-900 mb-2 leading-tight">Dirección del Estudio</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -304,6 +382,66 @@
         function closePaymentModal() {
             document.body.style.overflow = '';
             document.getElementById('paymentModal').classList.add('hidden');
+        }
+
+        const modal = document.getElementById('classDetailsModal');
+        const modalCard = document.getElementById('modalCard');
+
+        function openClassDetails(button) {
+            document.getElementById('modalTitle').innerText = button.getAttribute('data-title');
+            document.getElementById('modalStudio').innerText = button.getAttribute('data-studio');
+            document.getElementById('modalTeacher').innerText = button.getAttribute('data-teacher');
+            document.getElementById('modalDate').innerText = button.getAttribute('data-date');
+            document.getElementById('modalTime').innerText = button.getAttribute('data-time') + ' hrs';
+            
+            document.getElementById('modalImage').src = button.getAttribute('data-image');
+            document.getElementById('modalStudioImage').src = button.getAttribute('data-studio-image');
+            
+            const address = button.getAttribute('data-address');
+            document.getElementById('modalAddress').innerText = address;
+
+            const statusBanner = document.getElementById('modalStatusBanner');
+            const isPaid = button.getAttribute('data-status') === 'paid';
+            const isCancelled = button.getAttribute('data-cancelled') === 'true';
+            
+            if (isCancelled) {
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-100 border-rose-200 text-rose-800';
+                statusBanner.innerHTML = `
+                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Esta clase ha sido cancelada por el estudio.
+                `;
+            } else if (isPaid) {
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-emerald-50 border-emerald-100 text-emerald-700';
+                statusBanner.innerHTML = `
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Clase Pagada
+                `;
+            } else {
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-50 border-rose-100 text-rose-700';
+                statusBanner.innerHTML = `
+                    <span class="flex h-3 w-3 relative shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    </span>
+                    Pago pendiente
+                `;
+            }
+
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modalCard.classList.remove('scale-95', 'opacity-0');
+                modalCard.classList.add('scale-100', 'opacity-100');
+            }, 10);
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeClassDetails() {
+            modalCard.classList.remove('scale-100', 'opacity-100');
+            modalCard.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }, 300);
         }
     </script>
 </x-app-layout>

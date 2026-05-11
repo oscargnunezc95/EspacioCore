@@ -16,7 +16,6 @@ use Illuminate\Support\Facades\DB;
 class UserClassController extends Controller
 {
 
-    // PORTAL DE ALUMNO: Ver todo sin filtros de estudio
     public function asStudent(Request $request)
     {
         $user = Auth::user();
@@ -31,6 +30,11 @@ class UserClassController extends Controller
             ->pluck('id')
             ->toArray();
 
+        if (empty($studentIds)) {
+            $sessionsByDate = collect();
+            return view('global.classes.student', compact('monthDate', 'sessionsByDate'));
+        }
+
         // 2. Consulta blindada: Trae inscritas O pagadas
         $sessions = ClassSession::withoutGlobalScopes()
             ->with([
@@ -38,8 +42,11 @@ class UserClassController extends Controller
                 'workshop.studio', 
                 'workshop.teacher'
             ])
+            ->withExists(['payments as is_paid' => function ($q) use ($studentIds) {
+                // Verificamos si existe un pago registrado por ALGUNO de los perfiles de este usuario
+                $q->whereIn('class_session_payment.student_id', $studentIds);
+            }])
             ->where(function ($query) use ($studentIds) {
-                
                 // Condición A: Está inscrito en la tabla pivote (Carrito / En el Portal)
                 $query->whereHas('students', function ($q) use ($studentIds) {
                     $q->withoutGlobalScopes()->whereIn('students.id', $studentIds);
@@ -51,7 +58,6 @@ class UserClassController extends Controller
                       ->whereColumn('class_session_payment.class_session_id', 'class_sessions.id')
                       ->whereIn('class_session_payment.student_id', $studentIds);
                 });
-                
             })
             // Filtramos SOLO las clases de este mes exacto
             ->whereYear('date', $monthDate->year)
@@ -73,16 +79,13 @@ class UserClassController extends Controller
     {
         $user = Auth::user();
         
-        // 1. Recibir mes por URL o usar el actual
         $month = $request->query('month');
         $monthDate = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
 
-        // 2. Obtener los IDs de profesor de este usuario en todos los estudios
         $teacherProfileIds = Teacher::withoutGlobalScopes()
             ->where('user_id', $user->id)
             ->pluck('id');
 
-        // 3. Traer solo las sesiones de ESTE mes
         $sessions = ClassSession::withoutGlobalScopes()
             ->with([
                 'workshop' => fn($q) => $q->withoutGlobalScopes(), 
@@ -97,14 +100,15 @@ class UserClassController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
-        // 4. Agrupar por fecha exacta
         $sessionsByDate = $sessions->groupBy('date');
 
         return view('global.classes.teacher', compact('monthDate', 'sessionsByDate'));
     }
 
-
-    public function teacherSession($id) // Cambiado a ID para buscarlo sin Global Scopes
+    // ==========================================
+    // PORTAL DE PROFESOR: Detalle de una sesión
+    // ==========================================
+    public function teacherSession($id)
     {
         $session = ClassSession::withoutGlobalScopes()
             ->with(['workshop' => function($q) {
@@ -118,12 +122,12 @@ class UserClassController extends Controller
             abort(403, 'No tienes permiso para ver esta clase.');
         }
 
-        $session->load(['attendances', 'workshop.studio']);
+        // CARGAMOS RELACIONES EAGER PARA EVITAR QUERIES CRUDAS
+        $session->load(['attendances', 'workshop.studio', 'payments']);
         
-        $paidStudentIds = \Illuminate\Support\Facades\DB::table('class_session_payment')
-            ->where('class_session_id', $session->id)
-            ->pluck('student_id')
-            ->toArray();
+        // Obtenemos los IDs de los estudiantes que pagaron a través de la relación nativa
+        // Esto es mucho más seguro y limpio que hacer DB::table()
+        $paidStudentIds = $session->payments->pluck('pivot.student_id')->toArray();
 
         foreach ($paidStudentIds as $paidId) {
             $session->students()->syncWithoutDetaching([$paidId]);
@@ -147,20 +151,17 @@ class UserClassController extends Controller
             $request->validate(['class_session_id' => 'required|integer']);
             $user = Auth::user();
 
-            // 1. Buscamos la sesión ignorando el estudio de la sesión actual
             $session = ClassSession::withoutGlobalScopes()
                 ->with(['workshop' => fn($q) => $q->withoutGlobalScopes()])
                 ->findOrFail($request->class_session_id);
 
             $studioId = $session->studio_id ?? $session->workshop->studio_id;
 
-            // 2. Buscamos la ficha de alumna ignorando el estudio de la sesión
             $student = Student::withoutGlobalScopes()
                 ->where('user_id', $user->id)
                 ->where('studio_id', $studioId)
                 ->first();
 
-            // 3. Si no existe, la creamos para ESE estudio específico
             if (!$student) {
                 $student = new Student();
                 $student->user_id = $user->id;
@@ -171,8 +172,6 @@ class UserClassController extends Controller
                 $student->save();
             }
 
-            // 4. ELIMINACIÓN/INSERCIÓN DIRECTA (Sin interferencia de Scopes)
-            // Intentamos borrar. Si detach devuelve > 0, es que ya existía.
             $detached = $session->students()->withoutGlobalScopes()->detach($student->id);
 
             if ($detached > 0) {
@@ -182,8 +181,7 @@ class UserClassController extends Controller
                 $status = 'enrolled';
             }
 
-            // 5. Recalcular el badge global
-            $cartCount = $user->getUnpaidClassesCount();
+            $cartCount = $user->pending_reservations_count;
 
             return response()->json([
                 'status' => $status,
@@ -196,9 +194,6 @@ class UserClassController extends Controller
         }
     }
 
-    // ==========================================
-    // CHECKOUT MASIVO (Marketplace)
-    // ==========================================
     public function bulkEnroll(Request $request)
     {
         $request->validate([
@@ -209,11 +204,9 @@ class UserClassController extends Controller
         try {
             $user = Auth::user();
             
-            // Iniciamos la transacción
             DB::beginTransaction();
 
             foreach ($request->session_ids as $sessionId) {
-                // 1. Buscamos la sesión y su estudio
                 $session = ClassSession::withoutGlobalScopes()
                     ->with(['workshop' => fn($q) => $q->withoutGlobalScopes()])
                     ->find($sessionId);
@@ -222,7 +215,6 @@ class UserClassController extends Controller
 
                 $studioId = $session->studio_id ?? $session->workshop->studio_id;
 
-                // 2. Buscamos o creamos la ficha de alumna en ese estudio
                 $student = Student::withoutGlobalScopes()
                     ->where('user_id', $user->id)
                     ->where('studio_id', $studioId)
@@ -240,19 +232,19 @@ class UserClassController extends Controller
                     $student->save();
                 }
 
-                // 3. LA MAGIA: Lógica de Toggle Masivo
-                // Intentamos desenlazar (detach). Si devuelve > 0, significa que la alumna estaba inscrita y fue eliminada.
                 $detached = $session->students()->withoutGlobalScopes()->detach($student->id);
 
-                // Si devuelve 0, significa que NO estaba inscrita, por lo tanto, la agregamos (attach).
                 if ($detached === 0) {
                     $session->students()->withoutGlobalScopes()->attach($student->id);
                 }
             }
 
-            DB::commit(); // Consolidamos todo
+            DB::commit();
 
-            return response()->json(['status' => 'success', 'cart_count' => $user->getUnpaidClassesCount()]);
+            return response()->json([
+                'status' => 'success', 
+                'cart_count' => $user->pending_reservations_count
+            ]);
 
         } catch (\Exception $e) {
             DB::rollBack(); 

@@ -4,11 +4,10 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Student;
-use App\Models\Workshop;
 use App\Models\Payment;
 use App\Models\ClassSession;
-use App\Models\Attendance;
-use App\Models\Studio;
+// ELIMINADO: use App\Models\Attendance;
+// ELIMINADO: use App\Models\Studio;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Carbon\Carbon;
@@ -52,25 +51,24 @@ class PaymentController extends Controller
                 'receipt_path' => $path
             ]);
 
-            // 4. Vinculación en tabla pivot (Conciliación de clases pagadas)
+            // 4. Vinculación en tabla pivot usando la relación limpia (Conciliación)
             $pivotData = [];
             foreach ($request->session_ids as $sessionId) {
                 $pivotData[$sessionId] = ['student_id' => $student->id];
             }
             $payment->classSessions()->attach($pivotData);
 
-            // 5. AUTOMATIZACIÓN DE FLUJO: Inscripción + Asistencia (Regla "Cupo Pagado = Cupo Consumido")
+            // 5. AUTOMATIZACIÓN DE FLUJO: Inscripción + Asistencia
             foreach ($request->session_ids as $sessionId) {
                 $session = ClassSession::find($sessionId);
                 
                 // 5.1 Asegurar inscripción (reserva de cupo)
                 $session->students()->syncWithoutDetaching([$student->id]);
                 
-                // 5.2 Marcar presente automáticamente
-                // Esto elimina la deuda visual en el calendario (pasa de rojo a azul/verde)
-                Attendance::firstOrCreate([
-                    'class_session_id' => $sessionId,
-                    'student_id'       => $student->id
+                // 5.2 Marcar presente automáticamente a través de la RELACIÓN
+                // Esto es mucho más seguro que llamar a Attendance::
+                $session->attendances()->firstOrCreate([
+                    'student_id' => $student->id
                 ]);
             }
 
@@ -99,17 +97,19 @@ class PaymentController extends Controller
      */
     public function getAvailableSessions($subdomain, Student $student)
     {
-        // IDs de sesiones ya pagadas por este alumno
-        $paidSessionIds = DB::table('class_session_payment')
-            ->where('student_id', $student->id)
-            ->pluck('class_session_id')
+        // 1. IDs de sesiones ya pagadas por este alumno, consultadas de forma 100% Eloquent
+        $paidSessionIds = Payment::where('student_id', $student->id)
+            ->with('classSessions')
+            ->get()
+            ->flatMap(function($payment) {
+                return $payment->classSessions->pluck('id');
+            })
+            ->unique()
             ->toArray();
 
-        // Buscamos sesiones del estudio no pagadas por él
+        // 2. Buscamos sesiones futuras que NO estén en la lista de pagadas.
+        // NOTA: El middleware del tenant ya inyecta automáticamente el 'studio_id', no necesitamos re-filtrarlo.
         $sessions = ClassSession::with('workshop')
-            ->where('studio_id', function($query) use ($subdomain) {
-                $query->select('id')->from('studios')->where('subdomain', $subdomain);
-            })
             ->where('date', '>=', now()->startOfMonth())
             ->whereNotIn('id', $paidSessionIds)
             ->orderBy('date', 'asc')

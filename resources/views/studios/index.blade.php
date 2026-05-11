@@ -35,7 +35,11 @@
                     {{-- Logo y Contenido (Superpuesto al banner) --}}
                     <div class="px-8 pb-8 flex-1 flex flex-col mt-[-32px] relative z-10">
                         <div class="flex justify-between items-end mb-4">
-                            @if($studio->logo_path)
+                            {{-- USAMOS EL ICON_PATH OPTIMIZADO PARA EL AVATAR --}}
+                            @if($studio->icon_path)
+                                <img src="{{ asset('storage/' . $studio->icon_path) }}" alt="Logo" class="h-16 w-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                            @elseif($studio->logo_path)
+                                {{-- Fallback: Si es un estudio antiguo que no tiene icon_path, usamos el logo_path --}}
                                 <img src="{{ asset('storage/' . $studio->logo_path) }}" alt="Logo" class="h-16 w-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
                             @else
                                 <div class="h-16 w-16 rounded-2xl bg-zinc-900 border-4 border-white text-white flex items-center justify-center font-black text-2xl shadow-md">

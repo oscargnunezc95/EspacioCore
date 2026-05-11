@@ -1,11 +1,23 @@
 <x-app-layout>
-    <div class="py-6 md:py-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
+    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
+        
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-black text-zinc-900 tracking-tight">Mis clases a dictar</h1>
+            <p class="mt-4 text-zinc-500 text-lg">Tu agenda unificada como Profesor/a.</p>
+        </div>
         
         {{-- Hero Banner con Imagen del Taller --}}
         @php
+            // 1. Imagen del Taller (Fondo Principal)
             $imageUrl = $session->workshop->image_path 
                 ? asset('storage/' . $session->workshop->image_path) 
                 : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff&size=512';
+            
+            // 2. Avatar del Estudio (Miniatura)
+            $studioLogo = $session->workshop->studio->icon_path ?? $session->workshop->studio->logo_path ?? null;
+            $studioAvatar = $studioLogo 
+                ? asset('storage/' . $studioLogo) 
+                : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
         @endphp
         
         <div class="relative w-full h-48 md:h-64 rounded-3xl overflow-hidden mb-8 shadow-md border border-zinc-200">
@@ -14,9 +26,14 @@
             
             <div class="absolute bottom-0 left-0 p-6 md:p-8 w-full flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <span class="px-3 py-1 bg-white/20 backdrop-blur-md text-white border border-white/20 text-xs font-black rounded-lg tracking-widest uppercase mb-3 inline-block shadow-sm">
-                        {{ $session->workshop->studio->name }}
-                    </span>
+                    {{-- Inyección del Avatar y Título del Estudio para coherencia visual --}}
+                    <div class="flex items-center gap-3 mb-3">
+                        <img src="{{ $studioAvatar }}" alt="Studio Icon" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/30 shadow-sm bg-zinc-900">
+                        <span class="px-3 py-1 bg-white/20 backdrop-blur-md text-white border border-white/20 text-xs font-black rounded-lg tracking-widest uppercase shadow-sm">
+                            {{ $session->workshop->studio->name }}
+                        </span>
+                    </div>
+                    
                     <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight">{{ $session->workshop->name }}</h1>
                 </div>
             </div>
@@ -50,13 +67,13 @@
             </div>
 
             @if($session->is_cancelled)
-                <div class="mb-6 p-4 bg-rose-50 text-rose-700 rounded-xl text-sm font-bold border border-rose-200 flex items-center justify-center gap-2">
+                <div class="mb-6 p-4 bg-rose-50 text-rose-700 rounded-xl text-sm font-bold border border-rose-200 flex items-center justify-center gap-2 shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                     Esta clase ha sido suspendida por la administración del estudio.
                 </div>
             @endif
 
-            <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden {{ $session->is_cancelled ? 'opacity-60 pointer-events-none' : '' }}">
+            <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden {{ $session->is_cancelled ? 'opacity-60 pointer-events-none grayscale-[20%]' : '' }}">
                 <ul class="divide-y divide-zinc-100">
                     @forelse($students as $student)
                         @php
@@ -66,8 +83,13 @@
                                 'session' => $session->id, 
                                 'student' => $student->id
                             ]);
+                            
+                            // Avatar del Alumno
+                            $studentAvatar = 'https://ui-avatars.com/api/?name='.urlencode($student->name).'&color=4f46e5&background=e0e7ff&bold=true';
                         @endphp
                         <li class="p-4 md:p-6 flex items-center gap-5 transition-colors hover:bg-zinc-50/80">
+                            
+                            {{-- Switch de Asistencia --}}
                             <button onclick="toggleAttendance('{{ $toggleUrl }}', this)" 
                                     class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 {{ $isPresent ? 'bg-emerald-500' : 'bg-zinc-200' }}" 
                                     role="switch" aria-checked="{{ $isPresent ? 'true' : 'false' }}">
@@ -75,11 +97,19 @@
                             </button>
                             
                             <div class="flex-1 flex flex-col md:flex-row md:items-center justify-between gap-2">
-                                <p class="font-bold text-zinc-900 text-sm md:text-base">{{ $student->name }}</p>
+                                <div class="flex items-center gap-3">
+                                    <img src="{{ $studentAvatar }}" class="w-8 h-8 rounded-full border border-indigo-100 shadow-sm" alt="Avatar">
+                                    <p class="font-bold text-zinc-900 text-sm md:text-base">{{ $student->name }}</p>
+                                </div>
                             </div>
                         </li>
                     @empty
-                        <li class="p-8 text-center text-sm font-medium text-zinc-500">Nadie se ha inscrito a esta clase todavía.</li>
+                        <li class="p-10 text-center text-sm font-medium text-zinc-500 flex flex-col items-center justify-center">
+                            <div class="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center mb-3">
+                                <svg class="w-6 h-6 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                            </div>
+                            Nadie se ha inscrito a esta clase todavía.
+                        </li>
                     @endforelse
                 </ul>
             </div>

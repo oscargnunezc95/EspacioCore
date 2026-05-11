@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail; // 1. Descomenta o agrega esta línea
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -10,8 +10,8 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use App\Services\DocumentService;
+use Illuminate\Support\Facades\DB; // <-- CRÍTICO: Agregamos esto para el DB::raw
 
-// 2. Agrega "implements MustVerifyEmail" al final de esta línea
 #[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail 
@@ -43,31 +43,38 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Student::class);
     }
 
-
     /**
-     * Calcula la cantidad de clases futuras en las que el usuario 
-     * está inscrito pero aún no ha pagado, EN CUALQUIER ESTUDIO.
+     * ATRIBUTO MÁGICO: Calcula la cantidad de clases futuras impagas.
+     * Reemplaza al antiguo getUnpaidClassesCount().
+     * En Blade se llama sin paréntesis: auth()->user()->pending_reservations_count
      */
-    public function getUnpaidClassesCount(): int
+    public function getPendingReservationsCountAttribute(): int
     {
-        // 1. Buscamos todas sus fichas de alumna ignorando el estudio actual
+        // 1. Buscamos todas sus fichas de alumna
         $studentIds = \App\Models\Student::withoutGlobalScopes()
             ->where('user_id', $this->id)
-            ->pluck('id');
+            ->pluck('id')
+            ->toArray();
 
-        if ($studentIds->isEmpty()) return 0;
+        if (empty($studentIds)) {
+            return 0;
+        }
 
-        // 2. Contamos sesiones futuras impagas en TODO el sistema
+        // 2. Consulta blindada usando whereNotExists directo a la tabla pivote
         return \App\Models\ClassSession::withoutGlobalScopes()
-            ->whereHas('students', function ($q) {
-                $q->withoutGlobalScopes()->where('students.user_id', $this->id);
+            ->whereHas('students', function ($query) use ($studentIds) {
+                $query->withoutGlobalScopes()->whereIn('students.id', $studentIds);
             })
-            ->whereDoesntHave('payments', function ($q) use ($studentIds) {
-                $q->whereIn('class_session_payment.student_id', $studentIds);
+            ->whereNotExists(function ($query) use ($studentIds) {
+                $query->select(DB::raw(1))
+                      ->from('class_session_payment')
+                      ->whereColumn('class_session_payment.class_session_id', 'class_sessions.id')
+                      ->whereIn('class_session_payment.student_id', $studentIds);
             })
             ->where('date', '>=', now()->toDateString())
             ->count();
     }
+
     public function country()
     {
         return $this->belongsTo(Country::class);
@@ -82,12 +89,12 @@ class User extends Authenticatable implements MustVerifyEmail
                 
                 // 1. Buscamos profesores que tengan este RUT Y EL MISMO PAÍS
                 Teacher::where('national_id', $user->national_id)
-                       ->where('country_id', $user->country_id) // <-- CRÍTICO
+                       ->where('country_id', $user->country_id)
                        ->update(['user_id' => $user->id]);
 
                 // 2. Hacemos lo mismo para las alumnas
                 Student::where('national_id', $user->national_id)
-                       ->where('country_id', $user->country_id) // <-- CRÍTICO
+                       ->where('country_id', $user->country_id)
                        ->update(['user_id' => $user->id]);
             }
         });
@@ -100,5 +107,4 @@ class User extends Authenticatable implements MustVerifyEmail
 
         return DocumentService::format($this->national_id, $countryCode);
     }
-
 }

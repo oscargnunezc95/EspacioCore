@@ -80,34 +80,68 @@
                                         default => 'bg-indigo-500',
                                     };
                                     
-                                    // LA IMAGEN: Generamos la URL o un avatar por defecto
+                                    // IMAGEN DEL TALLER
                                     $imageUrl = $session->workshop->image_path 
                                         ? asset('storage/' . $session->workshop->image_path) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
+
+                                    // IMAGEN OPTIMIZADA DEL ESTUDIO (Para inyectar en el Modal)
+                                    $studioLogo = $session->workshop->studio->icon_path ?? $session->workshop->studio->logo_path ?? null;
+                                    $studioImageUrl = $studioLogo 
+                                        ? asset('storage/' . $studioLogo) 
+                                        : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
+
+                                    // ESTADOS DE LA CLASE
+                                    $isPaid = $session->is_paid ?? false;
+                                    $isCancelled = $session->is_cancelled ?? ($session->status === 'cancelled') ?? false;
+                                    
+                                    // ESTILOS DINÁMICOS SEGÚN ESTADO
+                                    if ($isCancelled) {
+                                        $cardClasses = 'border-zinc-200 bg-zinc-50 opacity-75 grayscale';
+                                    } else {
+                                        $cardClasses = $isPaid ? 'border-zinc-200 hover:border-zinc-400' : 'border-rose-200 bg-rose-50/30 hover:border-rose-400';
+                                    }
                                 @endphp
                                 
                                 <button onclick="openClassDetails(this)"
                                         data-title="{{ $session->workshop->name }}"
                                         data-studio="{{ $session->workshop->studio->name }}"
+                                        data-studio-image="{{ $studioImageUrl }}"
                                         data-teacher="{{ $session->workshop->teacher->name ?? 'Por asignar' }}"
                                         data-time="{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}"
                                         data-date="{{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }}"
                                         data-subdomain="{{ $session->workshop->studio->subdomain }}"
                                         data-image="{{ $imageUrl }}" 
                                         data-address="{{ $session->workshop->studio->address ?? 'Dirección no especificada' }}"
-                                        class="relative w-full text-left p-1.5 md:p-2 pl-3 bg-white border border-zinc-200 rounded-xl shadow-sm overflow-hidden hover:border-zinc-400 hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95 flex items-center gap-2.5">
+                                        data-status="{{ $isPaid ? 'paid' : 'unpaid' }}"
+                                        data-cancelled="{{ $isCancelled ? 'true' : 'false' }}"
+                                        class="relative w-full text-left p-1.5 md:p-2 pl-3 bg-white border {{ $cardClasses }} rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95 flex items-center gap-2.5">
                                     
-                                    {{-- Barra de Color del Taller --}}
-                                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $bgClass }}"></div>
+                                    {{-- Barra de Color del Taller (gris si está cancelada) --}}
+                                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
 
-                                    {{-- Miniatura de Imagen (Oculta en móviles muy pequeños para no romper el diseño) --}}
+                                    {{-- Miniatura de Imagen del Taller --}}
                                     <img src="{{ $imageUrl }}" class="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover shadow-sm hidden sm:block border border-zinc-100">
 
                                     <div class="flex-1 min-w-0">
-                                        <div class="text-[10px] md:text-xs font-extrabold text-zinc-900 leading-none">
-                                            {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}
+                                        <div class="flex justify-between items-start">
+                                            <div class="text-[10px] md:text-xs font-extrabold leading-none {{ $isCancelled ? 'text-zinc-500 line-through' : 'text-zinc-900' }}">
+                                                {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}
+                                            </div>
+                                            
+                                            {{-- INDICADORES VISUALES SUPERIORES --}}
+                                            @if($isCancelled)
+                                                <span class="bg-rose-100 text-rose-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">Anulada</span>
+                                            @elseif($isPaid)
+                                                <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Pagada"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                            @else
+                                                <span class="flex h-2 w-2 relative shrink-0" title="Pendiente de pago">
+                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                                </span>
+                                            @endif
                                         </div>
-                                        <div class="text-[9px] md:text-[10px] font-bold text-zinc-600 mt-0.5 truncate">
+                                        <div class="text-[9px] md:text-[10px] font-bold mt-0.5 truncate {{ $isCancelled ? 'text-zinc-500' : 'text-zinc-600' }}">
                                             {{ $session->workshop->name }}
                                         </div>
                                         <div class="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-0.5 truncate group-hover:text-zinc-600 transition-colors">
@@ -141,10 +175,16 @@
                 <button onclick="closeClassDetails()" class="absolute top-4 right-4 p-2 text-zinc-700 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full transition-colors focus:outline-none shadow-sm">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-                <div class="absolute bottom-4 left-6">
-                     <span id="modalStudio" class="px-2.5 py-1 bg-white/20 backdrop-blur-md text-white border border-white/30 text-[10px] font-black rounded-lg tracking-widest uppercase">Estudio</span>
+                
+                <div class="absolute bottom-4 left-6 flex items-center gap-3">
+                    <img id="modalStudioImage" src="" alt="Studio Icon" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/30 shadow-sm bg-zinc-900">
+                    <span id="modalStudio" class="px-2.5 py-1 bg-white/20 backdrop-blur-md text-white border border-white/30 text-[10px] font-black rounded-lg tracking-widest uppercase shadow-sm">Estudio</span>
                 </div>
             </div>
+
+            {{-- BANNER DE ESTADO (Pago o Cancelación) --}}
+            <div id="modalStatusBanner" class="px-6 py-3 border-b flex items-center gap-2 font-bold text-sm">
+                </div>
 
             <div class="p-6 md:p-8 overflow-y-auto flex-1">
                 <div class="mb-6">
@@ -207,14 +247,43 @@
             document.getElementById('modalTime').innerText = button.getAttribute('data-time') + ' hrs';
             
             document.getElementById('modalImage').src = button.getAttribute('data-image');
+            document.getElementById('modalStudioImage').src = button.getAttribute('data-studio-image');
+            
             const address = button.getAttribute('data-address');
             document.getElementById('modalAddress').innerText = address;
-            
             document.getElementById('modalMapLink').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
             
             const subdomain = button.getAttribute('data-subdomain');
             const baseDomain = window.location.hostname.replace('www.', '');
             document.getElementById('modalLink').href = `${window.location.protocol}//${subdomain}.${baseDomain}/dashboard`;
+
+            // LÓGICA DEL ESTADO DE PAGO / CANCELACIÓN EN EL MODAL
+            const statusBanner = document.getElementById('modalStatusBanner');
+            const isPaid = button.getAttribute('data-status') === 'paid';
+            const isCancelled = button.getAttribute('data-cancelled') === 'true';
+            
+            if (isCancelled) {
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-100 border-rose-200 text-rose-800';
+                statusBanner.innerHTML = `
+                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Esta clase ha sido cancelada por el estudio.
+                `;
+            } else if (isPaid) {
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-emerald-50 border-emerald-100 text-emerald-700';
+                statusBanner.innerHTML = `
+                    <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Reserva confirmada y pagada
+                `;
+            } else {
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-50 border-rose-100 text-rose-700';
+                statusBanner.innerHTML = `
+                    <span class="flex h-3 w-3 relative shrink-0">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                    </span>
+                    Pago pendiente
+                `;
+            }
 
             modal.classList.remove('hidden');
             setTimeout(() => {

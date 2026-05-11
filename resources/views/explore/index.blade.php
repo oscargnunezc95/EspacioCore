@@ -79,14 +79,14 @@
                     
                     {{-- Cabecera / Imagen --}}
                     @php
-                        // 1. Imagen del Taller (Fondo)
+                        // 1. Imagen del Taller (Principal)
                         $imageUrl = $session->workshop->image_path 
                                         ? asset('storage/' . $session->workshop->image_path) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff&size=512';
                         
-                        // 2. Imagen del Estudio (Miniatura)
-                        // Asumimos que se llama logo_path o image_path. Si no, genera iniciales premium oscuras.
-                        $studioLogo = $session->workshop->studio->logo_path ?? $session->workshop->studio->image_path ?? null;
+                        // 2. Imagen del Estudio (Miniatura OPTIMIZADA)
+                        // Buscamos primero el icon_path (200x200), y si no existe, el logo_path original
+                        $studioLogo = $session->workshop->studio->icon_path ?? $session->workshop->studio->logo_path ?? null;
                         $studioImageUrl = $studioLogo 
                                         ? asset('storage/' . $studioLogo) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
@@ -103,16 +103,16 @@
                              'address' => $session->workshop->address ?? 'Dirección no especificada'
                          ]) }})">
                         
-                        {{-- Foto del Taller (Principal) --}}
+                        {{-- Foto del Taller --}}
                         <img src="{{ $imageUrl }}" alt="Clase" class="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-500">
                         <div class="absolute inset-0 bg-gradient-to-t from-zinc-900/60 to-transparent opacity-60"></div>
 
-                        {{-- Badge de Disciplina (Arriba Izquierda) --}}
+                        {{-- Badge de Disciplina --}}
                         <div class="absolute top-3 left-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-lg shadow-sm border border-white/20">
                             <span class="text-[10px] font-black text-indigo-600 uppercase tracking-widest">{{ $session->workshop->discipline->area->name ?? 'Clase' }}</span>
                         </div>
 
-                        {{-- NUEVO: Miniatura del Estudio (Abajo Derecha) --}}
+                        {{-- Miniatura del Estudio (Avatar) --}}
                         <div class="absolute bottom-3 right-3 group-hover:scale-110 transition-transform duration-300">
                             <div class="relative w-10 h-10 rounded-xl bg-white shadow-lg border-2 border-white overflow-hidden" title="{{ $session->workshop->studio->name }}">
                                 <img src="{{ $studioImageUrl }}" alt="Logo Estudio" class="w-full h-full object-cover">
@@ -167,13 +167,13 @@
                             </div>
                             
                             @if($isPaid)
-                                {{-- ESTADO: PAGADA (Azul, Inmutable) --}}
+                                {{-- ESTADO: PAGADA --}}
                                 <button disabled class="px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 bg-blue-500 text-white cursor-not-allowed opacity-90 shadow-sm border border-blue-600 transition-none w-full sm:w-[140px] justify-center">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     Pagada
                                 </button>
                             @else
-                                {{-- ESTADOS INTERACTIVOS (Clickeables) --}}
+                                {{-- ESTADOS INTERACTIVOS --}}
                                 <button onclick="toggleSelection({{ $session->id }}, this)" 
                                         data-initial-state="{{ $isEnrolled ? 'enrolled' : 'unenrolled' }}"
                                         class="interest-btn px-4 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center w-full sm:w-[140px]

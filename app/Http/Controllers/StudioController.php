@@ -24,7 +24,6 @@ class StudioController extends Controller
      */
     public function store(Request $request)
     {
-        // 1. Validación (Soportando los 15MB que definimos para fotos artísticas)
         $request->validate([
             'name'      => 'required|string|max:255',
             'logo'      => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:15360', 
@@ -36,7 +35,6 @@ class StudioController extends Controller
             'country'   => 'nullable|string|max:255',
         ]);
 
-        // 2. Generación de Subdominio Único
         $baseSlug = Str::slug($request->name);
         $subdomain = $baseSlug;
         $counter = 1;
@@ -46,33 +44,45 @@ class StudioController extends Controller
             $counter++;
         }
 
-        // 3. Procesamiento de Imagen (Intervention Image v2.7)
         $logoPath = null;
+        $iconPath = null;
+
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
-            $filename = 'studios/logos/' . uniqid() . '.webp';
+            $baseFilename = uniqid();
+            $filename = 'studios/logos/' . $baseFilename . '.webp';
+            $iconFilename = 'studios/logos/' . $baseFilename . '_icon.webp';
             
-            // Instanciamos el manager con GD
             $manager = new ImageManager(['driver' => 'gd']);
             
-            // Comprimimos y redimensionamos para no saturar el servidor
+            // 1. Generamos la imagen original optimizada (Max 1920px)
             $image = $manager->make($file->getRealPath())
                 ->resize(1920, null, function ($constraint) {
                     $constraint->aspectRatio();
                     $constraint->upsize();
                 })
                 ->encode('webp', 80);
+
+            // 2. Generamos el Icono/Thumbnail (Cuadrado perfecto de 200x200px)
+            $icon = $manager->make($file->getRealPath())
+                ->fit(200, 200, function ($constraint) {
+                    $constraint->upsize();
+                })
+                ->encode('webp', 80);
                              
             Storage::disk('public')->put($filename, (string) $image);
+            Storage::disk('public')->put($iconFilename, (string) $icon);
+            
             $logoPath = $filename;
+            $iconPath = $iconFilename;
         }
 
-        // 4. Persistencia
         Studio::create([
             'user_id'   => auth()->id(),
             'name'      => $request->name,
             'subdomain' => $subdomain,
             'logo_path' => $logoPath,
+            'icon_path' => $iconPath, // Guardamos la ruta del icono
             'address'   => $request->address,
             'latitude'  => $request->latitude,
             'longitude' => $request->longitude,
@@ -88,60 +98,66 @@ class StudioController extends Controller
      * Actualiza un estudio existente y gestiona el reemplazo de archivos.
      */
     public function update(Request $request, Studio $studio)
-{
-    // 1. Auditoría de Seguridad
-    if ($studio->user_id !== auth()->id()) {
-        abort(403);
-    }
-
-    // 2. Validación
-    $request->validate([
-        'name' => 'required|string|max:255',
-        'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
-    ]);
-
-    // 3. Preparar datos
-    $data = $request->only(['name', 'address', 'latitude', 'longitude', 'city', 'region', 'country']);
-
-    // 4. Lógica de Imagen (Intervention V2.7 Estabilizado)
-    if ($request->hasFile('logo')) {
-        try {
-            $file = $request->file('logo');
-            $newFilename = 'studios/logos/' . uniqid() . '.webp';
-            
-            // Sintaxis V2.7: Usamos array en lugar de instanciar el Driver
-            $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
-            
-            // Usamos make(), resize() y encode() en lugar de read() y scaleDown()
-            $image = $manager->make($file->getRealPath())
-                             ->resize(1920, null, function ($constraint) {
-                                 $constraint->aspectRatio();
-                                 $constraint->upsize();
-                             })
-                             ->encode('webp', 80);
-            
-            // Guardamos la nueva antes de borrar la vieja (Seguridad)
-            Storage::disk('public')->put($newFilename, (string) $image);
-
-            // Si llegamos aquí, podemos borrar la vieja con seguridad
-            if ($studio->logo_path) {
-                Storage::disk('public')->delete($studio->logo_path);
-            }
-
-            $data['logo_path'] = $newFilename;
-
-        } catch (\Exception $e) {
-            return redirect()->route('studios.index')->withErrors(['logo' => 'Error al procesar la imagen: ' . $e->getMessage()]);
+    {
+        if ($studio->user_id !== auth()->id()) {
+            abort(403);
         }
+
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
+        ]);
+
+        $data = $request->only(['name', 'address', 'latitude', 'longitude', 'city', 'region', 'country']);
+
+        if ($request->hasFile('logo')) {
+            try {
+                $file = $request->file('logo');
+                $baseFilename = uniqid();
+                $newFilename = 'studios/logos/' . $baseFilename . '.webp';
+                $newIconFilename = 'studios/logos/' . $baseFilename . '_icon.webp';
+                
+                $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
+                
+                // Imagen principal
+                $image = $manager->make($file->getRealPath())
+                                 ->resize(1920, null, function ($constraint) {
+                                     $constraint->aspectRatio();
+                                     $constraint->upsize();
+                                 })
+                                 ->encode('webp', 80);
+
+                // Icono
+                $icon = $manager->make($file->getRealPath())
+                                ->fit(200, 200, function ($constraint) {
+                                    $constraint->upsize();
+                                })
+                                ->encode('webp', 80);
+                
+                // Guardamos las nuevas versiones
+                Storage::disk('public')->put($newFilename, (string) $image);
+                Storage::disk('public')->put($newIconFilename, (string) $icon);
+
+                // Borramos las viejas si existían
+                if ($studio->logo_path) {
+                    Storage::disk('public')->delete($studio->logo_path);
+                }
+                if ($studio->icon_path) {
+                    Storage::disk('public')->delete($studio->icon_path);
+                }
+
+                $data['logo_path'] = $newFilename;
+                $data['icon_path'] = $newIconFilename;
+
+            } catch (\Exception $e) {
+                return redirect()->route('studios.index')->withErrors(['logo' => 'Error al procesar la imagen: ' . $e->getMessage()]);
+            }
+        }
+
+        $studio->update($data);
+
+        return redirect()->route('studios.index')->with('success', 'Estudio actualizado correctamente.');
     }
-
-    // 5. Actualización de Base de Datos
-    $studio->update($data);
-
-    // 6. REDIRECCIÓN EXPLÍCITA
-    // En lugar de back(), vamos a la lista de estudios o al Dashboard
-    return redirect()->route('studios.index')->with('success', 'Estudio actualizado correctamente.');
-}
 
     /**
      * Elimina el estudio y sus archivos asociados.
@@ -152,9 +168,12 @@ class StudioController extends Controller
             abort(403, 'No tienes permiso para eliminar este espacio.');
         }
 
-        // Limpieza de archivos del almacenamiento antes de borrar el registro
         if ($studio->logo_path) {
             Storage::disk('public')->delete($studio->logo_path);
+        }
+        
+        if ($studio->icon_path) {
+            Storage::disk('public')->delete($studio->icon_path);
         }
 
         $studio->delete();

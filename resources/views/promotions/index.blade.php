@@ -118,7 +118,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-zinc-700 mb-1.5">Precio Fijo Total ($)</label>
-                            <input type="number" name="total_price" placeholder="Ej: 35000" class="w-full rounded-xl border-zinc-300 px-4 py-3 text-sm focus:ring-zinc-900 outline-none">
+                            <input type="number" name="total_price" placeholder="Ej: 35000" class="w-full rounded-xl border-zinc-300 px-4 py-3 text-sm focus:ring-zinc-900 outline-none" required>
                         </div>
                     </div>
 
