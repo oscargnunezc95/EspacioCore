@@ -10,12 +10,13 @@ use App\Models\Studio;
 use App\Models\Workshop;
 use App\Models\Teacher;
 use App\Models\Student;
+use App\Models\Country;
 
 class UserStudioSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('countries')->insert([
+        Country::firstOrCreate(
             [
                 'name' => 'Chile',
                 'code' => 'CL',
@@ -34,7 +35,7 @@ class UserStudioSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
-        ]);
+        );
         // 1. Usuario Administrador Principal
         $admin = User::firstOrCreate(
             ['email' => 'oscargnunezc18@gmail.com'],
@@ -127,7 +128,7 @@ class UserStudioSeeder extends Seeder
                     'studio_id' => $studio->id
                 ],
                 [
-                    'name' => $data['teacher'],
+                    'first_name' => $data['teacher'],
                     'is_active' => true,
                 ]
             );

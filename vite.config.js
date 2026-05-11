@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import fs from 'fs'; // Necesario para leer los certificados
-import { homedir } from 'os';
-import { resolve } from 'path';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 
-// Cambia esto si tu dominio de Herd es distinto
-const host = 'espaciocore.test'; 
+// Detecta el directorio del usuario actual dinámicamente (Ej: C:\Users\TuUsuario)
+const homedir = os.homedir();
+const host = 'espaciocore.test';
 
 export default defineConfig({
     plugins: [
@@ -18,16 +19,12 @@ export default defineConfig({
         }),
     ],
     server: {
-        host: '0.0.0.0', // Permite conexiones externas si fuera necesario
-        port: 5173,
-        strictPort: true,
+        host,
+        hmr: { host },
         https: {
-            // Buscamos los certificados que Herd creó automáticamente
-            key: fs.readFileSync(resolve(homedir(), `.config/herd/config/valet/Certificates/${host}.key`)),
-            cert: fs.readFileSync(resolve(homedir(), `.config/herd/config/valet/Certificates/${host}.crt`)),
-        },
-        hmr: {
-            host: host,
+            // Construye la ruta dinámicamente sin importar en qué PC estés
+            key: fs.readFileSync(path.resolve(homedir, `.config/herd/config/valet/Certificates/${host}.key`)),
+            cert: fs.readFileSync(path.resolve(homedir, `.config/herd/config/valet/Certificates/${host}.crt`)),
         },
     },
 });

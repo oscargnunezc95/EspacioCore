@@ -12,8 +12,15 @@ class TrainingMonthController extends Controller
 {
     public function index($subdomain)
     {
-        // CORRECCIÓN CRÍTICA: Sintaxis nativa de MySQL para producción
-        $months = ClassSession::selectRaw('DATE_FORMAT(date, "%Y-%m") as month_id, MIN(date) as first_date')
+        // 1. Detectamos el motor de base de datos actual (SQLite en Herd vs MySQL en Producción)
+        $driver = config('database.connections.' . config('database.default') . '.driver');
+        
+        // 2. Asignamos la consulta correcta dinámicamente
+        $rawQuery = $driver === 'sqlite'
+            ? 'strftime("%Y-%m", date) as month_id, MIN(date) as first_date' // SQLite
+            : 'DATE_FORMAT(date, "%Y-%m") as month_id, MIN(date) as first_date'; // MySQL
+
+        $months = ClassSession::selectRaw($rawQuery)
             ->groupBy('month_id')
             ->orderBy('first_date', 'desc')
             ->get();
@@ -51,7 +58,6 @@ class TrainingMonthController extends Controller
                 
                 if ($specificDate->year == $year && $specificDate->month == $month) {
                     $session = ClassSession::firstOrCreate(
-                        // Agregamos start_time a la búsqueda para evitar falsos positivos
                         [
                             'workshop_id' => $workshop->id, 
                             'date' => $specificDate->toDateString(),
@@ -76,7 +82,6 @@ class TrainingMonthController extends Controller
                     $currentDay = Carbon::create($year, $month, $d);
                     $dayOfWeek = $currentDay->dayOfWeek; // Devuelve 0 (Dom) a 6 (Sáb)
                     
-                    // Extraemos todos los bloques de horario configurados para este día exacto
                     $schedulesToday = $workshop->schedules->where('day_of_week', $dayOfWeek);
                     
                     foreach ($schedulesToday as $schedule) {
@@ -84,7 +89,7 @@ class TrainingMonthController extends Controller
                             [
                                 'workshop_id' => $workshop->id, 
                                 'date' => $currentDay->toDateString(),
-                                'start_time' => $schedule->start_time // Crucial para permitir varios bloques al día
+                                'start_time' => $schedule->start_time 
                             ],
                             [
                                 'studio_id' => $studio->id
@@ -108,8 +113,8 @@ class TrainingMonthController extends Controller
         $sessions = ClassSession::with('workshop')
             ->whereYear('date', $monthDate->year)
             ->whereMonth('date', $monthDate->month)
-            ->orderBy('date', 'asc') // Añadido para que el calendario se renderice en orden
-            ->orderBy('start_time', 'asc') // Añadido para ordenar bloques del mismo día
+            ->orderBy('date', 'asc') 
+            ->orderBy('start_time', 'asc') 
             ->get();
 
         $sessionsByDate = $sessions->groupBy('date');
