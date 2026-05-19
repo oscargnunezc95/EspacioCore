@@ -35,29 +35,19 @@ class UserClassController extends Controller
             return view('global.classes.student', compact('monthDate', 'sessionsByDate'));
         }
 
-        // 2. Consulta blindada: Trae inscritas O pagadas
+        // 2. MAGIA ARQUITECTÓNICA: Consulta limpia O(1)
+        // Como ahora TODO (pagado o impago) vive en la tabla pivote, no necesitamos cruzar con 'class_session_payment'
         $sessions = ClassSession::withoutGlobalScopes()
             ->with([
                 'workshop' => fn($q) => $q->withoutGlobalScopes(), 
                 'workshop.studio', 
-                'workshop.teacher'
+                'workshop.teacher',
+                // Traemos la info de la alumna para que Blade pueda leer el payment_status
+                'students' => fn($q) => $q->withoutGlobalScopes()->whereIn('students.id', $studentIds)
             ])
-            ->withExists(['payments as is_paid' => function ($q) use ($studentIds) {
-                // Verificamos si existe un pago registrado por ALGUNO de los perfiles de este usuario
-                $q->whereIn('class_session_payment.student_id', $studentIds);
-            }])
-            ->where(function ($query) use ($studentIds) {
-                // Condición A: Está inscrito en la tabla pivote (Carrito / En el Portal)
-                $query->whereHas('students', function ($q) use ($studentIds) {
-                    $q->withoutGlobalScopes()->whereIn('students.id', $studentIds);
-                })
-                // Condición B: Tiene un pago registrado directamente en la tabla de pagos
-                ->orWhereExists(function ($q) use ($studentIds) {
-                    $q->select(DB::raw(1))
-                      ->from('class_session_payment')
-                      ->whereColumn('class_session_payment.class_session_id', 'class_sessions.id')
-                      ->whereIn('class_session_payment.student_id', $studentIds);
-                });
+            ->whereHas('students', function ($q) use ($studentIds) {
+                // Si está en la tabla pivote, es suya (ya sea pending o paid)
+                $q->withoutGlobalScopes()->whereIn('students.id', $studentIds);
             })
             // Filtramos SOLO las clases de este mes exacto
             ->whereYear('date', $monthDate->year)
@@ -89,7 +79,8 @@ class UserClassController extends Controller
         $sessions = ClassSession::withoutGlobalScopes()
             ->with([
                 'workshop' => fn($q) => $q->withoutGlobalScopes(), 
-                'workshop.studio'
+                'workshop.studio' => fn($q) => $q->withoutGlobalScopes(), 
+                'workshop.teacher' => fn($q) => $q->withoutGlobalScopes()
             ])
             ->whereHas('workshop', function ($query) use ($teacherProfileIds) {
                 $query->withoutGlobalScopes()->whereIn('teacher_id', $teacherProfileIds);
@@ -125,12 +116,13 @@ class UserClassController extends Controller
         // CARGAMOS RELACIONES EAGER PARA EVITAR QUERIES CRUDAS
         $session->load(['attendances', 'workshop.studio', 'payments']);
         
-        // Obtenemos los IDs de los estudiantes que pagaron a través de la relación nativa
-        // Esto es mucho más seguro y limpio que hacer DB::table()
         $paidStudentIds = $session->payments->pluck('pivot.student_id')->toArray();
 
         foreach ($paidStudentIds as $paidId) {
-            $session->students()->syncWithoutDetaching([$paidId]);
+            // Aseguramos que si pagó, el estado sea 'paid' en la pivote
+            $session->students()->syncWithoutDetaching([
+                $paidId => ['payment_status' => 'paid']
+            ]);
             $session->attendances()->firstOrCreate(['student_id' => $paidId]);
         }
         
@@ -177,7 +169,10 @@ class UserClassController extends Controller
             if ($detached > 0) {
                 $status = 'removed';
             } else {
-                $session->students()->withoutGlobalScopes()->attach($student->id);
+                // 👇 MAGIA ARQUITECTÓNICA: Inyección explícita del estado pending 👇
+                $session->students()->withoutGlobalScopes()->attach(
+                    $student->id, ['payment_status' => 'pending']
+                );
                 $status = 'enrolled';
             }
 
@@ -235,7 +230,10 @@ class UserClassController extends Controller
                 $detached = $session->students()->withoutGlobalScopes()->detach($student->id);
 
                 if ($detached === 0) {
-                    $session->students()->withoutGlobalScopes()->attach($student->id);
+                    // 👇 MAGIA ARQUITECTÓNICA: Inyección explícita del estado pending 👇
+                    $session->students()->withoutGlobalScopes()->attach(
+                        $student->id, ['payment_status' => 'pending']
+                    );
                 }
             }
 

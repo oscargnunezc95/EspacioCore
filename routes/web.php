@@ -15,16 +15,35 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\StudioController;
 use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\PromotionController;
+use App\Http\Controllers\StudioPublicController;
 use App\Http\Controllers\Global\UserClassController;
+use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\MercadoPagoOAuthController;
+use App\Http\Controllers\AccountController;
+use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\PaymentReturnController;
 
-$baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'espaciocore.test';
+$baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
 
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/global/student/enroll/bulk', [\App\Http\Controllers\Global\UserClassController::class, 'bulkEnroll'])
+        ->name('global.student.enroll.bulk');
+});
+// ========================================================
+// RUTA DE WEBHOOKS (Abierta para cualquier dominio/túnel)
+// ========================================================
+Route::post('/api/webhooks/mercadopago', [\App\Http\Controllers\WebhookController::class, 'mercadopago'])->name('webhooks.mp');
+/*
+|--------------------------------------------------------------------------
+| 1. RUTAS DEL DOMINIO PRINCIPAL (estadoprisma.test)
+|--------------------------------------------------------------------------
+*/
 Route::domain($baseDomain)->group(function () {
     
     // Landing Page y Explorar
     Route::get('/', [HomeController::class, 'index'])->name('home');
     Route::get('/explorar', [ExploreController::class, 'index'])->name('explore');
-    Route::post('/global/student/enroll/bulk', [UserClassController::class, 'bulkEnroll'])->name('global.student.enroll.bulk');
 
     // ---------------------------------------------------------
     // RUTAS PÚBLICAS / INVITADOS (OAuth Google y Completar)
@@ -33,27 +52,42 @@ Route::domain($baseDomain)->group(function () {
         Route::get('/auth/google/redirect', [GoogleController::class, 'redirect'])->name('google.redirect');
         Route::get('/auth/google/callback', [GoogleController::class, 'callback'])->name('google.callback');
         
-        // El usuario llega aquí como INVITADO con datos en sesión para completar su perfil
+        // Completar perfil tras login social
         Route::get('/auth/google/complete', [GoogleController::class, 'completeProfile'])->name('auth.google.complete');
         Route::post('/auth/google/complete', [GoogleController::class, 'storeCompleteProfile'])->name('auth.google.store');
     });
 
     // ---------------------------------------------------------
-    // RUTAS AUTENTICADAS (Lobby y Gestión Global)
+    // RUTAS AUTENTICADAS (Lobby y Gestión Global del Usuario)
     // ---------------------------------------------------------
     Route::middleware(['auth', 'verified', 'check.profile'])->group(function () {
         
-        // Carrito
+        // El botón de la UI apuntará aquí
+        Route::get('/oauth/mercadopago/redirect', [MercadoPagoOAuthController::class, 'redirect'])
+            ->name('mp.oauth.redirect');
+            
+        // Mercado Pago nos devolverá aquí
+        Route::get('/oauth/mercadopago/callback', [MercadoPagoOAuthController::class, 'callback'])
+            ->name('mp.oauth.callback');
+
+        // Carrito / Reservas
         Route::get('/mis-reservas', [App\Http\Controllers\Global\CartController::class, 'index'])->name('cart.index');
         Route::post('/api/cart/calculate', [App\Http\Controllers\Global\CartController::class, 'calculate'])->name('api.cart.calculate');
         Route::post('/api/cart/guest-sessions', [App\Http\Controllers\Global\CartController::class, 'getGuestSessions']);
+
+        // --- CHECKOUT DE MERCADO PAGO AQUÍ ---
+        Route::post('/pagos/generar-checkout', [CheckoutController::class, 'generarCheckout'])->name('checkout.generate');
 
         // Selección y Creación de Estudios (Lobby)
         Route::get('/mis-estudios', [StudioController::class, 'index'])->name('studios.index');
         Route::post('/mis-estudios', [StudioController::class, 'store'])->name('studios.store');
         Route::put('/studios/{studio}', [StudioController::class, 'update'])->name('studios.update');
 
-        // Clases del Usuario
+        // Suscripción a Planes (Mercado Pago)
+        Route::post('/studios/{studio}/subscribe', [SubscriptionController::class, 'subscribe'])
+            ->name('studios.subscribe');
+
+        // Clases del Usuario (Portales)
         Route::get('/mis-clases/alumno', [UserClassController::class, 'asStudent'])->name('global.classes.student');
         Route::get('/mis-clases/profesor', [UserClassController::class, 'asTeacher'])->name('global.classes.teacher');
         Route::get('/mis-clases/profesor/calendario/{month}', [UserClassController::class, 'teacherCalendar'])->name('global.classes.teacher.calendar');
@@ -75,15 +109,24 @@ Route::domain($baseDomain)->group(function () {
 
 /*
 |--------------------------------------------------------------------------
-| 2. RUTAS DE SUBDOMINIO (El Software de Gestión)
+| 2. RUTAS DE SUBDOMINIO (Escaparate Público + Software de Gestión)
 |--------------------------------------------------------------------------
-| Todas las operaciones internas del negocio van aquí. Exigen que la URL 
-| tenga el subdominio y el middleware extraiga el ID correcto.
 */
 Route::domain('{subdomain}.' . $baseDomain)->group(function () {
     
-    // Ecosistema interno del estudio
+    // --- ACCESO PÚBLICO AL ESTUDIO (Link in Bio / Instagram) ---
+    // Esta ruta debe ser accesible sin estar logueado
+    Route::get('/', [StudioPublicController::class, 'show'])->name('studio.public.show');
+    
+    Route::get('/pagos/exito', [PaymentReturnController::class, 'success'])->name('payments.success');
+    Route::get('/pagos/pendiente', [PaymentReturnController::class, 'pending'])->name('payments.pending');
+    Route::get('/pagos/error', [PaymentReturnController::class, 'failure'])->name('payments.failure');
+
+    // --- GESTIÓN INTERNA DEL ESTUDIO (Requiere Auth e Identificar Estudio) ---
     Route::middleware(['web', 'auth', 'verified', 'identify.studio'])->group(function () {
+        
+        Route::get('/cuenta', [AccountController::class, 'index'])->name('account.index');
+        Route::delete('/cuenta/mercadopago', [AccountController::class, 'disconnectMercadoPago'])->name('account.mp.disconnect');
         
         // Dashboard del Estudio
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -104,30 +147,27 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
         Route::patch('teachers/{id}/restore', [TeacherController::class, 'restore'])->name('teachers.restore');
         Route::delete('teachers/{id}/force', [TeacherController::class, 'forceDelete'])->name('teachers.force_delete');
 
-        // Módulo Talleres (Eliminadas las rutas de inscripción global al taller)
+        // Módulo Talleres
         Route::resource('workshops', WorkshopController::class);
 
         // Módulo Promociones
         Route::resource('promotions', PromotionController::class)->except(['create', 'show', 'edit']);
 
-        // Módulo trainingmonth (Planificación)
+        // Módulo Planificación (Ciclos Mensuales)
         Route::get('/trainingmonth', [TrainingMonthController::class, 'index'])->name('trainingmonth.index');
         Route::post('/trainingmonth', [TrainingMonthController::class, 'store'])->name('trainingmonth.store');
         Route::get('/trainingmonth/{month}', [TrainingMonthController::class, 'show'])->name('trainingmonth.show');
 
-        // Sesiones y Asistencias (Nueva ruta de Drop-in/Inscripción individual)
+        // Sesiones y Asistencias
         Route::get('/sessions/{session}', [ClassSessionController::class, 'show'])->name('sessions.show');
         Route::put('/sessions/{session}', [ClassSessionController::class, 'update'])->name('sessions.update');
         Route::patch('/sessions/{session}/cancel', [ClassSessionController::class, 'cancel'])->name('sessions.cancel');
         Route::post('/sessions/{session}/enroll', [ClassSessionController::class, 'enrollStudent'])->name('sessions.enroll');
         Route::post('/sessions/{session}/attendance/{student}', [AttendanceController::class, 'toggle'])->name('attendance.toggle');
 
-        // Pagos
+        // Pagos internos del estudio
         Route::post('/students/{student}/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
         Route::get('/api/students/{student}/available-sessions', [PaymentController::class, 'getAvailableSessions']);
-    
-        
     });
-    
 });

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Config;
 use App\Models\Teacher;
 use App\Services\DocumentService;
 use App\Rules\ValidDocument;
-use App\Models\Country; // <-- IMPORTACIÓN CLAVE PARA BUSCAR EL PAÍS
+use App\Models\Country; 
 
 class TeacherController extends Controller
 {
@@ -27,14 +27,10 @@ class TeacherController extends Controller
     {
         $studioId = Config::get('tenant.studio_id');
         
-        // 1. OBTENER EL CÓDIGO DEL PAÍS SELECCIONADO DESDE LA BD
-        $countryCode = 'OT'; // Por defecto 'Otro'
-        if ($request->filled('country_id')) {
-            $countryObj = Country::find($request->country_id);
-            $countryCode = $countryObj ? $countryObj->code : 'OT';
-        }
+        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8: en 1 sola línea)
+        $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL RUT O DOCUMENTO
+        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR (Defensa en Profundidad)
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
@@ -56,16 +52,16 @@ class TeacherController extends Controller
             }
         }
 
-        // 3. VALIDACIÓN
+        // 3. VALIDACIÓN BLINDADA
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
-            'country_id'  => 'required|exists:countries,id', // <-- OBLIGAMOS A ENVIAR UN PAÍS VALIDO
+            'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
-                'nullable', // Cambia a 'required' si el documento es estrictamente obligatorio
+                'nullable', 
                 'string',
                 'max:255',
-                new ValidDocument($countryCode), // Valida según sea 'CL' o 'OT'
+                new ValidDocument($countryCode), // Usamos el código real seleccionado
                 Rule::unique('teachers', 'national_id')->where(function ($query) use ($studioId) {
                     return $query->where('studio_id', $studioId);
                 })
@@ -83,30 +79,26 @@ class TeacherController extends Controller
     {
         $studioId = Config::get('tenant.studio_id');
         
-        // 1. OBTENER EL CÓDIGO DEL PAÍS SELECCIONADO DESDE LA BD
-        $countryCode = 'OT';
-        if ($request->filled('country_id')) {
-            $countryObj = Country::find($request->country_id);
-            $countryCode = $countryObj ? $countryObj->code : 'OT';
-        }
+        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8)
+        $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL RUT O DOCUMENTO
+        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
             ]);
         }
 
-        // 3. VALIDAR
+        // 3. VALIDACIÓN BLINDADA
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
-            'country_id'  => 'required|exists:countries,id', // <-- OBLIGAMOS A ENVIAR UN PAÍS VALIDO
+            'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
                 'nullable',
                 'string',
                 'max:255',
-                new ValidDocument($countryCode),
+                new ValidDocument($countryCode), // Usamos el código real seleccionado
                 Rule::unique('teachers', 'national_id')
                     ->ignore($teacher->id)
                     ->where(function ($query) use ($studioId) {

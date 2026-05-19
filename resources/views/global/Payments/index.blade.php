@@ -1,17 +1,17 @@
 <x-app-layout>
-    <div class="py-12 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
+
+    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
         
-        {{-- Encabezado --}}
-        <div class="mb-10">
+        <div class="text-center mb-12">
             <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Historial de Pagos</h1>
-            <p class="mt-2 text-zinc-500 text-lg">Consulta tus transacciones y los detalles de tus clases pagadas.</p>
+            <p class="mt-3 text-zinc-500 font-light text-base md:text-lg">Consulta tus transacciones y los detalles de tus clases pagadas.</p>
         </div>
 
         {{-- Contenedor Principal --}}
-        <div class="bg-white rounded-3xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-zinc-200 overflow-hidden">
             
             @if($payments->isEmpty())
-                <div class="py-24 text-center">
+                <div class="py-24 px-6 text-center">
                     <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-zinc-50 border border-zinc-100 mb-6">
                         <svg class="w-10 h-10 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                     </div>
@@ -19,78 +19,97 @@
                     <p class="text-zinc-500 mt-2 max-w-xs mx-auto">Cuando realices tu primera reserva pagada, aparecerá aquí.</p>
                 </div>
             @else
-                <div class="overflow-x-auto">
+                {{-- Quitamos el overflow-x-auto forzado para permitir que la tabla se transforme --}}
+                <div class="w-full">
                     <table class="w-full text-left border-collapse">
-                        <thead>
+                        
+                        {{-- CABECERA: Se oculta completamente en móviles (hidden md:table-header-group) --}}
+                        <thead class="hidden md:table-header-group">
                             <tr class="bg-zinc-50/80 border-b border-zinc-200 text-[11px] uppercase tracking-widest text-zinc-500 font-black">
                                 <th class="px-6 py-5">Fecha y Hora</th>
                                 <th class="px-6 py-5">Estudio</th>
-                                <th class="px-6 py-5">Método</th>
+                                <th class="px-6 py-5">Método de Pago</th>
                                 <th class="px-6 py-5 text-right">Monto</th>
-                                <th class="px-6 py-5 text-center">Estado</th>
                                 <th class="px-6 py-5 text-right">Acción</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-zinc-100">
+                        
+                        {{-- CUERPO --}}
+                        <tbody class="block md:table-row-group">
                             @foreach($payments as $payment)
                                 @php
                                     $studio = $payment->student->studio;
-                                    $studioLogo = $studio->logo_path ?? $studio->image_path;
+                                    $studioLogo = $studio->icon_path ?? $studio->logo_path;
                                     $studioAvatar = $studioLogo 
                                         ? asset('storage/' . $studioLogo) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($studio->name).'&color=4f46e5&background=e0e7ff';
+                                    
+                                    $method = $payment->payment_method ?? 'transferencia';
                                 @endphp
-                                <tr class="hover:bg-zinc-50/50 transition-colors group">
-                                    {{-- Fecha --}}
-                                    <td class="px-6 py-5 whitespace-nowrap">
-                                        <div class="text-sm font-bold text-zinc-900">{{ $payment->created_at->translatedFormat('d M, Y') }}</div>
-                                        <div class="text-[11px] text-zinc-400 font-medium uppercase">{{ $payment->created_at->format('H:i') }} hrs</div>
+                                
+                                {{-- FILA: En móviles es un bloque flex en columna (tarjeta), en PC es table-row --}}
+                                <tr class="flex flex-col md:table-row p-5 md:p-0 border-b border-zinc-200 last:border-0 hover:bg-zinc-50/50 transition-colors group gap-3 md:gap-0">
+                                    
+                                    {{-- Columna 1: Fecha --}}
+                                    <td class="flex justify-between items-center md:table-cell md:px-6 md:py-5 md:whitespace-nowrap">
+                                        <span class="md:hidden text-[10px] font-black text-zinc-400 uppercase tracking-widest">Fecha y Hora</span>
+                                        <div class="text-right md:text-left">
+                                            <div class="text-sm font-bold text-zinc-900">{{ $payment->created_at->translatedFormat('d M, Y') }}</div>
+                                            <div class="text-[11px] text-zinc-400 font-medium uppercase">{{ $payment->created_at->format('H:i') }} hrs</div>
+                                        </div>
                                     </td>
                                     
-                                    {{-- Estudio (Con Imagen) --}}
-                                    <td class="px-6 py-5">
-                                        <div class="flex items-center gap-3">
-                                            <img src="{{ $studioAvatar }}" class="w-9 h-9 rounded-xl object-cover border border-zinc-100 shadow-sm shrink-0">
+                                    {{-- Columna 2: Estudio --}}
+                                    <td class="flex justify-between items-center md:table-cell md:px-6 md:py-5">
+                                        <span class="md:hidden text-[10px] font-black text-zinc-400 uppercase tracking-widest">Estudio</span>
+                                        <div class="flex items-center gap-2 md:gap-3 text-right md:text-left">
+                                            <img src="{{ $studioAvatar }}" class="w-7 h-7 md:w-9 md:h-9 rounded-lg md:rounded-xl object-cover border border-zinc-100 shadow-sm shrink-0">
                                             <span class="text-sm font-bold text-zinc-700 truncate max-w-[150px]">{{ $studio->name }}</span>
                                         </div>
                                     </td>
                                     
-                                    {{-- Método --}}
-                                    <td class="px-6 py-5 whitespace-nowrap">
-                                        <div class="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-tighter">
-                                            <svg class="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                                            {{ $payment->payment_method ?? 'Transacción Online' }}
-                                        </div>
+                                    {{-- Columna 3: Método --}}
+                                    <td class="flex justify-between items-center md:table-cell md:px-6 md:py-5 md:whitespace-nowrap">
+                                        <span class="md:hidden text-[10px] font-black text-zinc-400 uppercase tracking-widest">Método</span>
+                                        
+                                        @if(in_array($method, ['online', 'pasarela de pago', 'mercadopago']))
+                                            <div class="flex items-center gap-1.5 md:gap-2 text-xs font-bold text-indigo-600 uppercase tracking-tighter">
+                                                <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                                Web / App
+                                            </div>
+                                        @elseif($method === 'transferencia')
+                                            <div class="flex items-center gap-1.5 md:gap-2 text-xs font-bold text-teal-600 uppercase tracking-tighter">
+                                                <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                                Transferencia
+                                            </div>
+                                        @else
+                                            <div class="flex items-center gap-1.5 md:gap-2 text-xs font-bold text-amber-600 uppercase tracking-tighter">
+                                                <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08-.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                                Efectivo
+                                            </div>
+                                        @endif
                                     </td>
                                     
-                                    {{-- Monto --}}
-                                    <td class="px-6 py-5 whitespace-nowrap text-right">
-                                        <span class="text-base font-black text-zinc-900">${{ number_format($payment->amount, 0, ',', '.') }}</span>
-                                    </td>
-                                    
-                                    {{-- Estado --}}
-                                    <td class="px-6 py-5 whitespace-nowrap text-center">
-                                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-teal-50 text-teal-700 border border-teal-100">
-                                            <div class="w-1.5 h-1.5 rounded-full bg-teal-500"></div>
-                                            Aprobado
-                                        </span>
+                                    {{-- Columna 4: Monto --}}
+                                    <td class="flex justify-between items-center md:table-cell md:px-6 md:py-5 md:whitespace-nowrap md:text-right mt-2 md:mt-0 pt-3 md:pt-0 border-t border-zinc-100 md:border-none">
+                                        <span class="md:hidden text-[10px] font-black text-zinc-400 uppercase tracking-widest">Total Pagado</span>
+                                        <span class="text-lg md:text-base font-black text-zinc-900">${{ number_format($payment->amount, 0, ',', '.') }}</span>
                                     </td>
 
-                                    {{-- Botón Detalle --}}
-                                    <td class="px-6 py-5 text-right">
-                                        <button onclick="openPaymentDetail({{ $payment->id }})" class="inline-flex items-center gap-2 text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-95 uppercase tracking-widest">
+                                    {{-- Columna 5: Acción --}}
+                                    <td class="md:table-cell md:px-6 md:py-5 md:text-right mt-1 md:mt-0">
+                                        <button onclick="openPaymentDetail({{ $payment->id }})" class="w-full md:w-auto inline-flex justify-center items-center gap-2 text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-3 md:py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-95 uppercase tracking-widest">
                                             Ver Detalle
                                         </button>
                                     </td>
                                 </tr>
 
-                                {{-- MODAL DE DETALLE (Inyectado por cada fila para facilidad) --}}
+                                {{-- MODAL DE DETALLE COMPLETO (Se mantiene idéntico) --}}
                                 <div id="payment-modal-{{ $payment->id }}" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
                                     <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all duration-300 scale-95 opacity-0 modal-card flex flex-col max-h-[85vh]">
                                         
                                         {{-- Header Modal --}}
                                         <div class="bg-zinc-900 p-8 text-white relative">
-                                            
                                             <p class="text-teal-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Comprobante de Pago</p>
                                             <h3 class="text-2xl font-black italic tracking-tighter">ID #{{ str_pad($payment->id, 6, '0', STR_PAD_LEFT) }}</h3>
                                             <div class="mt-4 flex items-center gap-3">
@@ -142,17 +161,14 @@
                         </tbody>
                     </table>
                 </div>
-
-                {{-- Paginación --}}
-                @if($payments->hasPages())
-                    <div class="px-6 py-6 border-t border-zinc-100 bg-zinc-50/50">
-                        {{ $payments->links() }}
-                    </div>
-                @endif
+                
+                <div class="px-6 py-6 border-t border-zinc-100 bg-zinc-50/50">
+                    {{ $payments->links() }}
+                </div>
             @endif
         </div>
     </div>
-
+    
     {{-- LÓGICA DE APERTURA/CIERRE DE MODAL --}}
     <script>
         function openPaymentDetail(id) {

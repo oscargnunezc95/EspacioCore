@@ -3,12 +3,10 @@
         $studio = $sessions->first()->workshop->studio;
 
         // CONSULTAS RÁPIDAS PARA EL MODAL DE PROMOCIONES
-        // 1. Promociones con sus requerimientos cargados (Eager Loading para evitar N+1)
         $studioPromos = \App\Models\Promotion::with('workshopPrices.workshop')
             ->where('studio_id', $studio->id)
             ->get();
             
-        // 2. Packs individuales por Taller
         $studioPacks = \App\Models\WorkshopPrice::with('workshop')
             ->whereHas('workshop', function($q) use ($studio) {
                 $q->where('studio_id', $studio->id);
@@ -17,42 +15,52 @@
             ->get()
             ->groupBy('workshop.name');
 
-        // LOGO DEL ESTUDIO (Priorizamos icon_path para mayor velocidad en el carrito)
+        // LOGO DEL ESTUDIO
         $studioLogo = $studio->icon_path ?? $studio->logo_path ?? null;
         $studioAvatar = $studioLogo 
             ? asset('storage/' . $studioLogo) 
             : 'https://ui-avatars.com/api/?name='.urlencode($studio->name).'&color=0f766e&background=ccfbf1';
+
+        // CONSTRUCCIÓN DEL LINK DEL ESTUDIO
+        $domain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
+        $protocol = request()->secure() ? 'https://' : 'http://';
+        $fullStudioUrl = $protocol . $studio->subdomain . '.' . $domain;
     @endphp
     
     <div class="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden mb-8 studio-cart-group" data-studio-id="{{ $studio->id }}">
         
         {{-- Cabecera del Estudio --}}
-        <div class="bg-zinc-50 border-b border-zinc-200 px-6 py-4 flex items-center justify-between">
+        <div class="bg-zinc-50 border-b border-zinc-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
                 {{-- Imagen del Estudio --}}
-                <img src="{{ $studioAvatar }}" alt="{{ $studio->name }}" class="w-12 h-12 rounded-xl object-cover shrink-0 border border-zinc-200 shadow-sm">
+                <img src="{{ $studioAvatar }}" alt="{{ $studio->name }}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover shrink-0 border border-zinc-200 shadow-sm bg-white">
                 
-                <div>
-                    <div class="flex items-center gap-3">
-                        <h2 class="text-lg font-black text-zinc-900 leading-tight">{{ $studio->name }}</h2>
+                <div class="flex flex-col">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                        <h2 class="text-lg sm:text-xl font-black text-zinc-900 leading-none">{{ $studio->name }}</h2>
                         {{-- BOTÓN INTERACTIVO "VER OFERTAS" --}}
-                        <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="hidden sm:flex text-[11px] font-bold text-teal-700 bg-white border border-teal-200 shadow-sm px-3 py-1.5 rounded-lg hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 active:scale-95 items-center gap-1.5 uppercase tracking-widest">
-                            <svg class="w-3.5 h-3.5 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v1m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="hidden sm:flex text-[10px] font-bold text-teal-700 bg-white border border-teal-200 shadow-sm px-2.5 py-1 rounded-md hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 active:scale-95 items-center gap-1 uppercase tracking-widest leading-none mt-0.5">
+                            <svg class="w-3 h-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v1m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Ver Ofertas
                         </button>
                     </div>
-                    <p class="text-xs font-medium text-zinc-500 mt-0.5">Selecciona las clases a pagar</p>
+                    
+                    {{-- LINK FUNCIONAL AL SUBDOMINIO --}}
+                    <a href="{{ $fullStudioUrl }}" target="_blank" class="group/link flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-indigo-600 transition-colors w-fit mt-1">
+                        <svg class="w-3.5 h-3.5 text-zinc-400 group-hover/link:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                        <span class="underline decoration-transparent group-hover/link:decoration-indigo-200 transition-all">{{ $studio->subdomain }}.{{ $domain }}</span>
+                    </a>
                 </div>
             </div>
             
-            <label class="flex items-center gap-2 cursor-pointer hover:bg-zinc-200/50 p-2 rounded-lg transition-colors">
+            <label class="flex items-center gap-2 cursor-pointer hover:bg-zinc-200/50 p-2 rounded-lg transition-colors w-fit sm:w-auto">
                 <span class="text-sm font-bold text-zinc-700">Seleccionar Todo</span>
                 <input type="checkbox" onchange="toggleStudioSelection(this, {{ $studio->id }})" class="w-5 h-5 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900 cursor-pointer">
             </label>
         </div>
 
         {{-- Versión Móvil del botón --}}
-        <div class="sm:hidden bg-zinc-50 px-4 py-3 border-b border-zinc-200">
+        <div class="sm:hidden bg-zinc-50/80 px-4 py-3 border-b border-zinc-200">
             <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="w-full bg-white border border-teal-200 shadow-sm text-xs font-bold text-teal-700 py-2.5 rounded-xl hover:bg-teal-50 transition-all active:scale-95 flex justify-center items-center gap-1.5 uppercase tracking-widest">
                 <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 Toca aquí para ver Ofertas y Packs

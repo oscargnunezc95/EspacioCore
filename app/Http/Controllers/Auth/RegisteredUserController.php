@@ -5,16 +5,16 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Country;
-use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
-use App\Services\DocumentService; // <-- IMPORTACIÓN DE LIMPIEZA
-use App\Rules\ValidDocument;      // <-- IMPORTACIÓN DE VALIDACIÓN
+use App\Services\DocumentService;
+use App\Rules\ValidDocument;
 
 class RegisteredUserController extends Controller
 {
@@ -26,33 +26,31 @@ class RegisteredUserController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        // 1. OBTENER EL CÓDIGO DEL PAÍS DESDE EL ID (Por defecto 'CL')
-        $countryCode = 'CL';
-        if ($request->filled('country_id')) {
-            $country = Country::find($request->country_id);
-            $countryCode = $country ? $country->code : 'CL'; // Asume que tu tabla countries tiene una columna 'code'
-        }
+        // 1. PHP 8 Nullsafe operator: Código en 1 sola línea
+        $countryCode = Country::find($request->country_id)?->code ?? 'CL';
 
-        // 2. ESTANDARIZAR EL RUT
+        // 2. Limpiamos el request para que Rule::unique funcione correctamente
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
             ]);
         }
 
-        // 3. VALIDACIÓN (Con la nueva regla)
+        // 3. Validación Blindada
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
             'country_id' => ['required', 'exists:countries,id'],
-            'national_id' => ['required', 'string', 'max:255', new ValidDocument($countryCode)], 
+            'national_id' => [
+                'required', 
+                'string', 
+                'max:255', 
+                new ValidDocument($countryCode),
+                // Reemplaza tu 'if' manual por esta regla nativa
+                Rule::unique('users', 'national_id')->where('country_id', $request->country_id)
+            ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
-
-        // Validación manual de unicidad usando el RUT ya limpio
-        if (User::where('national_id', $request->national_id)->where('country_id', $request->country_id)->exists()) {
-            return back()->withErrors(['national_id' => 'Este documento ya está registrado en este país.'])->withInput();
-        }
 
         $user = User::create([
             'name' => $request->name,

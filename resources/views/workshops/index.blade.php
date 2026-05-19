@@ -1,19 +1,42 @@
 <x-app-layout>
-    <x-slot name="header">
-        <x-studio-tabs />
-        <div class="mt-8">
-            <x-studio-header title="Configuración de Clases" :breadcrumbs="[['name' => 'Talleres']]">
-                <x-slot name="actions">
-                    <button onclick="openWorkshopModal()" class="bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 whitespace-nowrap flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                        Nuevo Taller
-                    </button>
-                </x-slot>
-            </x-studio-header>
-        </div>
-    </x-slot>
+    
+    {{-- 1. NAVEGACIÓN DEL ESTUDIO (Libre de paddings, pegado arriba) --}}
+    <x-studio-tabs />
 
-    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    {{-- 2. EL RESTO DEL CONTENIDO (Contenedor maestro acoplado a la nueva arquitectura) --}}
+    <div class="pt-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {{-- Cabecera Unificada de Talleres --}}
+        <div class="mt-2 mb-8 p-1">
+
+            {{-- Breadcrumbs --}}
+            <div class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
+                <span class="text-zinc-900">Talleres</span>
+            </div>
+
+            {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
+            <div class="flex flex-row items-center justify-between gap-4 w-full">
+                
+                {{-- Título --}}
+                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                    Talleres
+                </h1>
+
+                {{-- Botón Responsivo --}}
+                <button onclick="openWorkshopModal()" class="shrink-0 ml-auto bg-zinc-900 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
+                    
+                    {{-- Icono de Carpeta con (+) --}}
+                    <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                    </svg>
+                    
+                    {{-- Texto oculto en móviles --}}
+                    <span class="hidden sm:inline">Nuevo Taller</span>
+                </button>
+            </div>
+        </div>
+
+        {{-- A partir de aquí sigue intacto el resto de tu código (lista de talleres, modales, etc.) --}}
         @if (session('success'))
             <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -60,14 +83,15 @@
 
         {{-- TABLA DE TALLERES --}}
         <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
-            <div class="overflow-x-auto">
+            <div class="overflow-x-auto hide-scrollbar">
                 <table class="min-w-full divide-y divide-zinc-200" id="workshops_table">
                     <thead class="bg-zinc-50">
                         <tr>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Taller / Profesor</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Área y Disciplina</th>
-                            <th class="px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Horario / Fecha</th>
-                            <th class="px-6 py-4 text-right text-xs font-bold text-zinc-500 uppercase tracking-wider">Acciones</th>
+                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Taller / Profesor</th>
+                            {{-- Se oculta en móviles --}}
+                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Área y Disciplina</th>
+                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Horario / Fecha</th>
+                            <th class="px-4 md:px-6 py-4 text-right text-xs font-bold text-zinc-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-100">
@@ -79,6 +103,11 @@
                                     'cyan' => 'border-cyan-500', 'fuchsia' => 'border-fuchsia-500', 'slate' => 'border-slate-500',
                                     default => 'border-blue-500',
                                 };
+                                
+                                // Generamos la imagen para la tabla
+                                $imageUrl = $workshop->image_path 
+                                    ? asset('storage/' . $workshop->image_path) 
+                                    : 'https://ui-avatars.com/api/?name='.urlencode($workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
                             @endphp
                             
                             <tr class="workshop-row hover:bg-zinc-50/80 transition-colors duration-200 group"
@@ -86,28 +115,44 @@
                                 data-area-name="{{ $workshop->discipline->area->name ?? '' }}"
                                 data-discipline-name="{{ $workshop->discipline->name ?? '' }}">
                                 
-                                {{-- Columna 1: Taller y Profesor --}}
-                                <td class="px-6 py-4 border-l-4 {{ $borderColor }}">
-                                    <div class="font-bold text-zinc-900 flex flex-wrap items-center gap-2 text-sm">
-                                        {{ $workshop->name }}
-                                        @if($workshop->is_single_class) 
-                                            <span class="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-black">Clase Única</span> 
-                                            @if($workshop->max_students) 
-                                                <span class="bg-zinc-50 text-zinc-500 border border-zinc-200 text-[10px] px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1" title="Cupo Máximo">
-                                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> 
-                                                    Max {{ $workshop->max_students }}
-                                                </span> 
+                                {{-- Columna 1: Taller (con Imagen) y Profesor --}}
+                                <td class="px-4 md:px-6 py-4 border-l-4 {{ $borderColor }}">
+                                    <div class="flex items-center gap-3">
+                                        {{-- Miniatura del Taller --}}
+                                        <img src="{{ $imageUrl }}" class="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover border border-zinc-200 shadow-sm shrink-0">
+                                        
+                                        <div class="min-w-0">
+                                            <div class="font-bold text-zinc-900 flex flex-wrap items-center gap-1.5 md:gap-2 text-sm">
+                                                <span class="truncate max-w-[150px] sm:max-w-none">{{ $workshop->name }}</span>
+                                                @if($workshop->is_single_class) 
+                                                    <span class="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest font-black shrink-0">Clase Única</span> 
+                                                    @if($workshop->max_students) 
+                                                        <span class="bg-zinc-50 text-zinc-500 border border-zinc-200 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1 shrink-0" title="Cupo Máximo">
+                                                            <svg class="w-3 h-3 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> 
+                                                            Max {{ $workshop->max_students }}
+                                                        </span> 
+                                                    @endif
+                                                @endif
+                                            </div>
+                                            <div class="text-xs text-zinc-500 mt-1 md:mt-1.5 flex items-center gap-1.5 font-medium">
+                                                <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                                <span class="truncate max-w-[130px] sm:max-w-none">{{ $workshop->teacher ? $workshop->teacher->first_name . ' ' . $workshop->teacher->last_name : 'Sin profesor' }}</span>
+                                            </div>
+                                            
+                                            {{-- Disciplina inyectada SOLO en móviles --}}
+                                            @if($workshop->discipline)
+                                                <div class="sm:hidden mt-1.5">
+                                                    <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                        {{ $workshop->discipline->name }}
+                                                    </span>
+                                                </div>
                                             @endif
-                                        @endif
-                                    </div>
-                                    <div class="text-xs text-zinc-500 mt-1.5 flex items-center gap-1.5 font-medium">
-                                        <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                                        {{ $workshop->teacher ? $workshop->teacher->first_name . ' ' . $workshop->teacher->last_name : 'Sin profesor asignado' }} 
+                                        </div>
                                     </div>
                                 </td>
 
-                                {{-- Columna 2: Área y Disciplina --}}
-                                <td class="px-6 py-4">
+                                {{-- Columna 2: Área y Disciplina (Se oculta en móviles sm) --}}
+                                <td class="hidden sm:table-cell px-4 md:px-6 py-4">
                                     @if($workshop->discipline)
                                         <div class="inline-flex flex-col items-start">
                                             <span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 mb-1">
@@ -123,9 +168,9 @@
                                 </td>
 
                                 {{-- Columna 3: Horario --}}
-                                <td class="px-6 py-4 text-sm font-bold text-zinc-700">
+                                <td class="px-4 md:px-6 py-4 text-sm font-bold text-zinc-700">
                                     @if($workshop->is_single_class && $workshop->specific_date)
-                                        <span class="text-zinc-900">{{ \Carbon\Carbon::parse($workshop->specific_date)->translatedFormat('d \d\e F') }}</span> 
+                                        <span class="text-zinc-900 whitespace-nowrap">{{ \Carbon\Carbon::parse($workshop->specific_date)->translatedFormat('d \d\e F') }}</span> 
                                         <div class="text-xs text-zinc-500 font-medium mt-0.5">
                                             a las <span class="text-zinc-900 font-bold">{{ \Carbon\Carbon::parse($workshop->start_time)->format('H:i') }}</span>
                                         </div>
@@ -134,31 +179,34 @@
                                             <div class="space-y-1.5">
                                                 @foreach($workshop->schedules->sortBy('day_of_week') as $schedule)
                                                     <div class="flex items-center gap-2">
-                                                        <span class="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded text-[10px] border border-zinc-200 uppercase font-black w-10 text-center">
+                                                        <span class="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded text-[10px] border border-zinc-200 uppercase font-black w-9 md:w-10 text-center shrink-0">
                                                             {{ ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][$schedule->day_of_week] ?? '' }}
                                                         </span>
                                                         <span class="text-zinc-900 font-bold text-xs">{{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }}</span>
                                                         @if($schedule->max_students)
-                                                            <span class="text-[10px] text-zinc-500 font-medium">(Cupo: {{ $schedule->max_students }})</span>
+                                                            <span class="hidden md:inline text-[10px] text-zinc-500 font-medium">(Cupo: {{ $schedule->max_students }})</span>
                                                         @endif
                                                     </div>
                                                 @endforeach
                                             </div>
                                         @else
-                                            <span class="text-rose-500 italic text-xs font-normal">Sin horarios configurados</span>
+                                            <span class="text-rose-500 italic text-xs font-normal">Sin horarios</span>
                                         @endif
                                     @endif
                                 </td>
 
-                                {{-- Columna 4: Acciones --}}
-                                <td class="px-6 py-4 text-right space-x-3 flex justify-end items-center">
-                                    {{-- LA CORRECCIÓN N+1: $workshop->toJson() --}}
-                                    <button type="button" data-workshop="{{ $workshop->toJson() }}" onclick="openEditWorkshopModal(this)" class="text-sm font-bold text-zinc-500 hover:text-zinc-900 bg-zinc-50 border border-zinc-200 px-3 py-1.5 rounded-lg transition-colors duration-200">
-                                        Editar
+                                {{-- Columna 4: Acciones (Apiladas/Iconos en móvil) --}}
+                                <td class="px-4 md:px-6 py-4 text-right space-x-2 md:space-x-3 whitespace-nowrap">
+                                    <button type="button" data-workshop="{{ $workshop->toJson() }}" onclick="openEditWorkshopModal(this)" class="inline-block align-middle text-xs md:text-sm font-bold text-zinc-500 hover:text-zinc-900 bg-zinc-50 border border-zinc-200 px-2.5 md:px-3 py-1.5 rounded-lg transition-colors duration-200" title="Editar">
+                                        <span class="hidden lg:inline">Editar</span>
+                                        <svg class="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </button>
-                                    <form action="{{ route('workshops.destroy', ['subdomain' => request()->route('subdomain'), 'workshop' => $workshop->id]) }}" method="POST" class="inline m-0">
+                                    <form action="{{ route('workshops.destroy', ['subdomain' => request()->route('subdomain'), 'workshop' => $workshop->id]) }}" method="POST" class="inline-block align-middle m-0">
                                         @csrf @method('DELETE')
-                                        <button type="submit" onclick="return confirm('¿Eliminar este taller permanentemente?')" class="text-sm font-bold text-rose-500 hover:text-white bg-white hover:bg-rose-500 border border-rose-200 hover:border-rose-500 px-3 py-1.5 rounded-lg transition-colors duration-200">Eliminar</button>
+                                        <button type="submit" onclick="return confirm('¿Eliminar este taller permanentemente?')" class="text-xs md:text-sm font-bold text-rose-500 hover:text-white bg-white hover:bg-rose-500 border border-rose-200 hover:border-rose-500 px-2.5 md:px-3 py-1.5 rounded-lg transition-colors duration-200" title="Eliminar">
+                                            <span class="hidden lg:inline">Eliminar</span>
+                                            <svg class="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                        </button>
                                     </form>
                                 </td>
                             </tr>
@@ -201,8 +249,25 @@
                     <div class="col-span-1 md:col-span-2">
                         <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre del Taller *</label>
                         <input type="text" name="name" id="w_name" value="{{ old('name') }}" placeholder="Ej: Telas Principiante" 
-                            class="w-full rounded-xl border {{ $errors->has('name') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all" required>
+                            class="w-full rounded-xl border {{ $errors->has('name') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white" required>
                         @error('name') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- NUEVO: Descripción --}}
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Descripción de la Clase <span class="text-zinc-400 font-normal">(Opcional)</span></label>
+                        <textarea name="description" id="w_description" rows="3" placeholder="Cuéntale a tus alumnos de qué trata esta clase, qué aprenderán o qué necesitan llevar..." 
+                            class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">{{ old('description') }}</textarea>
+                        @error('description') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- NUEVO: Video Promocional --}}
+                    <div class="col-span-1 md:col-span-2">
+                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Video Promocional <span class="text-zinc-400 font-normal">(YouTube o Instagram)</span></label>
+                        <input type="url" name="promo_video_url" id="w_promo_video_url" value="{{ old('promo_video_url') }}" placeholder="Ej: https://www.instagram.com/reel/xyz/ o https://www.youtube.com/watch?v=..." 
+                            class="w-full rounded-xl border {{ $errors->has('promo_video_url') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white">
+                        <p class="text-xs text-zinc-500 mt-1.5">Pega el link directo. El sistema lo adaptará automáticamente para mostrarlo a los alumnos.</p>
+                        @error('promo_video_url') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
                     
                     {{-- Subida de Imagen --}}
@@ -245,7 +310,7 @@
                     {{-- Público Objetivo --}}
                     <div>
                         <label class="block text-sm font-bold text-zinc-700 mb-1.5">Público Objetivo *</label>
-                        <select name="target_audience" id="w_target_audience" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none cursor-pointer">
+                        <select name="target_audience" id="w_target_audience" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none cursor-pointer bg-zinc-50 focus:bg-white">
                             <option value="all" {{ old('target_audience') == 'all' ? 'selected' : '' }}>Todas las edades</option>
                             <option value="kids" {{ old('target_audience') == 'kids' ? 'selected' : '' }}>Niñas/os (hasta 12 años)</option>
                             <option value="teens" {{ old('target_audience') == 'teens' ? 'selected' : '' }}>Adolescentes (13 - 17 años)</option>
@@ -257,7 +322,7 @@
                     {{-- Entrenador --}}
                     <div>
                         <label class="block text-sm font-bold text-zinc-700 mb-1.5">Entrenador(a) Principal</label>
-                        <select name="teacher_id" id="w_teacher_id" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                        <select name="teacher_id" id="w_teacher_id" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-zinc-50 focus:bg-white">
                             <option value="">-- Sin profesor asignado --</option>
                             @foreach($teachers as $teacher)
                                 <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>
@@ -299,7 +364,7 @@
                     {{-- Color --}}
                     <div class="col-span-1 md:col-span-2">
                         <label class="block text-sm font-bold text-zinc-700 mb-1.5">Color (Calendario) *</label>
-                        <select name="color" id="w_color" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer" required>
+                        <select name="color" id="w_color" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-zinc-50 focus:bg-white" required>
                             @foreach(['blue'=>'Azul Intenso','emerald'=>'Verde Esmeralda','teal'=>'Turquesa','cyan'=>'Celeste','indigo'=>'Índigo','purple'=>'Púrpura','fuchsia'=>'Fucsia','rose'=>'Rosa / Rojo','amber'=>'Ámbar / Naranja','slate'=>'Gris Oscuro'] as $val => $label)
                                 <option value="{{ $val }}" {{ old('color') == $val ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
@@ -328,7 +393,7 @@
                                     <h4 class="text-sm font-bold text-zinc-900">Horarios Semanales</h4>
                                     <p class="text-xs text-zinc-500">Agrega todos los bloques que necesites para este taller.</p>
                                 </div>
-                                <button type="button" onclick="addScheduleRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
+                                <button type="button" onclick="addScheduleRow()" class="text-xs font-bold bg-white text-zinc-900 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-100 transition-colors shadow-sm">
                                     + Agregar Horario
                                 </button>
                             </div>
@@ -341,13 +406,13 @@
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 mb-1.5">Fecha Exacta *</label>
                                 <input type="date" name="specific_date" id="w_specific_date" value="{{ old('specific_date') }}" onclick="try { this.showPicker(); } catch(e) {}"
-                                    class="w-full rounded-xl border {{ $errors->has('specific_date') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                                    class="w-full rounded-xl border {{ $errors->has('specific_date') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-white">
                                 @error('specific_date') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio *</label>
                                 <input type="time" name="start_time" id="w_start_time" value="{{ old('start_time') }}" onclick="try { this.showPicker(); } catch(e) {}"
-                                    class="w-full rounded-xl border {{ $errors->has('start_time') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                                    class="w-full rounded-xl border {{ $errors->has('start_time') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-white">
                                 @error('start_time') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -365,7 +430,7 @@
                                 <h4 class="text-sm font-bold text-zinc-900">Planes de Precios</h4>
                                 <p class="text-xs text-zinc-500">Configura los paquetes estándar y los descuentos de bienvenida.</p>
                             </div>
-                            <button type="button" onclick="addPriceRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
+                            <button type="button" onclick="addPriceRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
                                 + Agregar Plan
                             </button>
                         </div>
@@ -378,7 +443,7 @@
                     <div class="col-span-1 md:col-span-2 mt-2">
                         <label class="block text-sm font-bold text-zinc-700 mb-1.5">Datos de Transferencia (Opcional)</label>
                         <textarea name="payment_info" id="w_payment" rows="2" placeholder="Ej: Banco Estado, Cuenta RUT..." 
-                                class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none">{{ old('payment_info') }}</textarea>
+                                class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">{{ old('payment_info') }}</textarea>
                     </div>
                 </div>
 
@@ -686,6 +751,8 @@
                 document.getElementById('w_region').value = '';
                 document.getElementById('w_country').value = '';
                 document.getElementById('w_room_location').value = '';
+                document.getElementById('w_description').value = '';
+                document.getElementById('w_promo_video_url').value = '';
                 toggleLocationFields();
                 
                 // Reiniciar Masterclass
@@ -724,6 +791,8 @@
             document.getElementById('w_payment').value = w.payment_info || '';
             document.getElementById('w_teacher_id').value = w.teacher_id || '';
             document.getElementById('w_target_audience').value = w.target_audience || 'adults';
+            document.getElementById('w_description').value = w.description || '';
+            document.getElementById('w_promo_video_url').value = w.promo_video_url || '';
             
             if (w.discipline) {
                 document.getElementById('w_area').value = w.discipline.area ? w.discipline.area.name : '';

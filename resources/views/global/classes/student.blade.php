@@ -19,10 +19,27 @@
             $nextMonth = $monthDate->copy()->addMonth()->format('Y-m');
         @endphp
 
-        <div class="flex justify-between items-center mb-6 bg-white p-4 rounded-2xl shadow-sm border border-zinc-200">
-            <a href="{{ route('global.classes.student', ['month' => $prevMonth]) }}" class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl font-bold text-zinc-600 transition text-sm">← Anterior</a>
-            <h2 class="text-xl md:text-2xl font-black text-zinc-800 capitalize">{{ $monthDate->translatedFormat('F Y') }}</h2>
-            <a href="{{ route('global.classes.student', ['month' => $nextMonth]) }}" class="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl font-bold text-zinc-600 transition text-sm">Siguiente →</a>
+        <div class="flex justify-between items-center mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-zinc-200">
+            
+            {{-- Botón Anterior --}}
+            <a href="{{ route('global.classes.student', ['month' => $prevMonth]) }}" 
+               class="px-3 sm:px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl font-bold text-zinc-600 transition text-sm flex items-center gap-1.5 sm:gap-2 active:scale-95">
+                <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
+                <span class="hidden sm:inline">Anterior</span>
+            </a>
+            
+            {{-- Título del Mes --}}
+            <h2 class="text-lg sm:text-xl md:text-2xl font-black text-zinc-800 capitalize truncate px-2 text-center">
+                {{ $monthDate->translatedFormat('F Y') }}
+            </h2>
+            
+            {{-- Botón Siguiente --}}
+            <a href="{{ route('global.classes.student', ['month' => $nextMonth]) }}" 
+               class="px-3 sm:px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl font-bold text-zinc-600 transition text-sm flex items-center gap-1.5 sm:gap-2 active:scale-95">
+                <span class="hidden sm:inline">Siguiente</span>
+                <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+            
         </div>
 
         @if($sessionsByDate->isEmpty() && $monthDate->isCurrentMonth())
@@ -43,122 +60,128 @@
         @endif
 
         {{-- Calendario Maestro --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
-            <div class="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
-                @foreach(['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] as $d)
-                    <div class="py-3 text-center text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider border-r border-zinc-200 last:border-0">{{ $d }}</div>
-                @endforeach
-            </div>
+        <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden relative">
+            
+            {{-- Sombra lateral para indicar al usuario que puede hacer scroll en móviles --}}
+            <div class="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-white/90 to-transparent pointer-events-none md:hidden z-10"></div>
 
-            <div class="grid grid-cols-7 gap-px bg-zinc-200">
-                @php
-                    $start = $monthDate->copy()->startOfMonth();
-                    $empty = $start->dayOfWeekIso - 1;
-                    $days = $monthDate->daysInMonth;
-                @endphp
-
-                @for ($i = 0; $i < $empty; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
-
-                @for ($day = 1; $day <= $days; $day++)
-                    @php
-                        $cur = $monthDate->copy()->day($day)->toDateString();
-                        $sessionsInDay = $sessionsByDate->get($cur, collect());
-                        $isToday = \Carbon\Carbon::parse($cur)->isToday();
-                    @endphp
+            {{-- Contenedor con Scroll Horizontal (La magia ocurre aquí) --}}
+            <div class="overflow-x-auto custom-scrollbar">
+                
+                {{-- Forzamos un ancho mínimo. En PC ocupará el 100%, en móvil medirá 1300px y generará scroll --}}
+                <div class="min-w-[1300px] w-full">
                     
-                    <div class="bg-white min-h-[140px] p-1.5 md:p-2 transition {{ $isToday ? 'ring-2 ring-inset ring-zinc-900 bg-zinc-50/30' : '' }}">
-                        <span class="text-sm font-bold flex items-center justify-center h-6 w-6 md:h-7 md:w-7 rounded-full mb-2 {{ $isToday ? 'bg-zinc-900 text-white' : 'text-zinc-500' }}">{{ $day }}</span>
-                        
-                        <div class="space-y-2">
-                            @foreach($sessionsInDay as $session)
-                                @php 
-                                    $c = $session->workshop->color ?? 'indigo'; 
-                                    $bgClass = match($c) {
-                                        'emerald' => 'bg-emerald-500', 'rose' => 'bg-rose-500', 'purple' => 'bg-purple-500',
-                                        'amber' => 'bg-amber-500', 'indigo' => 'bg-indigo-500', 'teal' => 'bg-teal-500',
-                                        'cyan' => 'bg-cyan-500', 'fuchsia' => 'bg-fuchsia-500', 'slate' => 'bg-slate-500',
-                                        default => 'bg-indigo-500',
-                                    };
-                                    
-                                    // IMAGEN DEL TALLER
-                                    $imageUrl = $session->workshop->image_path 
-                                        ? asset('storage/' . $session->workshop->image_path) 
-                                        : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
-
-                                    // IMAGEN OPTIMIZADA DEL ESTUDIO (Para inyectar en el Modal)
-                                    $studioLogo = $session->workshop->studio->icon_path ?? $session->workshop->studio->logo_path ?? null;
-                                    $studioImageUrl = $studioLogo 
-                                        ? asset('storage/' . $studioLogo) 
-                                        : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
-
-                                    // ESTADOS DE LA CLASE
-                                    $isPaid = $session->is_paid ?? false;
-                                    $isCancelled = $session->is_cancelled ?? ($session->status === 'cancelled') ?? false;
-                                    
-                                    // ESTILOS DINÁMICOS SEGÚN ESTADO
-                                    if ($isCancelled) {
-                                        $cardClasses = 'border-zinc-200 bg-zinc-50 opacity-75 grayscale';
-                                    } else {
-                                        $cardClasses = $isPaid ? 'border-zinc-200 hover:border-zinc-400' : 'border-rose-200 bg-rose-50/30 hover:border-rose-400';
-                                    }
-                                @endphp
-                                
-                                <button onclick="openClassDetails(this)"
-                                        data-title="{{ $session->workshop->name }}"
-                                        data-studio="{{ $session->workshop->studio->name }}"
-                                        data-studio-image="{{ $studioImageUrl }}"
-                                        data-teacher="{{ $session->workshop->teacher->name ?? 'Por asignar' }}"
-                                        data-time="{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}"
-                                        data-date="{{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }}"
-                                        data-subdomain="{{ $session->workshop->studio->subdomain }}"
-                                        data-image="{{ $imageUrl }}" 
-                                        data-address="{{ $session->workshop->studio->address ?? 'Dirección no especificada' }}"
-                                        data-status="{{ $isPaid ? 'paid' : 'unpaid' }}"
-                                        data-cancelled="{{ $isCancelled ? 'true' : 'false' }}"
-                                        class="relative w-full text-left p-1.5 md:p-2 pl-3 bg-white border {{ $cardClasses }} rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95 flex items-center gap-2.5">
-                                    
-                                    {{-- Barra de Color del Taller (gris si está cancelada) --}}
-                                    <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
-
-                                    {{-- Miniatura de Imagen del Taller --}}
-                                    <img src="{{ $imageUrl }}" class="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover shadow-sm hidden sm:block border border-zinc-100">
-
-                                    <div class="flex-1 min-w-0">
-                                        <div class="flex justify-between items-start">
-                                            <div class="text-[10px] md:text-xs font-extrabold leading-none {{ $isCancelled ? 'text-zinc-500 line-through' : 'text-zinc-900' }}">
-                                                {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}
-                                            </div>
-                                            
-                                            {{-- INDICADORES VISUALES SUPERIORES --}}
-                                            @if($isCancelled)
-                                                <span class="bg-rose-100 text-rose-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">Anulada</span>
-                                            @elseif($isPaid)
-                                                <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Pagada"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
-                                            @else
-                                                <span class="flex h-2 w-2 relative shrink-0" title="Pendiente de pago">
-                                                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                    <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
-                                                </span>
-                                            @endif
-                                        </div>
-                                        <div class="text-[9px] md:text-[10px] font-bold mt-0.5 truncate {{ $isCancelled ? 'text-zinc-500' : 'text-zinc-600' }}">
-                                            {{ $session->workshop->name }}
-                                        </div>
-                                        <div class="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-0.5 truncate group-hover:text-zinc-600 transition-colors">
-                                            {{ $session->workshop->studio->name }}
-                                        </div>
-                                    </div>
-                                </button>
-                            @endforeach
-                        </div>
+                    <div class="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+                        @foreach(['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] as $d)
+                            <div class="py-3 text-center text-[11px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider border-r border-zinc-200 last:border-0">{{ $d }}</div>
+                        @endforeach
                     </div>
-                @endfor
 
-                @php
-                    $remainingCells = 7 - (($empty + $days) % 7);
-                    if ($remainingCells == 7) $remainingCells = 0;
-                @endphp
-                @for ($i = 0; $i < $remainingCells; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+                    <div class="grid grid-cols-7 gap-px bg-zinc-200">
+                        @php
+                            $start = $monthDate->copy()->startOfMonth();
+                            $empty = $start->dayOfWeekIso - 1;
+                            $days = $monthDate->daysInMonth;
+                        @endphp
+
+                        @for ($i = 0; $i < $empty; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+
+                        @for ($day = 1; $day <= $days; $day++)
+                            @php
+                                $cur = $monthDate->copy()->day($day)->toDateString();
+                                $sessionsInDay = $sessionsByDate->get($cur, collect());
+                                $isToday = \Carbon\Carbon::parse($cur)->isToday();
+                            @endphp
+                            
+                            <div class="bg-white min-h-[140px] p-2 transition {{ $isToday ? 'ring-2 ring-inset ring-zinc-900 bg-zinc-50/30' : '' }}">
+                                <span class="text-sm font-bold flex items-center justify-center h-7 w-7 rounded-full mb-2 {{ $isToday ? 'bg-zinc-900 text-white' : 'text-zinc-500' }}">{{ $day }}</span>
+                                
+                                <div class="space-y-2">
+                                    @foreach($sessionsInDay as $session)
+                                        @php 
+                                            $c = $session->workshop->color ?? 'indigo'; 
+                                            $bgClass = match($c) {
+                                                'emerald' => 'bg-emerald-500', 'rose' => 'bg-rose-500', 'purple' => 'bg-purple-500',
+                                                'amber' => 'bg-amber-500', 'indigo' => 'bg-indigo-500', 'teal' => 'bg-teal-500',
+                                                'cyan' => 'bg-cyan-500', 'fuchsia' => 'bg-fuchsia-500', 'slate' => 'bg-slate-500',
+                                                default => 'bg-indigo-500',
+                                            };
+                                            
+                                            $imageUrl = $session->workshop->image_path 
+                                                ? asset('storage/' . $session->workshop->image_path) 
+                                                : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
+
+                                            $studioLogo = $session->workshop->studio->icon_path ?? $session->workshop->studio->logo_path ?? null;
+                                            $studioImageUrl = $studioLogo 
+                                                ? asset('storage/' . $studioLogo) 
+                                                : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
+
+                                            $isPaid = $session->is_paid ?? false;
+                                            $isCancelled = $session->is_cancelled ?? ($session->status === 'cancelled') ?? false;
+                                            
+                                            if ($isCancelled) {
+                                                $cardClasses = 'border-zinc-200 bg-zinc-50 opacity-75 grayscale';
+                                            } else {
+                                                $cardClasses = $isPaid ? 'border-zinc-200 hover:border-zinc-400' : 'border-rose-200 bg-rose-50/30 hover:border-rose-400';
+                                            }
+                                        @endphp
+                                        
+                                        <button onclick="openClassDetails(this)"
+                                                data-title="{{ $session->workshop->name }}"
+                                                data-studio="{{ $session->workshop->studio->name }}"
+                                                data-studio-image="{{ $studioImageUrl }}"
+                                                data-teacher="{{ $session->workshop->teacher ? $session->workshop->teacher->first_name . ' ' . $session->workshop->teacher->last_name : 'Por asignar' }}"
+                                                data-time="{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}"
+                                                data-date="{{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }}"
+                                                data-subdomain="{{ $session->workshop->studio->subdomain }}"
+                                                data-image="{{ $imageUrl }}" 
+                                                data-address="{{ $session->workshop->studio->address ?? 'Dirección no especificada' }}"
+                                                data-status="{{ $isPaid ? 'paid' : 'unpaid' }}"
+                                                data-cancelled="{{ $isCancelled ? 'true' : 'false' }}"
+                                                class="relative w-full text-left p-2 pl-3 bg-white border {{ $cardClasses }} rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95 flex items-center gap-2.5">
+                                            
+                                            <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
+
+                                            {{-- Le quité el "hidden sm:block" a la imagen para que siempre se vea bien, total ahora tenemos espacio --}}
+                                            <img src="{{ $imageUrl }}" class="w-8 h-8 rounded-lg object-cover shadow-sm border border-zinc-100 shrink-0">
+
+                                            <div class="flex-1 min-w-0">
+                                                <div class="flex justify-between items-start">
+                                                    <div class="text-[10px] font-extrabold leading-none {{ $isCancelled ? 'text-zinc-500 line-through' : 'text-zinc-900' }}">
+                                                        {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}
+                                                    </div>
+                                                    
+                                                    @if($isCancelled)
+                                                        <span class="bg-rose-100 text-rose-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">Anulada</span>
+                                                    @elseif($isPaid)
+                                                        <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Pagada"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+                                                    @else
+                                                        <span class="flex h-2 w-2 relative shrink-0" title="Pendiente de pago">
+                                                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                                            <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                                <div class="text-[10px] font-bold mt-0.5 truncate {{ $isCancelled ? 'text-zinc-500' : 'text-zinc-600' }}">
+                                                    {{ $session->workshop->name }}
+                                                </div>
+                                                <div class="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-0.5 truncate group-hover:text-zinc-600 transition-colors">
+                                                    {{ $session->workshop->studio->name }}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @endfor
+
+                        @php
+                            $remainingCells = 7 - (($empty + $days) % 7);
+                            if ($remainingCells == 7) $remainingCells = 0;
+                        @endphp
+                        @for ($i = 0; $i < $remainingCells; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -234,6 +257,11 @@
             </div>
         </div>
     </div>
+    <style>
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d4d4d8; border-radius: 20px; }
+    </style>
 
     <script>
         const modal = document.getElementById('classDetailsModal');

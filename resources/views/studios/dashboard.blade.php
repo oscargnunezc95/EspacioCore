@@ -1,13 +1,15 @@
 <x-app-layout>
     
-    <x-slot name="header">
-        <x-studio-tabs />
-        <div class="mt-8">
+    {{-- 1. NAVEGACIÓN DEL ESTUDIO (Libre de paddings, pegado arriba) --}}
+    <x-studio-tabs />
+
+    {{-- 2. EL RESTO DEL CONTENIDO (Contenedor maestro) --}}
+    <div class="pt-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {{-- TÍTULO Y BREADCRUMBS (Sin x-slot) --}}
+        <div class="mt-2 mb-8">
             <x-studio-header title="Dashboard principal" :breadcrumbs="[['name' => 'Panel principal']]"></x-studio-header>
         </div>
-    </x-slot>
-    
-    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -61,8 +63,6 @@
                         @php
                             // Generamos un Avatar usando la inicial, pero con tonos rojos
                             $studentAvatar = 'https://ui-avatars.com/api/?name='.urlencode($student->name).'&color=be123c&background=ffe4e6&bold=true';
-                            // Si en tu modelo Student tienes relación al User y este tiene foto, podrías usarla aquí:
-                            // if($student->user && $student->user->profile_photo_path) { $studentAvatar = asset('storage/'.$student->user->profile_photo_path); }
                         @endphp
                         
                         <div class="p-5 bg-white border border-rose-100/60 shadow-sm rounded-2xl hover:border-rose-300 transition-all duration-200 hover:shadow-md group/card">
@@ -72,7 +72,6 @@
                                     {{ $student->name }}
                                 </h5>
                                 
-                                {{-- Si tienes el teléfono del estudiante, puedes inyectarlo en el href de WhatsApp --}}
                                 @php $whatsappLink = $student->phone ? "https://wa.me/{$student->phone}" : "#"; @endphp
                                 <a href="{{ $whatsappLink }}" target="{{ $student->phone ? '_blank' : '_self' }}" class="text-[10px] font-black text-rose-600 hover:text-white uppercase tracking-widest bg-rose-50 hover:bg-rose-600 border border-rose-200 hover:border-rose-600 px-3 py-1.5 rounded-lg shadow-sm transition-all duration-200 flex items-center gap-1.5">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>

@@ -7,40 +7,43 @@ use App\Models\ClassSession;
 use App\Models\Area;
 use App\Models\Workshop;
 use Carbon\Carbon;
-use Illuminate\Support\Facades\DB; // <-- Asegúrate de importar DB arriba
+// use Illuminate\Support\Facades\DB; // <-- Lo quitamos, ya no hace falta.
 
 class ExploreController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Iniciamos la consulta apagando los Global Scopes del Multi-tenant
+        // 1. Consulta base apagando scopes globales en cascada
         $query = ClassSession::withoutGlobalScopes()->with([
             'workshop' => function($q) {
-                $q->withoutGlobalScopes(); // Apagamos el scope también en la relación
+                $q->withoutGlobalScopes(); 
             },
             'workshop.studio', 
             'workshop.discipline.area',
-            'workshop.teacher',
-            'workshop.prices'
+            // CRÍTICO: Apagar scopes para que el profesor y los precios aparezcan
+            'workshop.teacher' => function($q) {
+                $q->withoutGlobalScopes(); 
+            },
+            'workshop.prices' => function($q) {
+                $q->withoutGlobalScopes(); 
+            }
         ])
         ->where('is_cancelled', false)
         ->where('date', '>=', Carbon::today()->toDateString());
 
-        // 2. Filtro por Área
+        // 2. Aplicación de Filtros
         if ($request->filled('area')) {
             $query->whereHas('workshop.discipline.area', function($q) use ($request) {
                 $q->where('name', $request->area);
             });
         }
 
-        // 3. Filtro por Ciudad
         if ($request->filled('city')) {
             $query->whereHas('workshop', function($q) use ($request) {
-                $q->where('city', $request->city);
+                $q->withoutGlobalScopes()->where('city', $request->city);
             });
         }
 
-        // 4. Filtro por Fechas
         if ($request->filled('date_from')) {
             $query->where('date', '>=', $request->date_from);
         }
@@ -49,49 +52,54 @@ class ExploreController extends Controller
             $query->where('date', '<=', $request->date_to);
         }
 
-        // 5. Ordenamos y paginamos (Solo una vez)
+        // 3. Ejecución de la consulta con paginación
         $sessions = $query->orderBy('date', 'asc')
                           ->orderBy('start_time', 'asc')
                           ->paginate(24)
                           ->withQueryString();
 
-        // 6. Datos extra para los selectores (Apagando Scopes para obtener ciudades de todos los estudios)
+        // 4. Datos para selectores
         $areas = Area::withoutGlobalScopes()->orderBy('name', 'asc')->get();
-        
         $cities = Workshop::withoutGlobalScopes()
                           ->whereNotNull('city')
                           ->distinct()
                           ->orderBy('city', 'asc')
                           ->pluck('city');
 
-        // 7. Buscar clases del usuario actual en todo el sistema
+        // 5. ESTADO DE USUARIO (ARQUITECTURA OPTIMIZADA O(1))
         $enrolledSessionIds = [];
-        $paidSessionIds = []; // <--- NUEVA VARI    ABLE PARA CLASES PAGADAS
+        $paidSessionIds = []; 
 
         if (auth()->check()) {
             $userId = auth()->id();
-
-            // A) Clases donde está inscrito (Botones Verdes)
-            $enrolledSessionIds = ClassSession::withoutGlobalScopes()
+            
+            // Traemos TODAS las sesiones de la alumna desde hoy en adelante
+            // incluyendo el estado de pago directamente de la tabla pivote.
+            $userSessions = ClassSession::withoutGlobalScopes()
                 ->whereHas('students', function ($q) use ($userId) {
                     $q->withoutGlobalScopes()->where('students.user_id', $userId);
                 })
                 ->where('date', '>=', Carbon::today()->toDateString())
-                ->pluck('id')
-                ->toArray();
+                // Traemos los datos de la alumna para poder leer el pivote
+                ->with(['students' => function ($q) use ($userId) {
+                    $q->withoutGlobalScopes()->where('students.user_id', $userId);
+                }])
+                ->get();
 
-            // B) Clases que ya están PAGADAS (Botones Azules Bloqueados)
-            $paidSessionIds = \Illuminate\Support\Facades\DB::table('class_session_payment')
-                ->whereIn('student_id', function($q) use ($userId) {
-                    // Subconsulta: Obtenemos todos los IDs de alumno que le pertenecen a este usuario en cualquier estudio
-                    $q->select('id')->from('students')->where('user_id', $userId);
-                })
-                ->pluck('class_session_id')
-                ->toArray();
+            foreach ($userSessions as $session) {
+                // Si la sesión llegó aquí, es porque está inscrita (enrolled)
+                $enrolledSessionIds[] = $session->id;
+                
+                // Extraemos a la alumna de la colección (debería ser solo una)
+                $student = $session->students->first();
+                
+                // Si el status mágico de la pivote dice 'paid', lo agregamos a la otra lista
+                if ($student && $student->pivot->payment_status === 'paid') {
+                    $paidSessionIds[] = $session->id;
+                }
+            }
         }
 
-        // 8. Pasamos ambas variables a la vista
         return view('explore.index', compact('sessions', 'areas', 'cities', 'enrolledSessionIds', 'paidSessionIds'));
     }
-
 }

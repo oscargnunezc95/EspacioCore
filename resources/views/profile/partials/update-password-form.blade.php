@@ -1,15 +1,14 @@
 <section>
     <header>
-        <h2 class="text-2xl font-black text-zinc-900">
+        <h2 class="text-xl sm:text-2xl font-black text-zinc-900">
             Actualizar Contraseña
         </h2>
-
         <p class="mt-1 text-sm font-medium text-zinc-500">
             Asegúrate de que tu cuenta use una contraseña larga y aleatoria para mantenerte segura.
         </p>
     </header>
 
-    <form method="post" action="{{ route('password.update') }}" class="mt-6 space-y-6">
+    <form method="post" action="{{ route('password.update') }}" class="mt-8 space-y-6">
         @csrf
         @method('put')
 
@@ -34,15 +33,15 @@
             @error('password_confirmation', 'updatePassword') <p class="text-xs text-rose-500 font-bold mt-1.5">{{ $message }}</p> @enderror
         </div>
 
-        <div class="flex items-center gap-4 pt-4 border-t border-zinc-100">
-            <button type="submit" class="bg-zinc-900 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm hover:bg-zinc-800 transition-all duration-200 active:scale-95 text-sm">
+        <div class="flex items-center gap-4 pt-6 border-t border-zinc-100">
+            <button type="submit" class="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3 px-6 rounded-xl shadow-sm hover:bg-zinc-800 transition-all duration-200 active:scale-95 text-sm">
                 Guardar Contraseña
             </button>
 
             @if (session('status') === 'password-updated')
                 <p x-data="{ show: true }" x-show="show" x-transition x-init="setTimeout(() => show = false, 2500)" class="text-sm font-bold text-emerald-600 flex items-center gap-1">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                    Contraseña actualizada.
+                    Actualizada
                 </p>
             @endif
         </div>

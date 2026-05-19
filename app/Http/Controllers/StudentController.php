@@ -7,7 +7,7 @@ use Illuminate\Validation\Rule;
 use App\Models\Student;
 use App\Models\Studio;
 use App\Models\ClassSession;
-use App\Models\Payment; // <-- IMPORTACIÓN NECESARIA PARA REEMPLAZAR EL DB::table
+use App\Models\Payment;
 use Illuminate\Support\Facades\Config;
 use Carbon\Carbon;
 use App\Services\DocumentService;
@@ -29,7 +29,6 @@ class StudentController extends Controller
             ->orderBy('last_name', 'asc')
             ->get();
             
-        // No olvides enviar los países a la vista si tu modal los necesita
         $countries = Country::orderBy('name', 'asc')->get();
         
         return view('students.index', compact('students', 'inactiveStudents', 'countries'));
@@ -39,14 +38,10 @@ class StudentController extends Controller
     {
         $studioId = Config::get('tenant.studio_id');
         
-        // 1. OBTENER EL CÓDIGO DEL PAÍS SELECCIONADO DESDE LA BD
-        $countryCode = 'OT'; // Por defecto 'Otro'
-        if ($request->filled('country_id')) {
-            $countryObj = Country::find($request->country_id);
-            $countryCode = $countryObj ? $countryObj->code : 'OT';
-        }
+        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8: en 1 sola línea)
+        $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL RUT O DOCUMENTO
+        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR (Defensa en Profundidad)
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
@@ -68,7 +63,7 @@ class StudentController extends Controller
             }
         }
 
-        // 3. VALIDACIÓN
+        // 3. VALIDACIÓN BLINDADA
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
@@ -77,7 +72,7 @@ class StudentController extends Controller
                 'nullable', 
                 'string',
                 'max:255',
-                new ValidDocument($countryCode),
+                new ValidDocument($countryCode), // Usamos el código real seleccionado
                 Rule::unique('students', 'national_id')->where(function ($query) use ($studioId) {
                     return $query->where('studio_id', $studioId);
                 })
@@ -94,20 +89,17 @@ class StudentController extends Controller
     {
         $studioId = Config::get('tenant.studio_id');
         
-        // 1. OBTENER EL CÓDIGO DEL PAÍS SELECCIONADO DESDE LA BD
-        $countryCode = 'OT';
-        if ($request->filled('country_id')) {
-            $countryObj = Country::find($request->country_id);
-            $countryCode = $countryObj ? $countryObj->code : 'OT';
-        }
+        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8)
+        $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL RUT O DOCUMENTO
+        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
             ]);
         }
 
+        // 3. VALIDACIÓN BLINDADA
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
@@ -116,7 +108,7 @@ class StudentController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                new ValidDocument($countryCode),
+                new ValidDocument($countryCode), // Usamos el código real seleccionado
                 Rule::unique('students', 'national_id')
                     ->ignore($student->id)
                     ->where(function ($query) use ($studioId) {

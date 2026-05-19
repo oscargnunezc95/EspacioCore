@@ -9,7 +9,7 @@ class Promotion extends Model
 {
     use BelongsToStudio;
 
-    protected $fillable = ['studio_id', 'name', 'type', 'total_price', 'additional_price', 'is_active'];
+    protected $fillable = ['studio_id', 'name', 'type', 'total_price', 'additional_price', 'is_active','class_count'];
 
     // Cambiamos workshops() por workshopPrices()
     public function workshopPrices()

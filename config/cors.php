@@ -6,23 +6,25 @@ return [
     |--------------------------------------------------------------------------
     | Cross-Origin Resource Sharing (CORS) Configuration
     |--------------------------------------------------------------------------
-    |
-    | Here you may configure your settings for cross-origin resource sharing
-    | or "CORS". This determines what cross-origin operations may execute
-    | in web browsers. You are free to adjust these settings as needed.
-    |
-    | To learn more: https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS
-    |
     */
 
-    // 1. CAMBIO: Agregamos el patrón de tu ruta de asistencia
-    'paths' => ['api/*', 'sanctum/csrf-cookie', '*/sessions/*/attendance/*'],
+    'paths' => [
+        'api/*', 
+        'sanctum/csrf-cookie', 
+        '*/sessions/*/attendance/*' 
+        // Eliminamos 'global/*' porque ya no necesita pasar por el firewall de CORS
+    ],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    // CRÍTICO: Vacío para no chocar con las credenciales
+    'allowed_origins' => [],
 
-    'allowed_origins_patterns' => [],
+    // CRÍTICO: Vacío para no chocar con las credenciales
+    'allowed_origins' => [],
+
+    // EXPRESIÓN REGULAR VÁLIDA: Permite cualquier subdominio tuyo (http o https)
+    'allowed_origins_patterns' => ['#^https?://.*\.estadoprisma\.test$#'],
 
     'allowed_headers' => ['*'],
 
@@ -30,7 +32,7 @@ return [
 
     'max_age' => 0,
 
-    // 2. CAMBIO CRÍTICO: Permitimos que viajen las cookies de sesión (login)
+    // Mantenemos esto en true por si tu ruta de asistencia necesita leer al usuario logueado
     'supports_credentials' => true,
 
 ];

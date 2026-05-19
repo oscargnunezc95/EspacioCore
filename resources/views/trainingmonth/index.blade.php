@@ -1,24 +1,41 @@
 <x-app-layout>
-    <x-slot name="header">
-        <x-studio-tabs />
+    
+    {{-- 1. NAVEGACIÓN DEL ESTUDIO (Libre de paddings, pegado arriba) --}}
+    <x-studio-tabs />
 
-        <div class="mt-8">
-            <x-studio-header 
-                title="Ciclos Mensuales" 
-                :breadcrumbs="[
-                    ['name' => 'Planificación']
-                ]"
-            >
-                <x-slot name="actions">
-                    <button onclick="openMonthModal()" class="bg-zinc-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95">
-                        + Planificar Mes
-                    </button>
-                </x-slot>
-            </x-studio-header>
+    {{-- 2. EL RESTO DEL CONTENIDO (Contenedor maestro acoplado a la nueva arquitectura) --}}
+    <div class="pt-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+
+        {{-- Cabecera Unificada de Planificación --}}
+        <div class="mt-2 mb-8 p-1">
+
+            {{-- Breadcrumbs --}}
+            <div class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
+                <span class="text-zinc-900">Planificación</span>
+            </div>
+
+            {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
+            <div class="flex flex-row items-center justify-between gap-4 w-full">
+                
+                {{-- Título --}}
+                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                    Ciclos Mensuales
+                </h1>
+
+                {{-- Botón Responsivo --}}
+                <button onclick="openMonthModal()" class="shrink-0 ml-auto bg-zinc-900 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
+                    
+                    {{-- Icono de Calendario con (+) --}}
+                    <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 12v4m-2-2h4"></path>
+                    </svg>
+                    
+                    {{-- Texto oculto en móviles --}}
+                    <span class="hidden sm:inline">Planificar Mes</span>
+                </button>
+            </div>
         </div>
-    </x-slot>
-
-    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             @forelse($months as $month)

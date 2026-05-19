@@ -12,10 +12,14 @@ class Payment extends Model
 
     protected $fillable = [
         'student_id',
+        'studio_id',
         'workshop_id',
         'payment_type',
+        'payment_method', // <--- NUEVO CAMPO AÑADIDO
         'amount',
         'receipt_path',
+        'mp_payment_id', // <-- NUEVO
+        'status',
     ];
 
     public function student()

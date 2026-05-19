@@ -124,7 +124,7 @@ class UserStudioSeeder extends Seeder
             // B) Crear/Buscar Profesor/a
             $teacher = Teacher::firstOrCreate(
                 [
-                    'email' => Str::slug($data['teacher']) . "@espaciocore.test",
+                    'email' => Str::slug($data['teacher']) . "@estadoprisma.test",
                     'studio_id' => $studio->id
                 ],
                 [

@@ -123,4 +123,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    'stripe' => [
+        'prices' => [
+            'basic' => env('STRIPE_PRICE_BASIC'),
+            'pro'   => env('STRIPE_PRICE_PRO'),
+            'elite' => env('STRIPE_PRICE_ELITE'),
+        ],
+    ],
+
 ];

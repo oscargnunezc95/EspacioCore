@@ -3,7 +3,7 @@
         
         <div class="text-center mb-12">
             <h1 class="text-4xl font-black text-zinc-900 tracking-tight">Mi Portal de Pagos</h1>
-            <p class="mt-4 text-zinc-500 text-lg">Selecciona las clases que deseas confirmar.</p>
+            <p class="mt-4 text-zinc-500 text-lg">Selecciona las clases que deseas confirmar. La promoción o pack genererá el descuento automáticamente al seleccionar las clases. Has click en Ver Ofertas para ver las promociones.</p>
         </div>
 
         {{-- CONTENEDOR DE ESTUDIOS --}}
@@ -93,7 +93,7 @@
             if (isLoggedIn) {
                 count = parseInt(badge.innerText) || 0;
             } else {
-                const cart = JSON.parse(localStorage.getItem('espaciocore_cart')) || [];
+                const cart = JSON.parse(localStorage.getItem('estadoprisma_cart')) || [];
                 count = cart.length; 
             }
 
@@ -106,7 +106,7 @@
         // ==========================================
         function loadGuestCart() {
             const container = document.getElementById('classes-container');
-            const cartIds = JSON.parse(localStorage.getItem('espaciocore_cart')) || [];
+            const cartIds = JSON.parse(localStorage.getItem('estadoprisma_cart')) || [];
             const tokenMeta = document.querySelector('meta[name="csrf-token"]');
 
             if (cartIds.length === 0) {
@@ -224,9 +224,9 @@
         }
 
         function removeFromGuestCart(sessionId) {
-            let cart = JSON.parse(localStorage.getItem('espaciocore_cart')) || [];
+            let cart = JSON.parse(localStorage.getItem('estadoprisma_cart')) || [];
             cart = cart.filter(id => id !== parseInt(sessionId));
-            localStorage.setItem('espaciocore_cart', JSON.stringify(cart));
+            localStorage.setItem('estadoprisma_cart', JSON.stringify(cart));
             
             updateBadge();
             loadGuestCart();
@@ -294,9 +294,11 @@
                 })
                 .then(res => res.json())
                 .then(data => {
-                    if (data.error) {
-                        alert(data.error);
+                    // BLINDAJE UI: Buscamos data.error (nuestro) o data.message (nativo de Laravel)
+                    if (data.error || data.message) {
+                        alert(data.error || data.message || "Error de servidor: No se pudo calcular el precio.");
                         totalEl.innerText = "$0";
+                        breakdownEl.innerHTML = "<span class='text-rose-500 font-bold'>Error de cálculo</span>";
                         btnPay.innerHTML = `Pagar Selección`;
                     } else {
                         // 3. DESBLOQUEO UI: Restauramos el botón y pintamos datos
@@ -309,6 +311,7 @@
                 .catch(err => {
                     console.error("Error al calcular:", err);
                     totalEl.innerText = "Error";
+                    breakdownEl.innerHTML = "<span class='text-rose-500 font-bold'>Error de conexión</span>";
                     btnPay.innerHTML = `Pagar Selección`;
                 });
             });
@@ -339,19 +342,67 @@
             }, 300);
         }
 
+        // ==========================================
+        // 7. ORQUESTADOR DE PAGOS (CHECKOUT)
+        // ==========================================
         function payStudio(studioId) {
             const checkedBoxes = document.querySelectorAll(`input.session-checkbox[data-studio-id="${studioId}"]:checked`);
-            const sessionIds = Array.from(checkedBoxes).map(cb => cb.value);
+            const sessionIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
             
-            console.log(`Iniciando pago para el estudio ${studioId} con las clases:`, sessionIds);
+            if (sessionIds.length === 0) return;
             
+            // 1. Lógica para Invitados (Abre el Modal)
             if (!isLoggedIn) {
                 document.getElementById('guest_studio_id').value = studioId;
                 document.getElementById('guest_session_ids').value = JSON.stringify(sessionIds);
                 document.getElementById('guestCheckoutModal').classList.remove('hidden');
-            } else {
-                alert('Lógica de pasarela de pago en construcción.');
+                return;
             }
+
+            // 2. Lógica para Alumnos Logueados (Conexión a Mercado Pago)
+            const btnPay = document.getElementById(`btn-pay-${studioId}`);
+            
+            // UI: Estado de Carga (Protección contra doble clic)
+            btnPay.disabled = true;
+            btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span class="ml-2">Conectando...</span>`;
+
+            const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            // Enviamos la petición a nuestro futuro CheckoutController
+            fetch("/pagos/generar-checkout", {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json', 
+                    'X-CSRF-TOKEN': token, 
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify({ 
+                    studio_id: parseInt(studioId), 
+                    session_ids: sessionIds 
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                // Si el backend o Mercado Pago arrojan un error (Ej: Estudio sin cuenta vinculada)
+                if (data.error || data.message) {
+                    alert(data.error || data.message || "No se pudo generar el enlace de pago.");
+                    btnPay.disabled = false;
+                    btnPay.innerHTML = `Pagar Selección`;
+                    return;
+                }
+
+                // Magia Pura: Si Mercado Pago responde con éxito, nos da el init_point
+                if (data.init_point) {
+                    // Redirigimos al navegador hacia la pasarela oficial de MP
+                    window.location.href = data.init_point;
+                }
+            })
+            .catch(err => {
+                console.error("Error fatal en checkout:", err);
+                alert("Hubo un problema de red al intentar conectar con el banco.");
+                btnPay.disabled = false;
+                btnPay.innerHTML = `Pagar Selección`;
+            });
         }
     </script>
 </x-app-layout>

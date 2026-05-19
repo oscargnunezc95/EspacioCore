@@ -3,8 +3,11 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Auth\Notifications\VerifyEmail;
+use Illuminate\Notifications\Messages\MailMessage;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -33,5 +36,15 @@ class AppServiceProvider extends ServiceProvider
                 $view->with('portalBadgeCount', $count);
             }
         );
+        // Personalización del correo de verificación
+        VerifyEmail::toMailUsing(function (object $notifiable, string $url) {
+            return (new MailMessage)
+                ->subject('Verifica tu acceso a EstadoPrisma')
+                ->greeting('¡Hola, ' . $notifiable->name . '!')
+                ->line('Gracias por dar el paso y crear tu cuenta en EstadoPrisma. Para asegurar la información de tu academia, por favor verifica tu correo electrónico.')
+                ->action('Verificar mi cuenta', $url)
+                ->line('Si no te registraste en nuestra plataforma, puedes ignorar este correo sin problemas.')
+                ->salutation('El equipo de ' . config('app.name'));
+        });
     }
 }

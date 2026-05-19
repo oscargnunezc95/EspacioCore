@@ -9,8 +9,11 @@ use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use App\Services\DocumentService;
 use Illuminate\Support\Facades\DB; // <-- CRÍTICO: Agregamos esto para el DB::raw
+
+use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Services\DocumentService;
+use App\Models\Country;
 
 #[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id'])]
 #[Hidden(['password', 'remember_token'])]
@@ -60,16 +63,13 @@ class User extends Authenticatable implements MustVerifyEmail
             return 0;
         }
 
-        // 2. Consulta blindada usando whereNotExists directo a la tabla pivote
+        // 2. MAGIA DE OPTIMIZACIÓN BLINDADA: Cuenta directa O(1)
         return \App\Models\ClassSession::withoutGlobalScopes()
             ->whereHas('students', function ($query) use ($studentIds) {
-                $query->withoutGlobalScopes()->whereIn('students.id', $studentIds);
-            })
-            ->whereNotExists(function ($query) use ($studentIds) {
-                $query->select(DB::raw(1))
-                      ->from('class_session_payment')
-                      ->whereColumn('class_session_payment.class_session_id', 'class_sessions.id')
-                      ->whereIn('class_session_payment.student_id', $studentIds);
+                $query->withoutGlobalScopes()
+                      ->whereIn('students.id', $studentIds)
+                      // 👇 El mismo blindaje explícito que usamos en el CartController 👇
+                      ->where('class_session_student.payment_status', 'pending'); 
             })
             ->where('date', '>=', now()->toDateString())
             ->count();
@@ -106,5 +106,21 @@ class User extends Authenticatable implements MustVerifyEmail
         $countryCode = $this->country ? $this->country->code : 'CL'; 
 
         return DocumentService::format($this->national_id, $countryCode);
+    }
+
+    protected function nationalId(): Attribute
+    {
+        return Attribute::make(
+            set: function ($value, $attributes) {
+                if (empty($value)) return null;
+
+                $countryCode = null;
+                if (!empty($attributes['country_id'])) {
+                    $countryCode = Country::find($attributes['country_id'])?->code;
+                }
+
+                return DocumentService::standardize($value, $countryCode);
+            }
+        );
     }
 }

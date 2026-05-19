@@ -1,15 +1,38 @@
 <x-app-layout>
     <x-slot name="header">
         <x-studio-tabs />
-        <div class="mt-8">
-            <x-studio-header 
-                title="Perfil de Alumna" 
-                :breadcrumbs="[
-                    ['name' => 'alumnas/os', 'url' => route('students.index', ['subdomain' => request()->route('subdomain')])],
-                    ['name' => $student->name]
-                ]"
-            >
-            </x-studio-header>
+        
+        {{-- Cabecera Unificada del Perfil --}}
+        <div class="mt-8 mb-8 p-1">
+
+            {{-- Breadcrumbs (Navegación jerárquica) --}}
+            <nav class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
+                <a href="{{ route('students.index', ['subdomain' => request()->route('subdomain')]) }}" class="hover:text-zinc-900 transition-colors">Alumnas/os</a>
+                <span>/</span>
+                <span class="text-zinc-900">Perfil</span>
+            </nav>
+
+            {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
+            <div class="flex flex-row items-center justify-between gap-4 w-full">
+                
+                {{-- Título con el nombre de la alumna (Trunca si es muy largo) --}}
+                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                    {{ $student->name }}
+                </h1>
+
+                {{-- Botón Responsivo de Acción (Editar) --}}
+                {{-- Cambia el 'onclick' o envuélvelo en un <a> según cómo manejes la edición --}}
+                <button onclick="openEditModal()" class="shrink-0 ml-auto bg-zinc-900 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
+                    
+                    {{-- Icono de Lápiz/Edición --}}
+                    <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path>
+                    </svg>
+                    
+                    {{-- Texto oculto en móviles --}}
+                    <span class="hidden sm:inline">Editar Perfil</span>
+                </button>
+            </div>
         </div>
     </x-slot>
 
@@ -71,7 +94,6 @@
                                         default => 'bg-blue-500',
                                     };
                                     
-                                    // CORRECCIÓN CRÍTICA: Cambiado $session por $s
                                     $imageUrl = $s->workshop->image_path 
                                         ? asset('storage/' . $s->workshop->image_path) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
@@ -81,14 +103,12 @@
                                         ? asset('storage/' . $studioLogo) 
                                         : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
 
-                                    // LÓGICA DE ESTADOS
                                     $isEnrolled = $s->students->contains('id', $student->id);
                                     $hasAttendance = $s->attendances->contains('student_id', $student->id);
                                     $isPaid = in_array($s->id, $paidSessionIds);
                                     $isCancelled = $s->is_cancelled ?? ($s->status === 'cancelled') ?? false;
                                     $isObligation = $isEnrolled || $hasAttendance;
 
-                                    // Estilos Dinámicos (Incluyendo Canceladas)
                                     if ($isCancelled) {
                                         $cardStyle = 'bg-zinc-50 border-zinc-200 opacity-75 grayscale';
                                     } elseif ($isPaid) {
@@ -114,7 +134,6 @@
                                         data-cancelled="{{ $isCancelled ? 'true' : 'false' }}"
                                         class="relative w-full text-left p-2 md:p-2.5 pl-3 border rounded-lg shadow-sm overflow-hidden transition-all duration-200 {{ $cardStyle }} group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95">
                                     
-                                    {{-- Barra de Color --}}
                                     <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
 
                                     <div class="flex justify-between items-start">
@@ -122,9 +141,8 @@
                                             {{ \Carbon\Carbon::parse($s->start_time)->format('H:i') }}
                                         </div>
                                         
-                                        {{-- Checkbox de cobro: NO MOSTRAR si está pagado o cancelado --}}
                                         @if(!$isPaid && !$isCancelled)
-                                            <input type="checkbox" value="{{ $s->id }}" onchange="handlePaymentSelection()" class="payment-cb w-4 h-4 text-emerald-600 border-zinc-300 rounded focus:ring-emerald-500 cursor-pointer relative z-10" title="Seleccionar para pagar">
+                                            <input type="checkbox" value="{{ $s->id }}" onchange="handlePaymentSelection()" onclick="event.stopPropagation()" class="payment-cb w-4 h-4 text-emerald-600 border-zinc-300 rounded focus:ring-emerald-500 cursor-pointer relative z-10" title="Seleccionar para pagar">
                                         @endif
                                     </div>
                                     
@@ -172,6 +190,7 @@
                     <thead class="bg-zinc-50 uppercase text-[10px] font-black text-zinc-400 tracking-tighter">
                         <tr>
                             <th class="px-6 py-4 text-left">Fecha de Pago</th>
+                            <th class="px-6 py-4 text-left">Método</th>
                             <th class="px-6 py-4 text-left">Monto</th>
                             <th class="px-6 py-4 text-left">Clases Cubiertas</th>
                             <th class="px-6 py-4 text-center">Comprobante</th>
@@ -180,11 +199,35 @@
                     </thead>
                     <tbody class="divide-y divide-zinc-100">
                         @forelse($student->payments()->latest()->get() as $payment)
+                            @php
+                                $method = $payment->payment_method ?? 'manual';
+                            @endphp
                             <tr class="hover:bg-zinc-50 transition-colors">
-                                <td class="px-6 py-4 text-sm font-bold text-zinc-900">
+                                <td class="px-6 py-4 text-sm font-bold text-zinc-900 whitespace-nowrap">
                                     {{ $payment->created_at->translatedFormat('d M Y - H:i') }}
                                 </td>
-                                <td class="px-6 py-4 text-sm font-bold text-emerald-600">
+                                
+                                {{-- COLUMNA DE MÉTODO INYECTADA --}}
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if($method === 'online' || $method === 'pasarela de pago')
+                                        <div class="flex items-center gap-1.5 text-xs font-bold text-indigo-600 uppercase tracking-tighter">
+                                            <svg class="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                                            Web / App
+                                        </div>
+                                    @elseif($method === 'transferencia')
+                                        <div class="flex items-center gap-1.5 text-xs font-bold text-teal-600 uppercase tracking-tighter">
+                                            <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                                            Transferencia
+                                        </div>
+                                    @else
+                                        <div class="flex items-center gap-1.5 text-xs font-bold text-amber-600 uppercase tracking-tighter">
+                                            <svg class="w-4 h-4 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08-.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                            Efectivo
+                                        </div>
+                                    @endif
+                                </td>
+
+                                <td class="px-6 py-4 text-sm font-bold text-emerald-600 whitespace-nowrap">
                                     ${{ number_format($payment->amount, 0, ',', '.') }}
                                 </td>
                                 <td class="px-6 py-4">
@@ -211,7 +254,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="p-10 text-center text-sm font-bold text-zinc-400">Esta alumna/o aún no tiene pagos registrados.</td></tr>
+                            <tr><td colspan="6" class="p-10 text-center text-sm font-bold text-zinc-400">Esta alumna/o aún no tiene pagos registrados.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -232,7 +275,7 @@
         </div>
     </div>
 
-    {{-- MODAL DE PAGO --}}
+    {{-- MODAL DE PAGO MANUAL --}}
     <div id="paymentModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
         <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all relative">
             <div class="flex justify-between items-center mb-6">
@@ -251,6 +294,15 @@
                         <span class="block text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Pagando</span>
                         <span class="text-xl font-black text-zinc-900" id="modalClassCountText">0 Clases</span>
                     </div>
+                </div>
+
+                {{-- NUEVO SELECTOR DE MÉTODO DE PAGO --}}
+                <div class="mb-4">
+                    <label class="block text-sm font-bold text-zinc-700 mb-2">Método de Pago *</label>
+                    <select name="payment_method" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none cursor-pointer bg-white">
+                        <option value="transferencia">Transferencia Bancaria</option>
+                        <option value="efectivo">Efectivo</option>
+                    </select>
                 </div>
 
                 <div class="mb-4">

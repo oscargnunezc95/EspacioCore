@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
-    <title>{{ config('app.name', 'EspacioCore') }}</title>
+    <title>{{ config('app.name', 'EstadoPrisma') }}</title>
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -13,8 +13,10 @@
     
     @include('layouts.navigation') 
     
-    <div class="flex-1 flex w-full">
+    {{-- Cambiamos 'flex' por 'block' para que el contenido fluya de arriba a abajo y ocupe el 100% del ancho --}}
+    <main class="flex-1 w-full block">
         {{ $slot }}
-    </div>
+    </main>
+
 </body>
 </html>

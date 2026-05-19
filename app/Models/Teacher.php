@@ -6,7 +6,10 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Traits\BelongsToStudio;
+
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Services\DocumentService;
+use App\Models\Country;
 
 class Teacher extends Model
 {
@@ -61,5 +64,21 @@ class Teacher extends Model
         $countryCode = $this->country ? $this->country->code : 'CL'; 
 
         return DocumentService::format($this->national_id, $countryCode);
+    }
+
+    protected function nationalId(): Attribute
+    {
+        return Attribute::make(
+            set: function ($value, $attributes) {
+                if (empty($value)) return null;
+
+                $countryCode = null;
+                if (!empty($attributes['country_id'])) {
+                    $countryCode = Country::find($attributes['country_id'])?->code;
+                }
+
+                return DocumentService::standardize($value, $countryCode);
+            }
+        );
     }
 }

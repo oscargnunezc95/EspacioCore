@@ -5,7 +5,7 @@
         <div class="w-full max-w-sm mx-auto lg:mx-0">
             
             <div class="mb-10">
-                <h1 class="text-3xl font-bold tracking-tight text-zinc-800">EspacioCore</h1>
+                <h1 class="text-3xl font-bold tracking-tight text-zinc-800">EstadoPrisma</h1>
                 <p class="mt-2 text-sm text-zinc-500 font-light">El centro de tu movimiento. Inicia sesión para gestionar tu espacio.</p>
             </div>
 
@@ -84,7 +84,7 @@
     <div class="hidden lg:flex lg:flex-1 relative bg-zinc-900 overflow-hidden">
         <img class="absolute inset-0 h-full w-full object-cover opacity-[0.65] mix-blend-overlay grayscale-[30%]" 
              src="https://images.unsplash.com/photo-1547153760-18fc86324498?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
-             alt="Energía y movimiento EspacioCore">
+             alt="Energía y movimiento EstadoPrisma">
         
         <div class="absolute inset-0 bg-gradient-to-t from-zinc-900/90 via-zinc-900/20 to-transparent"></div>
         

@@ -9,7 +9,7 @@ class DocumentService
     /**
      * Estandariza el documento quitando caracteres basura ANTES de guardar.
      */
-    public static function standardize($document, $countryCode = 'CL')
+    public static function standardize($document, $countryCode = null) // Quitamos el = 'CL'
     {
         if (empty($document)) return null;
 
@@ -17,7 +17,7 @@ class DocumentService
             return preg_replace('/[^0-9K]/', '', strtoupper($document));
         }
 
-        // Genérico para el resto del mundo
+        // Genérico para el resto del mundo (Y para cuando no hay país definido)
         return preg_replace('/[^A-Z0-9]/', '', strtoupper($document));
     }
 

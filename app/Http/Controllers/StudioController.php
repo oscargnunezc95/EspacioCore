@@ -33,6 +33,8 @@ class StudioController extends Controller
             'city'      => 'nullable|string|max:255',
             'region'    => 'nullable|string|max:255',
             'country'   => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'social_link' => 'nullable|url|max:255',
         ]);
 
         $baseSlug = Str::slug($request->name);
@@ -89,6 +91,8 @@ class StudioController extends Controller
             'city'      => $request->city,
             'region'    => $request->region,
             'country'   => $request->country,
+            'description' => $request->description,
+            'social_link' => $request->social_link,
         ]);
 
         return back()->with('success', '¡Tu nuevo Espacio ha sido creado con éxito!');
@@ -106,9 +110,14 @@ class StudioController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
+            'description' => 'nullable|string|max:1000',
+            'social_link' => 'nullable|url|max:255',
         ]);
 
-        $data = $request->only(['name', 'address', 'latitude', 'longitude', 'city', 'region', 'country']);
+        $data = $request->only([
+            'name', 'address', 'latitude', 'longitude', 'city', 'region', 'country', 
+            'description', 'social_link' // <-- AHORA SÍ LOS VA A GUARDAR
+        ]);
 
         if ($request->hasFile('logo')) {
             try {

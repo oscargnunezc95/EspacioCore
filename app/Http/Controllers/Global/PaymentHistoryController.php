@@ -5,9 +5,8 @@ namespace App\Http\Controllers\Global;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Student;
-// ELIMINADO: use App\Models\Session; (Peligro de colisión)
-use App\Models\ClassSession; // Importación segura y semántica
 use App\Models\Payment;
+// ELIMINADO: use App\Models\ClassSession; (Ya no lo necesitamos aquí)
 
 class PaymentHistoryController extends Controller
 {
@@ -27,15 +26,18 @@ class PaymentHistoryController extends Controller
             return view('global.payments.index', compact('payments'));
         }
 
-        // 3. Obtenemos los pagos con paginación y Eager Loading para rendimiento
+        // 3. Obtenemos los pagos con paginación y Eager Loading SUPER optimizado
         $payments = Payment::withoutGlobalScopes()
         ->with([
             'student' => fn($q) => $q->withoutGlobalScopes(), 
-            'student.studio',
+            // Blindamos el estudio de la alumna por si acaso
+            'student.studio' => fn($q) => $q->withoutGlobalScopes(), 
             
-            // LA MAGIA: Actualizado a classSessions para que coincida con el Modelo limpio
+            // Relaciones limpias
             'classSessions' => fn($q) => $q->withoutGlobalScopes(),
             'classSessions.workshop' => fn($q) => $q->withoutGlobalScopes(),
+            // CRÍTICO: Cargamos el estudio del taller para evitar N+1 al renderizar el logo
+            'classSessions.workshop.studio' => fn($q) => $q->withoutGlobalScopes(), 
         ])
         ->whereIn('student_id', $studentIds)
         ->orderBy('created_at', 'desc')

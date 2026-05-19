@@ -4,11 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use Laravel\Socialite\Facades\Socialite;
-use Illuminate\Http\Request; // <-- FALTABA
-use Illuminate\Support\Str;  // <-- FALTABA
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\Rule; // <-- NUEVO
 use App\Models\User;
-use App\Models\Country;      // <-- FALTABA PARA EL SELECTOR
+use App\Models\Country;
+use App\Services\DocumentService; // <-- NUEVO
+use App\Rules\ValidDocument;      // <-- NUEVO
 
 class GoogleController extends Controller
 {
@@ -85,17 +88,29 @@ class GoogleController extends Controller
             return redirect()->route('login');
         }
 
-        $request->validate([
-            'country_id' => 'required|exists:countries,id',
-            'national_id' => 'required|string|max:255',
-        ]);
+        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8)
+        $countryCode = Country::find($request->country_id)?->code ?? 'CL';
 
-        // Validación manual de unicidad por país
-        if (User::where('national_id', $request->national_id)->where('country_id', $request->country_id)->exists()) {
-            return back()->withErrors(['national_id' => 'Este documento ya está registrado en este país.']);
+        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR
+        if ($request->filled('national_id')) {
+            $request->merge([
+                'national_id' => DocumentService::standardize($request->national_id, $countryCode)
+            ]);
         }
 
-        // Creamos el usuario disparando la "Magia"
+        // 3. VALIDACIÓN BLINDADA (Usamos ValidDocument y Rule::unique)
+        $request->validate([
+            'country_id' => ['required', 'exists:countries,id'],
+            'national_id' => [
+                'required', 
+                'string', 
+                'max:255',
+                new ValidDocument($countryCode),
+                Rule::unique('users', 'national_id')->where('country_id', $request->country_id)
+            ],
+        ]);
+
+        // Creamos el usuario disparando la "Magia" (El mutador en User.php hará su doble chequeo aquí)
         $user = User::create([
             'name' => $googleData['name'],
             'email' => $googleData['email'],

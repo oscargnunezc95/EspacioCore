@@ -8,6 +8,7 @@ use App\Models\Workshop;
 use App\Models\WorkshopPrice;
 use App\Models\Studio;
 
+
 class PromotionController extends Controller
 {
     public function index($subdomain)
@@ -64,6 +65,57 @@ class PromotionController extends Controller
         }
 
         return back()->with('success', 'Regla de promoción creada correctamente.');
+    }
+
+    /**
+     * Actualiza una promoción existente en la base de datos.
+     */
+    public function update(Request $request, $subdomain, Promotion $promotion)
+    {
+        // 1. Validación estricta de los datos entrantes
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'type' => 'required|in:specific_combo,additional_discount',
+            
+            // Reglas condicionales para Combo
+            'total_price' => 'nullable|required_if:type,specific_combo|numeric|min:0',
+            'workshop_price_ids' => 'nullable|required_if:type,specific_combo|array',
+            'workshop_price_ids.*' => 'exists:workshop_prices,id', // QA: Asegurar que el ID existe
+            
+            // Reglas condicionales para Taller Adicional
+            'class_count' => 'nullable|required_if:type,additional_discount|integer|min:1',
+            'additional_price' => 'nullable|required_if:type,additional_discount|numeric|min:0',
+        ]);
+
+        // 2. Limpieza de estado (Evitamos guardar datos cruzados si el usuario cambia de tipo de regla)
+        if ($validated['type'] === 'specific_combo') {
+            $validated['class_count'] = null;
+            $validated['additional_price'] = null;
+        } else {
+            $validated['total_price'] = null;
+        }
+
+        // 3. Actualización de la entidad principal
+        $promotion->update([
+            'name' => $validated['name'],
+            'type' => $validated['type'],
+            'total_price' => $validated['total_price'],
+            'class_count' => $validated['class_count'],
+            'additional_price' => $validated['additional_price'],
+        ]);
+
+        // 4. Sincronización inteligente de la tabla pivote
+        if ($validated['type'] === 'specific_combo' && !empty($validated['workshop_price_ids'])) {
+            // sync() es magia: agrega los nuevos IDs, mantiene los que ya estaban, y elimina los desmarcados.
+            $promotion->workshopPrices()->sync($validated['workshop_price_ids']);
+        } else {
+            // Si el usuario cambió la regla a "Descuento Adicional", destruimos las relaciones anteriores.
+            $promotion->workshopPrices()->detach();
+        }
+
+        // 5. Redirección con mensaje de éxito
+        return redirect()->route('promotions.index', ['subdomain' => $subdomain])
+                         ->with('success', 'Regla de descuento actualizada correctamente.');
     }
 
     public function destroy($subdomain, Promotion $promotion)

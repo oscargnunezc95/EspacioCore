@@ -124,7 +124,7 @@
     <div class="hidden lg:flex lg:flex-1 relative bg-zinc-900 overflow-hidden">
         <img class="absolute inset-0 h-full w-full object-cover opacity-[0.65] mix-blend-overlay scale-105 grayscale-[30%]" 
              src="https://images.unsplash.com/photo-1518834107812-67b0b7c58434?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80" 
-             alt="Comunidad y movimiento EspacioCore">
+             alt="Comunidad y movimiento EstadoPrisma">
         
         <div class="absolute inset-0 bg-gradient-to-t from-zinc-900/95 via-zinc-900/30 to-transparent"></div>
         

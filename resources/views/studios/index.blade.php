@@ -1,4 +1,9 @@
 <x-app-layout>
+    @php
+        $domain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
+        $protocol = request()->secure() ? 'https://' : 'http://';
+    @endphp
+
     <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
         
         <div class="text-center mb-12">
@@ -13,40 +18,62 @@
             </div>
         @endif
 
+        {{-- ========================================== --}}
+        {{-- GRILLA PRINCIPAL DE ESTUDIOS --}}
+        {{-- ========================================== --}}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            {{-- Lista de Estudios Creados --}}
             @forelse($studios as $studio)
-                <div class="group bg-white rounded-3xl border border-zinc-200 shadow-sm hover:shadow-xl hover:border-zinc-300 transition-all duration-300 flex flex-col overflow-hidden min-h-[250px] relative">
-                    
-                    {{-- Botón Editar Flotante --}}
-                    <button onclick="openEditStudioModal({{ json_encode($studio) }})" class="absolute top-4 right-4 z-20 bg-white/90 backdrop-blur-sm text-zinc-500 hover:text-indigo-600 p-2.5 rounded-full shadow-sm hover:shadow transition-all" title="Editar Espacio">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
-                    </button>
+                @php
+                    $fullStudioUrl = $protocol . $studio->subdomain . '.' . $domain;
+                    $googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" . urlencode($studio->address . ' ' . $studio->city);
+                @endphp
 
-                    {{-- Banner/Cover del Estudio --}}
+                <div class="group bg-white rounded-3xl border border-zinc-200 shadow-sm hover:shadow-xl hover:border-zinc-300 hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden min-h-[250px] relative">                    
+                    
+                    {{-- Acciones Flotantes (Compartir y Editar) --}}
+                    <div class="absolute top-4 right-4 z-20 flex gap-2">
+                        <button type="button" 
+                                x-data 
+                                @click="
+                                    if (navigator.share) {
+                                        navigator.share({
+                                            title: '{{ $studio->name }}',
+                                            text: 'Gestiona tus clases en {{ $studio->name }}',
+                                            url: '{{ $fullStudioUrl }}'
+                                        }).catch(err => console.log('Error:', err));
+                                    } else {
+                                        navigator.clipboard.writeText('{{ $fullStudioUrl }}');
+                                        alert('¡Enlace copiado!');
+                                    }
+                                "
+                                class="bg-white/90 backdrop-blur-sm text-zinc-500 hover:text-emerald-600 p-2.5 rounded-full shadow-sm transition-all" title="Compartir Enlace">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"></path></svg>
+                        </button>
+                        <button onclick="openEditStudioModal({{ json_encode($studio) }})" class="bg-white/90 backdrop-blur-sm text-zinc-500 hover:text-indigo-600 p-2.5 rounded-full shadow-sm transition-all" title="Editar Estudio">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                        </button>
+                    </div>
+
+                    {{-- Banner/Cover del Estudio con Zoom In --}}
                     <div class="h-28 w-full bg-gradient-to-br from-zinc-800 to-zinc-900 relative overflow-hidden">
                         @if($studio->logo_path)
-                            <img src="{{ asset('storage/' . $studio->logo_path) }}" class="w-full h-full object-cover opacity-40 blur-sm scale-105 group-hover:scale-100 transition-transform duration-500" alt="Cover">
+                            <img src="{{ asset('storage/' . $studio->logo_path) }}" class="w-full h-full object-cover opacity-40 blur-sm scale-100 group-hover:scale-110 transition-transform duration-700 ease-out" alt="Cover">
                         @endif
                         <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                     </div>
 
-                    {{-- Logo y Contenido (Superpuesto al banner) --}}
+                    {{-- Contenido --}}
                     <div class="px-8 pb-8 flex-1 flex flex-col mt-[-32px] relative z-10">
                         <div class="flex justify-between items-end mb-4">
-                            {{-- USAMOS EL ICON_PATH OPTIMIZADO PARA EL AVATAR --}}
                             @if($studio->icon_path)
-                                <img src="{{ asset('storage/' . $studio->icon_path) }}" alt="Logo" class="h-16 w-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                                <img src="{{ asset('storage/' . $studio->icon_path) }}" alt="Logo" class="h-16 w-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white group-hover:-translate-y-1 transition-transform duration-300">
                             @elseif($studio->logo_path)
-                                {{-- Fallback: Si es un estudio antiguo que no tiene icon_path, usamos el logo_path --}}
-                                <img src="{{ asset('storage/' . $studio->logo_path) }}" alt="Logo" class="h-16 w-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white">
+                                <img src="{{ asset('storage/' . $studio->logo_path) }}" alt="Logo" class="h-16 w-16 rounded-2xl object-cover border-4 border-white shadow-md bg-white group-hover:-translate-y-1 transition-transform duration-300">
                             @else
-                                <div class="h-16 w-16 rounded-2xl bg-zinc-900 border-4 border-white text-white flex items-center justify-center font-black text-2xl shadow-md">
+                                <div class="h-16 w-16 rounded-2xl bg-zinc-900 border-4 border-white text-white flex items-center justify-center font-black text-2xl shadow-md group-hover:-translate-y-1 transition-transform duration-300">
                                     {{ substr($studio->name, 0, 1) }}
                                 </div>
                             @endif
-                            
                             <span class="bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-wider px-3 py-1 rounded-full border border-emerald-200 mb-2">
                                 Activo
                             </span>
@@ -54,22 +81,27 @@
                         
                         <h2 class="text-2xl font-black text-zinc-900 leading-tight">{{ $studio->name }}</h2>
                         
-                        <div class="space-y-1 mt-2">
-                            <p class="text-sm font-medium text-zinc-500 flex items-center gap-1.5">
-                                <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                                {{ $studio->subdomain }}.{{ parse_url(config('app.url'), PHP_URL_HOST) ?: 'espaciocore.test' }}
-                            </p>
-                            @if($studio->city)
-                                <p class="text-xs font-medium text-zinc-500 flex items-center gap-1.5">
-                                    <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path></svg>
-                                    {{ $studio->city }}, {{ $studio->country }}
-                                </p>
+                        <div class="space-y-2 mt-3">
+                            {{-- LINK FUNCIONAL AL SUBDOMINIO --}}
+                            <a href="{{ $fullStudioUrl }}" target="_blank" class="group/link flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-indigo-600 transition-colors w-fit">
+                                <svg class="w-4 h-4 text-zinc-400 group-hover/link:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                                <span class="underline decoration-transparent group-hover/link:decoration-indigo-200 transition-all">{{ $studio->subdomain }}.{{ $domain }}</span>
+                            </a>
+
+                            {{-- LINK FUNCIONAL A GOOGLE MAPS --}}
+                            @if($studio->address)
+                                <a href="{{ $googleMapsUrl }}" target="_blank" class="group/link flex items-center gap-2 text-xs font-medium text-zinc-500 hover:text-rose-600 transition-colors w-fit">
+                                    <svg class="w-4 h-4 text-zinc-400 group-hover/link:text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                                    <span class="truncate max-w-[250px] underline decoration-transparent group-hover/link:decoration-rose-200 transition-all">
+                                        {{ $studio->address }}{{ $studio->city ? ', ' . $studio->city : '' }}
+                                    </span>
+                                </a>
                             @endif
                         </div>
 
-                        {{-- Botón de Acción Principal --}}
+                        {{-- Botón de Entrada --}}
                         <div class="mt-auto pt-6">
-                            <a href="{{ route('dashboard', ['subdomain' => $studio->subdomain]) }}" class="flex items-center justify-center w-full bg-zinc-50 hover:bg-zinc-900 text-zinc-700 hover:text-white border border-zinc-200 hover:border-zinc-900 px-4 py-3.5 rounded-xl text-sm font-bold transition-colors group/btn">
+                            <a href="{{ route('dashboard', ['subdomain' => $studio->subdomain]) }}" class="flex items-center justify-center w-full bg-zinc-900 text-white px-4 py-3.5 rounded-xl text-sm font-bold hover:bg-zinc-800 transition-all active:scale-95 group/btn">
                                 Entrar al Panel 
                                 <svg class="w-4 h-4 ml-2 group-hover/btn:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                             </a>
@@ -119,15 +151,33 @@
                                    class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white" required>
                             @error('name') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
+
+                        {{-- NUEVO: Descripción del Estudio --}}
+                        <div>
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Descripción del Estudio <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                            <textarea name="description" rows="2" placeholder="Ej: Somos una academia enfocada en..." 
+                                      class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">{{ old('description') }}</textarea>
+                            @error('description') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        {{-- NUEVO: Red Social --}}
+                        <div>
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Perfil de Instagram/TikTok <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                            <input type="url" name="social_link" value="{{ old('social_link') }}" placeholder="https://instagram.com/..." 
+                                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">
+                            @error('social_link') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                        </div>
+
                         <div>
                             <label class="block text-sm font-bold text-zinc-700 mb-1.5">Logo del Estudio <span class="text-zinc-400 font-normal">(Opcional)</span></label>
                             <input type="file" name="logo" id="c_logo" accept="image/*"
                                    class="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 transition-all cursor-pointer border border-zinc-200 rounded-xl p-2 bg-zinc-50">
                         </div>
                     </div>
+
                     <div class="space-y-4">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Sede Principal <span class="text-zinc-400 font-normal">(Mapa)</span></label>
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Sede Principal <span class="text-zinc-400 font-normal">(Para el mapa)</span></label>
                             <input type="text" name="address" id="s_address" placeholder="Busca tu dirección..." 
                                    class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white relative z-10">
                             
@@ -137,7 +187,7 @@
                             <input type="hidden" name="region" id="s_region">
                             <input type="hidden" name="country" id="s_country">
                             
-                            <div id="studio_map" class="w-full h-40 mt-3 rounded-xl border border-zinc-300 shadow-inner bg-zinc-100 hidden relative z-0"></div>
+                            <div id="studio_map" class="w-full h-64 mt-3 rounded-xl border border-zinc-300 shadow-inner bg-zinc-100 hidden relative z-0"></div>
                         </div>
                     </div>
                 </div>
@@ -175,12 +225,28 @@
                             <input type="text" name="name" id="e_name" required 
                                    class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">
                         </div>
+
+                        {{-- NUEVO: Descripción del Estudio --}}
+                        <div>
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Descripción del Estudio <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                            <textarea name="description" id="e_description" rows="2" placeholder="Ej: Somos una academia enfocada en..." 
+                                      class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white"></textarea>
+                        </div>
+
+                        {{-- NUEVO: Red Social --}}
+                        <div>
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Perfil de Instagram/TikTok <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                            <input type="url" name="social_link" id="e_social_link" placeholder="https://instagram.com/..." 
+                                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">
+                        </div>
+
                         <div>
                             <label class="block text-sm font-bold text-zinc-700 mb-1.5">Actualizar Logo <span class="text-zinc-400 font-normal">(Opcional)</span></label>
                             <input type="file" name="logo" id="e_logo" accept="image/*"
                                    class="w-full text-sm text-zinc-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-bold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 transition-all cursor-pointer border border-zinc-200 rounded-xl p-2 bg-zinc-50">
                         </div>
                     </div>
+                    
                     <div class="space-y-4">
                         <div>
                             <label class="block text-sm font-bold text-zinc-700 mb-1.5">Sede Principal</label>
@@ -193,7 +259,7 @@
                             <input type="hidden" name="region" id="e_region">
                             <input type="hidden" name="country" id="e_country">
                             
-                            <div id="edit_studio_map" class="w-full h-40 mt-3 rounded-xl border border-zinc-300 shadow-inner bg-zinc-100 hidden relative z-0"></div>
+                            <div id="edit_studio_map" class="w-full h-64 mt-3 rounded-xl border border-zinc-300 shadow-inner bg-zinc-100 hidden relative z-0"></div>
                         </div>
                     </div>
                 </div>
@@ -214,13 +280,10 @@
             });
         @endif
 
-        // ==========================================
-        // VALIDACIÓN DE TAMAÑO DE IMAGEN (8MB)
-        // ==========================================
         function validateFileSize(inputElement) {
             if (inputElement && inputElement.files.length > 0) {
                 const file = inputElement.files[0];
-                if (file.size > 15728640) { // 15MB en bytes
+                if (file.size > 15728640) { // 15MB
                     alert('¡Oops! La imagen supera el límite de 15MB. Por favor, selecciona un archivo un poco más liviano.');
                     inputElement.value = ''; 
                 }
@@ -229,11 +292,8 @@
         document.getElementById('c_logo')?.addEventListener('change', function() { validateFileSize(this); });
         document.getElementById('e_logo')?.addEventListener('change', function() { validateFileSize(this); });
 
-        // ==========================================
-        // LÓGICA DE MODALES Y MAPAS
-        // ==========================================
-        let cMap, cMarker; // Mapa de Creación
-        let eMap, eMarker; // Mapa de Edición
+        let cMap, cMarker; 
+        let eMap, eMarker; 
 
         function initAllMaps() {
             initCreateMap();
@@ -320,17 +380,16 @@
         }
 
         function openEditStudioModal(studio) {
-            // 1. Generamos la ruta base con Laravel usando un comodín genérico ':id'
             let updateUrl = "{{ route('studios.update', ':id') }}";
-            
-            // 2. Reemplazamos el comodín con el ID real del estudio usando JavaScript
             updateUrl = updateUrl.replace(':id', studio.id);
-            
-            // 3. Asignamos la ruta dinámica y segura al formulario
             document.getElementById('editStudioForm').action = updateUrl;
 
-            // Llenamos el resto de los campos
+            // Rellenar campos de texto
             document.getElementById('e_name').value = studio.name;
+            document.getElementById('e_description').value = studio.description || '';
+            document.getElementById('e_social_link').value = studio.social_link || '';
+            
+            // Rellenar ubicación
             document.getElementById('e_address').value = studio.address || '';
             document.getElementById('e_latitude').value = studio.latitude || '';
             document.getElementById('e_longitude').value = studio.longitude || '';
@@ -344,7 +403,6 @@
                 mapContainer.classList.remove('hidden');
                 const pos = { lat: parseFloat(studio.latitude), lng: parseFloat(studio.longitude) };
                 
-                // Darle tiempo al modal para renderizarse antes de ajustar el mapa
                 setTimeout(() => {
                     google.maps.event.trigger(eMap, 'resize');
                     eMap.setCenter(pos);
@@ -358,6 +416,5 @@
         }
     </script>
 
-    {{-- Script unificado de Google Maps apuntando a initAllMaps --}}
     <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.key') }}&libraries=places&callback=initAllMaps"></script>
 </x-app-layout>

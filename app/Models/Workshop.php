@@ -33,6 +33,8 @@ class Workshop extends Model
         'region',
         'country',
         'room_location',
+        'description',
+        'promo_video_url',
     ];
 
     protected $casts = [
@@ -102,5 +104,34 @@ class Workshop extends Model
     public function schedules()
     {
         return $this->hasMany(WorkshopSchedule::class);
+    }
+    /**
+     * MAGIA: Transforma URLs normales de YouTube o Instagram en URLs para <iframe>
+     */
+    public function getEmbedVideoUrlAttribute()
+    {
+        $url = $this->promo_video_url;
+
+        if (empty($url)) return null;
+
+        // Lógica para YOUTUBE
+        if (str_contains($url, 'youtube.com') || str_contains($url, 'youtu.be')) {
+            preg_match('/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i', $url, $match);
+            
+            if (isset($match[1])) {
+                return 'https://www.youtube.com/embed/' . $match[1];
+            }
+        }
+
+        // Lógica para INSTAGRAM (Reels o Posts)
+        if (str_contains($url, 'instagram.com')) {
+            // 1. Limpiamos TODOS los parámetros basura (como ?igsh= o ?img_index=)
+            $cleanUrl = strtok($url, '?');
+            
+            // 2. Aseguramos que termine con /embed (AHORA SÍ USAMOS $cleanUrl)
+            return rtrim($cleanUrl, '/') . '/embed';
+        }
+
+        return null;
     }
 }

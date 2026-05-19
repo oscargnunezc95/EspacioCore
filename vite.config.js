@@ -6,7 +6,7 @@ import path from 'path';
 
 // Detecta el directorio del usuario actual dinámicamente (Ej: C:\Users\TuUsuario)
 const homedir = os.homedir();
-const host = 'espaciocore.test';
+const host = 'estadoprisma.test';
 
 export default defineConfig({
     plugins: [
