@@ -83,6 +83,15 @@ class WebhookController extends Controller
             } elseif (in_array($status, ['paused', 'cancelled'])) {
                 $studio->update(['subscription_status' => 'free']);
             }
+
+            // 👇 NUEVA INYECCIÓN: Campanita para la Dueña del estudio avisando estado de su plan 👇
+            try {
+                if ($studio->user) {
+                    $studio->user->notify(new \App\Notifications\SaaSSubscriptionNotification($studio, $status));
+                }
+            } catch (\Exception $e) {
+                Log::error('Error registrando notificación in-app de suscripción SaaS: ' . $e->getMessage());
+            }
         }
     }
 }

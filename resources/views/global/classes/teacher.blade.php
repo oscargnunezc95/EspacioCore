@@ -1,9 +1,9 @@
 <x-app-layout>
-    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
+    <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
         
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-black text-zinc-900 tracking-tight">Mis clases a dictar</h1>
-            <p class="mt-4 text-zinc-500 text-lg">Tu agenda unificada como Profesor/a.</p>
+        <div class="text-center mb-10 md:mb-14">
+            <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Mis clases a dictar</h1>
+            <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">Tu agenda unificada como Profesor/a.</p>
         </div>
 
         {{-- Controles de Navegación del Mes --}}

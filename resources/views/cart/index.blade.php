@@ -1,16 +1,15 @@
 <x-app-layout>
-    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24"> 
+    <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
         
-        <div class="text-center mb-12">
-            <h1 class="text-4xl font-black text-zinc-900 tracking-tight">Mi Portal de Pagos</h1>
-            <p class="mt-4 text-zinc-500 text-lg">Selecciona las clases que deseas confirmar. La promoción o pack genererá el descuento automáticamente al seleccionar las clases. Has click en Ver Ofertas para ver las promociones.</p>
+        <div class="text-center mb-10 md:mb-14">
+            <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Mi Portal de Pagos</h1>
+            <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">Selecciona las clases que deseas confirmar. La promoción o pack genererá el descuento automáticamente al seleccionar las clases. Has click en Ver Ofertas para ver las promociones.</p>
         </div>
-
         {{-- CONTENEDOR DE ESTUDIOS --}}
         <div id="classes-container">
             @auth
                 @if($groupedSessions->isEmpty())
-                    <div class="py-12 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
+                    <div class="py-8 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
                         <p class="text-zinc-500 font-medium">No tienes clases pendientes de pago.</p>
                         <a href="{{ route('explore') }}" class="inline-block mt-4 text-indigo-600 font-bold hover:underline">Explorar Catálogo</a>
                     </div>
@@ -67,17 +66,22 @@
     </div>
 
     <script>
-        // ==========================================
-        // VARIABLES GLOBALES
-        // ==========================================
-        const isLoggedIn = @json(Auth::check());
+        window.AppConfig = {
+            isLoggedIn: @json(Auth::check()),
+            csrfToken: document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        };
 
         // ==========================================
         // 1. INICIALIZACIÓN
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
-            if (!isLoggedIn) {
+            // Usamos window.AppConfig.isLoggedIn en lugar de isLoggedIn
+            if (!window.AppConfig.isLoggedIn) {
                 loadGuestCart();
+            } else {
+                setTimeout(() => {
+                    calculateCart();
+                }, 100);
             }
             updateBadge(); 
         });
@@ -90,7 +94,7 @@
             if (!badge) return;
 
             let count = 0;
-            if (isLoggedIn) {
+            if (window.AppConfig.isLoggedIn) {
                 count = parseInt(badge.innerText) || 0;
             } else {
                 const cart = JSON.parse(localStorage.getItem('estadoprisma_cart')) || [];
@@ -111,7 +115,7 @@
 
             if (cartIds.length === 0) {
                 container.innerHTML = `
-                    <div class="py-12 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
+                    <div class="py-8 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
                         <p class="text-zinc-500 font-medium">Tu carrito está vacío.</p>
                         <a href="/explorar" class="inline-block mt-4 text-indigo-600 font-bold hover:underline">Explorar Catálogo</a>
                     </div>`;
@@ -135,42 +139,49 @@
             .then(data => {
                 if(data.html) {
                     container.innerHTML = data.html;
+                    
+                    // 🔥 SOLUCIÓN PARA INVITADOS: Calcular apenas se inyecten los checkboxes
+                    setTimeout(() => {
+                        calculateCart();
+                    }, 100);
+
                 } else {
-                    container.innerHTML = `<div class="py-12 text-center text-rose-500 font-medium">No se pudieron cargar las clases.</div>`;
+                    container.innerHTML = `<div class="py-8 text-center text-rose-500 font-medium">No se pudieron cargar las clases.</div>`;
                 }
             })
             .catch(error => {
                 console.error("Error al cargar carrito:", error);
-                container.innerHTML = `<div class="py-12 text-center text-rose-500 font-medium">Ocurrió un error. Intenta recargar la página.</div>`;
+                container.innerHTML = `<div class="py-8 text-center text-rose-500 font-medium">Ocurrió un error. Intenta recargar la página.</div>`;
             });
         }
 
         // ==========================================
-        // 4. ELIMINAR CLASES DEL CARRITO (Orquestador)
+        // 4. ELIMINAR CLASES DEL CARRITO (Multi-Familiar)
         // ==========================================
-        function removeCartItem(sessionId, btnElement) {
-            // ADVERTENCIA DE SEGURIDAD (UX)
+        function removeCartItem(sessionId, dependentId, btnElement) {
             if (!confirm('¿Estás segura/o de que deseas remover esta clase de tus reservas pendientes?')) {
-                return; // Si el usuario cancela, detenemos la ejecución aquí mismo
+                return; 
             }
 
-            if (!isLoggedIn) {
+            if (!window.AppConfig.isLoggedIn) {
                 removeFromGuestCart(sessionId);
                 return;
             }
 
-            // UI de carga mientras se elimina en servidor
+            // UI de carga
             const originalHtml = btnElement.innerHTML;
             btnElement.innerHTML = `<svg class="animate-spin h-5 w-5 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
             btnElement.disabled = true;
 
             const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-            // Reutilizamos el endpoint toggle que creamos antes
             fetch("{{ route('global.student.enroll.toggle') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token, 'Accept': 'application/json' },
-                body: JSON.stringify({ class_session_id: sessionId })
+                body: JSON.stringify({ 
+                    class_session_id: sessionId,
+                    dependent_id: dependentId 
+                })
             })
             .then(res => res.json())
             .then(data => {
@@ -179,23 +190,24 @@
                     btnElement.innerHTML = originalHtml;
                     btnElement.disabled = false;
                 } else {
-                    // Magia UI: Animamos salida del elemento
-                    const li = btnElement.closest('li');
+                    // Animación de salida solo de la fila del estudiante
+                    const label = btnElement.closest('label');
+                    const li = label.closest('li');
                     const ul = li.closest('ul');
                     const group = li.closest('.studio-cart-group');
                     
-                    li.style.opacity = '0';
+                    label.style.opacity = '0';
                     setTimeout(() => {
-                        li.remove();
-                        // Destruir el grupo entero si ya no hay clases
-                        if (ul.querySelectorAll('li').length === 0) {
-                            group.remove();
-                        }
+                        label.remove();
+                        // Si no quedan labels, eliminamos el <li> entero de la clase
+                        if (li.querySelectorAll('label').length === 0) li.remove();
+                        // Si no quedan <li>, eliminamos el grupo del estudio
+                        if (ul.querySelectorAll('li').length === 0) group.remove();
                         
                         // Si no quedan grupos en todo el contenedor, mostramos estado vacío
                         if (document.querySelectorAll('.studio-cart-group').length === 0) {
                             document.getElementById('classes-container').innerHTML = `
-                                <div class="py-12 text-center border-2 border-dashed border-zinc-200 rounded-3xl animate-fade-in">
+                                <div class="py-8 text-center border-2 border-dashed border-zinc-200 rounded-3xl animate-fade-in">
                                     <p class="text-zinc-500 font-medium">No tienes clases pendientes de pago.</p>
                                     <a href="{{ route('explore') }}" class="inline-block mt-4 text-indigo-600 font-bold hover:underline">Explorar Catálogo</a>
                                 </div>`;
@@ -233,16 +245,7 @@
         }
 
         // ==========================================
-        // 5. MOTOR DE PRECIOS Y CHECKBOXES
-        // ==========================================
-        function toggleStudioSelection(masterCheckbox, studioId) {
-            const checkboxes = document.querySelectorAll(`input.session-checkbox[data-studio-id="${studioId}"]`);
-            checkboxes.forEach(cb => cb.checked = masterCheckbox.checked);
-            calculateCart();
-        }
-
-        // ==========================================
-        // 5. MOTOR DE PRECIOS Y CHECKBOXES
+        // 5. MOTOR DE PRECIOS Y CHECKBOXES (Multi-Familiar)
         // ==========================================
         function toggleStudioSelection(masterCheckbox, studioId) {
             const checkboxes = document.querySelectorAll(`input.session-checkbox[data-studio-id="${studioId}"]`);
@@ -262,7 +265,6 @@
                 const totalEl = document.getElementById(`total-${studioId}`);
                 const breakdownEl = document.getElementById(`breakdown-${studioId}`);
 
-                // Si no hay nada seleccionado, apagamos todo y salimos
                 if (checkedBoxes.length === 0) {
                     btnPay.disabled = true;
                     btnPay.innerHTML = `Pagar Selección`;
@@ -271,15 +273,16 @@
                     return;
                 }
 
-                // 1. BLOQUEO UI: Desactivamos el botón y ponemos el spinner
                 btnPay.disabled = true; 
                 btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
-                
                 totalEl.innerHTML = `<span class="animate-pulse text-zinc-400 text-lg">Calculando...</span>`;
 
-                const sessionIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
+                // Desarmamos el string "14-5" (session_id-student_id)
+                const selections = Array.from(checkedBoxes).map(cb => {
+                    const parts = cb.value.split('-');
+                    return { session_id: parseInt(parts[0]), student_id: parseInt(parts[1]) };
+                });
 
-                // 2. FETCH AL SERVIDOR
                 fetch("{{ route('api.cart.calculate') }}", {
                     method: 'POST',
                     headers: { 
@@ -289,23 +292,21 @@
                     },
                     body: JSON.stringify({ 
                         studio_id: parseInt(studioId), 
-                        session_ids: sessionIds 
+                        selections: selections 
                     })
                 })
                 .then(res => res.json())
                 .then(data => {
-                    // BLINDAJE UI: Buscamos data.error (nuestro) o data.message (nativo de Laravel)
                     if (data.error || data.message) {
                         alert(data.error || data.message || "Error de servidor: No se pudo calcular el precio.");
                         totalEl.innerText = "$0";
                         breakdownEl.innerHTML = "<span class='text-rose-500 font-bold'>Error de cálculo</span>";
                         btnPay.innerHTML = `Pagar Selección`;
                     } else {
-                        // 3. DESBLOQUEO UI: Restauramos el botón y pintamos datos
                         breakdownEl.innerHTML = data.breakdown_html;
                         totalEl.innerText = data.total_formatted;
                         btnPay.innerHTML = `Pagar Selección`;
-                        btnPay.disabled = false; // Solo se habilita cuando ya tenemos el total real
+                        btnPay.disabled = false; 
                     }
                 })
                 .catch(err => {
@@ -343,32 +344,37 @@
         }
 
         // ==========================================
-        // 7. ORQUESTADOR DE PAGOS (CHECKOUT)
+        // 7. ORQUESTADOR DE PAGOS (CHECKOUT Multi-Familiar)
         // ==========================================
         function payStudio(studioId) {
             const checkedBoxes = document.querySelectorAll(`input.session-checkbox[data-studio-id="${studioId}"]:checked`);
-            const sessionIds = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
             
-            if (sessionIds.length === 0) return;
+            // Desarmamos el string "14-5" (session_id-student_id)
+            const selections = Array.from(checkedBoxes).map(cb => {
+                const parts = cb.value.split('-');
+                return { session_id: parseInt(parts[0]), student_id: parseInt(parts[1]) };
+            });
             
-            // 1. Lógica para Invitados (Abre el Modal)
-            if (!isLoggedIn) {
+            if (selections.length === 0) return;
+            
+            // Lógica para Invitados (Abre el Modal)
+            if (!window.AppConfig.isLoggedIn) {
                 document.getElementById('guest_studio_id').value = studioId;
-                document.getElementById('guest_session_ids').value = JSON.stringify(sessionIds);
+                // Como los invitados no tienen familiares, podemos extraer solo los session_ids únicos
+                const uniqueSessionIds = Array.from(new Set(selections.map(s => s.session_id)));
+                document.getElementById('guest_session_ids').value = JSON.stringify(uniqueSessionIds);
                 document.getElementById('guestCheckoutModal').classList.remove('hidden');
                 return;
             }
 
-            // 2. Lógica para Alumnos Logueados (Conexión a Mercado Pago)
+            // Lógica para Alumnos Logueados (Conexión a Mercado Pago)
             const btnPay = document.getElementById(`btn-pay-${studioId}`);
             
-            // UI: Estado de Carga (Protección contra doble clic)
             btnPay.disabled = true;
             btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span class="ml-2">Conectando...</span>`;
 
             const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
 
-            // Enviamos la petición a nuestro futuro CheckoutController
             fetch("/pagos/generar-checkout", {
                 method: 'POST',
                 headers: { 
@@ -378,12 +384,11 @@
                 },
                 body: JSON.stringify({ 
                     studio_id: parseInt(studioId), 
-                    session_ids: sessionIds 
+                    selections: selections
                 })
             })
             .then(res => res.json())
             .then(data => {
-                // Si el backend o Mercado Pago arrojan un error (Ej: Estudio sin cuenta vinculada)
                 if (data.error || data.message) {
                     alert(data.error || data.message || "No se pudo generar el enlace de pago.");
                     btnPay.disabled = false;
@@ -391,9 +396,7 @@
                     return;
                 }
 
-                // Magia Pura: Si Mercado Pago responde con éxito, nos da el init_point
                 if (data.init_point) {
-                    // Redirigimos al navegador hacia la pasarela oficial de MP
                     window.location.href = data.init_point;
                 }
             })

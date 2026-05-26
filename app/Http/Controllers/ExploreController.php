@@ -5,9 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\ClassSession;
 use App\Models\Area;
+use Illuminate\Support\Facades\Log;
 use App\Models\Workshop;
 use Carbon\Carbon;
-// use Illuminate\Support\Facades\DB; // <-- Lo quitamos, ya no hace falta.
 
 class ExploreController extends Controller
 {
@@ -20,7 +20,6 @@ class ExploreController extends Controller
             },
             'workshop.studio', 
             'workshop.discipline.area',
-            // CRÍTICO: Apagar scopes para que el profesor y los precios aparezcan
             'workshop.teacher' => function($q) {
                 $q->withoutGlobalScopes(); 
             },
@@ -66,40 +65,49 @@ class ExploreController extends Controller
                           ->orderBy('city', 'asc')
                           ->pluck('city');
 
-        // 5. ESTADO DE USUARIO (ARQUITECTURA OPTIMIZADA O(1))
-        $enrolledSessionIds = [];
-        $paidSessionIds = []; 
+        // 5. ESTADO DE USUARIO FAMILIAR (ARQUITECTURA DE MAPAS)
+        $dbSelectionsBySession = [];
 
         if (auth()->check()) {
-            $userId = auth()->id();
+            $user = auth()->user();
+            $userId = $user->id;
             
-            // Traemos TODAS las sesiones de la alumna desde hoy en adelante
-            // incluyendo el estado de pago directamente de la tabla pivote.
+            // Traemos TODAS las sesiones de la alumna y su familia desde hoy en adelante
             $userSessions = ClassSession::withoutGlobalScopes()
                 ->whereHas('students', function ($q) use ($userId) {
                     $q->withoutGlobalScopes()->where('students.user_id', $userId);
                 })
                 ->where('date', '>=', Carbon::today()->toDateString())
-                // Traemos los datos de la alumna para poder leer el pivote
                 ->with(['students' => function ($q) use ($userId) {
                     $q->withoutGlobalScopes()->where('students.user_id', $userId);
                 }])
                 ->get();
 
             foreach ($userSessions as $session) {
-                // Si la sesión llegó aquí, es porque está inscrita (enrolled)
-                $enrolledSessionIds[] = $session->id;
-                
-                // Extraemos a la alumna de la colección (debería ser solo una)
-                $student = $session->students->first();
-                
-                // Si el status mágico de la pivote dice 'paid', lo agregamos a la otra lista
-                if ($student && $student->pivot->payment_status === 'paid') {
-                    $paidSessionIds[] = $session->id;
+                $selections = [];
+                foreach ($session->students as $st) {
+                    $status = $st->pivot->payment_status; 
+                    
+                    if (!empty($st->national_id)) {
+                        if ($st->national_id === $user->national_id) {
+                            $selections['titular'] = $status;
+                        } else {
+                            // AQUÍ ESTABA EL DETALLE: 
+                            // Buscamos el ID del familiar que coincide con este RUT
+                            $dep = $user->dependents->where('national_id', $st->national_id)->first();
+                            if ($dep) {
+                                $selections[$dep->id] = $status; // Mantenemos el ID numérico
+                            }
+                        }
+                    } else {
+                        if ($st->first_name === $user->name) {
+                            $selections['titular'] = $status;
+                        }
+                    }
                 }
             }
         }
-
-        return view('explore.index', compact('sessions', 'areas', 'cities', 'enrolledSessionIds', 'paidSessionIds'));
+        Log::info("DEBUG DE SELECCIONES:", $dbSelectionsBySession);
+        return view('explore.index', compact('sessions', 'areas', 'cities', 'dbSelectionsBySession'));
     }
 }

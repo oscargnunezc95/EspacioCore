@@ -72,14 +72,58 @@ class Student extends Model
     protected static function booted()
     {
         static::saving(function ($student) {
-            if ($student->isDirty('national_id') && !empty($student->national_id)) {
+            // SOLO actuamos si NO trae user_id explícito y viene con RUT válido
+            if (empty($student->user_id) && $student->isDirty('national_id') && !empty($student->national_id)) {
                 
-                // Buscamos usuario global exacto (Documento + País)
+                // ESCENARIO A: ¿Existe un Usuario Titular Global con este RUT?
                 $user = User::where('national_id', $student->national_id)
-                            ->where('country_id', $student->country_id) // <-- CRÍTICO
+                            ->where('country_id', $student->country_id)
                             ->first();
                 
-                $student->user_id = $user ? $user->id : null;
+                if ($user) {
+                    $student->user_id = $user->id;
+                    $student->active_scenario = 'A'; // Marca temporal para el evento saved
+                    return;
+                }
+
+                // ESCENARIO C: ¿Existe como Familiar/Dependiente de alguien?
+                $dependent = UserDependent::where('national_id', $student->national_id)
+                                          ->where('country_id', $student->country_id)
+                                          ->first();
+                
+                if ($dependent) {
+                    // La ficha del estudio le pertenece al Dueño del familiar
+                    $student->user_id = $dependent->user_id; 
+                    $student->active_scenario = 'C'; 
+                    return;
+                }
+
+                // ESCENARIO B: No existe. Es un alumno local.
+                $student->active_scenario = 'B';
+            }
+        });
+
+        static::saved(function ($student) {
+            // Despachamos correos en segundo plano SOLO si acaba de ocurrir la magia
+            if (isset($student->active_scenario)) {
+                
+                if ($student->active_scenario === 'A') {
+                    $user = User::find($student->user_id);
+                    if ($user) {
+                        $user->notify(new \App\Notifications\LocalProfileLinkedNotification($student));
+                        \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\LocalProfileLinkedMail($student));
+                    }
+                } 
+                elseif ($student->active_scenario === 'C') {
+                    $parentUser = User::find($student->user_id);
+                    if ($parentUser) {
+                        $parentUser->notify(new \App\Notifications\DependentProfileLinkedNotification($student));
+                        \Illuminate\Support\Facades\Mail::to($parentUser->email)->send(new \App\Mail\DependentProfileLinkedMail($student));
+                    }
+                }
+                
+                // Limpiamos la marca para evitar bucles si se actualiza el modelo después
+                unset($student->active_scenario); 
             }
         });
     }

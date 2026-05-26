@@ -211,9 +211,9 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-6 py-12 text-center text-sm font-bold text-zinc-400">No hay talleres configurados</td></tr>
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-sm font-bold text-zinc-400">No hay talleres configurados</td></tr>
                         @endforelse
-                        <tr id="no_results_row" style="display: none;"><td colspan="4" class="px-6 py-12 text-center text-sm font-bold text-zinc-400">No hay talleres que coincidan con los filtros</td></tr>
+                        <tr id="no_results_row" style="display: none;"><td colspan="4" class="px-6 py-8 text-center text-sm font-bold text-zinc-400">No hay talleres que coincidan con los filtros</td></tr>
                     </tbody>
                 </table>
             </div>

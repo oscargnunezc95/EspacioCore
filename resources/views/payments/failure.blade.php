@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="min-h-[75vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+    <div class="min-h-[75vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
         <div class="max-w-md w-full bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 text-center">
             
             {{-- Icono de Error Semántico --}}

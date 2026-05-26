@@ -17,23 +17,29 @@ use App\Http\Controllers\TeacherController;
 use App\Http\Controllers\PromotionController;
 use App\Http\Controllers\StudioPublicController;
 use App\Http\Controllers\Global\UserClassController;
+use App\Http\Controllers\Global\FamilyController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\MercadoPagoOAuthController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentReturnController;
+use App\Http\Controllers\NotificationController;
 
 $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
 
 Route::middleware(['web', 'auth'])->group(function () {
     Route::post('/global/student/enroll/bulk', [\App\Http\Controllers\Global\UserClassController::class, 'bulkEnroll'])
         ->name('global.student.enroll.bulk');
+    Route::post('/notificaciones/{id}/leer', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notificaciones/leer-todas', [NotificationController::class, 'markAllAsRead'])->name('notifications.read.all');
 });
+
 // ========================================================
 // RUTA DE WEBHOOKS (Abierta para cualquier dominio/túnel)
 // ========================================================
 Route::post('/api/webhooks/mercadopago', [\App\Http\Controllers\WebhookController::class, 'mercadopago'])->name('webhooks.mp');
+
 /*
 |--------------------------------------------------------------------------
 | 1. RUTAS DEL DOMINIO PRINCIPAL (estadoprisma.test)
@@ -97,11 +103,18 @@ Route::domain($baseDomain)->group(function () {
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
         Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update'); 
         Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+        
+        //gestión de miembros familiares (apoderados, hijos, etc.)
+        Route::get('/profile/familia', [FamilyController::class, 'index'])->name('profile.family.index');
+        Route::post('/profile/familia', [FamilyController::class, 'store'])->name('profile.family.store');
+        Route::put('/profile/familia/{dependent}', [FamilyController::class, 'update'])->name('profile.family.update'); // 👈 Esta es la nueva
+        Route::delete('/profile/familia/{dependent}', [FamilyController::class, 'destroy'])->name('profile.family.destroy');
 
         // Historial de Pagos del Usuario
         Route::get('/mis-pagos', [\App\Http\Controllers\Global\PaymentHistoryController::class, 'index'])->name('global.payments.index');
         
         Route::post('/api/student/enroll-toggle', [UserClassController::class, 'toggleEnrollment'])->name('global.student.enroll.toggle');
+
     });
 
     require __DIR__.'/auth.php';

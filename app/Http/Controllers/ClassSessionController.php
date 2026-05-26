@@ -11,6 +11,11 @@ use Carbon\Carbon;
 use Illuminate\Validation\Rule;
 use App\Services\DocumentService;
 use App\Rules\ValidDocument;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\StudentWelcomeMail;
+use App\Mail\UserLinkedToStudioMail;
+use App\Notifications\StudentAddedNotification;
+use App\Services\TenantIdentityService; // 👈 NUEVO
 
 class ClassSessionController extends Controller
 {
@@ -68,7 +73,6 @@ class ClassSessionController extends Controller
 
     public function update(Request $request, $subdomain, ClassSession $session)
     {
-        // 1. Validamos todos los campos posibles de edición
         $request->validate([
             'date' => 'required|date',
             'start_time' => 'required',
@@ -76,7 +80,15 @@ class ClassSessionController extends Controller
             'is_cancelled' => 'boolean'
         ]);
 
-        // 2. Aplicamos los cambios a la sesión específica
+        $studio = \App\Models\Studio::where('subdomain', $subdomain)->firstOrFail();
+
+        // CAPTURAMOS EL ESTADO ORIGINAL
+        $originalIsCancelled = $session->is_cancelled;
+        $originalDate = $session->date;
+        $originalTime = $session->start_time;
+        $originalTeacher = $session->teacher_id;
+
+        // APLICAMOS CAMBIOS
         $session->update([
             'date' => $request->date,
             'start_time' => $request->start_time,
@@ -84,31 +96,81 @@ class ClassSessionController extends Controller
             'is_cancelled' => $request->boolean('is_cancelled') 
         ]);
 
-        // 3. Redirigimos al calendario del mes al que pertenece la NUEVA fecha.
-        $newMonthId = Carbon::parse($request->date)->format('Y-m');
+        // =========================================================
+        // MOTOR DE NOTIFICACIONES (CORREO BCC + IN-APP)
+        // =========================================================
+        $wasCancelledNow = (!$originalIsCancelled && $session->is_cancelled);
+        $wasModified = (!$session->is_cancelled && (
+            $originalDate != $session->date ||
+            $originalTime != $session->start_time ||
+            $originalTeacher != $session->teacher_id
+        ));
+
+        if ($wasCancelledNow || $wasModified) {
+            // 1. DATA PARA CORREOS
+            $studentEmails = $session->students()->whereNotNull('email')->pluck('email')->toArray();
+            $teacherEmail = $session->teacher->email ?? null;
+            $ownerEmail = $studio->user->email ?? null;
+            $bccEmails = array_filter(array_unique(array_merge($studentEmails, [$teacherEmail])));
+
+            // 2. DATA PARA CAMPANITA IN-APP (Necesitamos los modelos User, no solo emails)
+            $userIds = $session->students()->whereNotNull('user_id')->pluck('user_id')->toArray();
+            if ($session->teacher && $session->teacher->user_id) {
+                $userIds[] = $session->teacher->user_id;
+            }
+            // Evitamos notificar a la dueña en la campanita, ella fue quien hizo el cambio
+            $usersToNotify = \App\Models\User::whereIn('id', array_unique($userIds))->get();
+
+            try {
+                if ($wasCancelledNow) {
+                    // Disparamos Correo BCC
+                    if ($ownerEmail) {
+                        \Illuminate\Support\Facades\Mail::to($ownerEmail)
+                            ->bcc($bccEmails)
+                            ->send(new \App\Mail\ClassCancelledMail($session, $studio));
+                    }
+                    // Disparamos Campanita In-App
+                    \Illuminate\Support\Facades\Notification::send($usersToNotify, new \App\Notifications\ClassCancelledNotification($session, $studio));
+                    
+                } elseif ($wasModified) {
+                    // Disparamos Correo BCC
+                    if ($ownerEmail) {
+                        \Illuminate\Support\Facades\Mail::to($ownerEmail)
+                            ->bcc($bccEmails)
+                            ->send(new \App\Mail\ClassModifiedMail($session, $studio));
+                    }
+                    // Disparamos Campanita In-App
+                    \Illuminate\Support\Facades\Notification::send($usersToNotify, new \App\Notifications\ClassModifiedNotification($session, $studio));
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::error('Error en notificaciones de clase: ' . $e->getMessage());
+            }
+        }
+
+        $newMonthId = \Carbon\Carbon::parse($request->date)->format('Y-m');
         
         return redirect()->route('trainingmonth.show', [
             'subdomain' => $subdomain, 
             'month' => $newMonthId
-        ])->with('success', 'Sesión específica actualizada correctamente.');
+        ])->with('success', 'Sesión actualizada. Las notificaciones in-app y correos fueron enviados.');
     }
 
-    public function enrollStudent(Request $request, $subdomain, ClassSession $session)
+    public function enrollStudent(Request $request, $subdomain, ClassSession $session, TenantIdentityService $identityService) // 👈 Inyección
     {
         $studio = \App\Models\Studio::where('subdomain', $subdomain)->firstOrFail();
-
-        // 1. Obtenemos el código de país estrictamente desde la vista (Elegancia PHP 8)
         $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR
-        // Esto es vital para que Rule::unique (que usa QueryBuilder) encuentre el RUT limpio.
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
             ]);
         }
 
-        // 3. Validación Blindada
+        // VALIDACIÓN RÁPIDA: Si está inscribiendo a una nueva alumna, verificar que no exista ya en el estudio.
+        if ($request->enroll_mode === 'new' && $identityService->isStudentInStudio($request->national_id, $studio->id)) {
+             return back()->withErrors(['national_id' => 'Esta alumna ya existe en tu estudio. Inscríbela desde la pestaña "Existentes".'])->withInput();
+        }
+
         $validated = $request->validate([
             'enroll_mode'   => 'required|in:existing,new',
             'student_ids'   => 'nullable|required_if:enroll_mode,existing|array',
@@ -118,25 +180,19 @@ class ClassSessionController extends Controller
             'email'         => 'nullable|required_if:enroll_mode,new|email',
             'country_id'    => 'nullable|required_if:enroll_mode,new|exists:countries,id',
             'national_id'   => [
-                'nullable',
-                'required_if:enroll_mode,new',
-                'string',
-                'max:50',
-                new ValidDocument($countryCode),
-                // Aseguramos que la alumna no exista ya en este estudio
-                Rule::unique('students', 'national_id')->where(function ($query) use ($studio) {
-                    return $query->where('studio_id', $studio->id);
-                })
+                'nullable', 'required_if:enroll_mode,new', 'string', 'max:50', new ValidDocument($countryCode)
             ],
             'phone'         => 'nullable|string|max:20',
         ]);
 
         if ($request->enroll_mode === 'existing') {
             
-            // 1. VINCULACIÓN A LA CLASE (La fuente de verdad de la vista)
-            $session->students()->syncWithoutDetaching($request->student_ids);
+            $syncData = [];
+            foreach ($request->student_ids as $id) {
+                $syncData[$id] = ['payment_status' => 'pending'];
+            }
+            $session->students()->syncWithoutDetaching($syncData);  
 
-            // 2. CREACIÓN DE ASISTENCIAS
             foreach ($request->student_ids as $studentId) {
                 \App\Models\Attendance::firstOrCreate([
                     'class_session_id' => $session->id,
@@ -150,11 +206,20 @@ class ClassSessionController extends Controller
 
         } else {
             
-            // CREACIÓN E INSCRIPCIÓN DE NUEVA ALUMNA
-            // Ya no hacemos la limpieza manual aquí. El mutador en App\Models\Student hará su magia 
-            // usando el request crudo (que ya limpiamos en el paso 2 con el merge).
+            // =========================================================
+            // 2. MOTOR DE ONBOARDING VÍA SERVICIO
+            // =========================================================
+            $identity = $identityService->resolveGlobalUser(
+                $request->national_id, 
+                $request->email, 
+                trim($request->first_name . ' ' . $request->last_name)
+            );
+
+            $user = $identity['user'];
+
             $student = Student::create([
                 'studio_id'   => $studio->id,
+                'user_id'     => $user ? $user->id : null, 
                 'first_name'  => $request->first_name,
                 'last_name'   => $request->last_name,
                 'name'        => trim($request->first_name . ' ' . $request->last_name),
@@ -164,16 +229,28 @@ class ClassSessionController extends Controller
                 'phone'       => $request->phone,
             ]);
 
-            // 1. Vinculación a la clase
-            $session->students()->syncWithoutDetaching([$student->id]);
+            $session->students()->attach($student->id, ['payment_status' => 'pending']);
 
-            // 2. Creación de la asistencia
             \App\Models\Attendance::create([
                 'class_session_id' => $session->id,
                 'student_id'       => $student->id,
             ]);
 
-            $mensaje = 'Nueva alumna creada e inscrita correctamente.';
+            // DISPARO DE NOTIFICACIONES
+            if ($user) {
+                try {
+                    if ($identity['is_new']) {
+                        Mail::to($user->email)->send(new StudentWelcomeMail($studio, $student, $identity['temp_password']));
+                    } else {
+                        Mail::to($user->email)->send(new UserLinkedToStudioMail($studio, $user->name));
+                    }
+                    $user->notify(new StudentAddedNotification($studio));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Fallo onboarding alumna express: ' . $e->getMessage());
+                }
+            }
+
+            $mensaje = 'Nueva alumna creada, inscrita y notificada correctamente.';
         }
 
         return back()->with('success', $mensaje);

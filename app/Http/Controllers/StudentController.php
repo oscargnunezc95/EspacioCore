@@ -9,10 +9,15 @@ use App\Models\Studio;
 use App\Models\ClassSession;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Config;
-use Carbon\Carbon;
 use App\Services\DocumentService;
 use App\Rules\ValidDocument;
 use App\Models\Country; 
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\StudentWelcomeMail;
+use App\Mail\UserLinkedToStudioMail;
+use App\Notifications\StudentAddedNotification;
+use App\Services\TenantIdentityService; // 👈 NUEVO
 
 class StudentController extends Controller
 {
@@ -34,55 +39,90 @@ class StudentController extends Controller
         return view('students.index', compact('students', 'inactiveStudents', 'countries'));
     }
 
-    public function store(Request $request, $subdomain)
+    public function store(Request $request, $subdomain, TenantIdentityService $identityService)
     {
         $studioId = Config::get('tenant.studio_id');
-        
-        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8: en 1 sola línea)
         $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR (Defensa en Profundidad)
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
             ]);
+        }
 
-            // LÓGICA DE RESCATE (Papelera de Alumnas)
+        // 1. VERIFICACIÓN RÁPIDA: ¿Ya existe en este estudio? (Usando el Servicio)
+        if ($identityService->isStudentInStudio($request->national_id, $studioId)) {
+            // Lógica de rescate de papelera original
             $existingStudent = Student::withTrashed()
                 ->where('studio_id', $studioId)
                 ->where('national_id', $request->national_id)
                 ->first();
 
-            if ($existingStudent) {
-                if ($existingStudent->trashed()) {
-                    $existingStudent->restore();
-                    $existingStudent->update($request->except(['national_id']));
-                    return back()->with('success', 'La alumna/o estaba en la papelera y ha sido reactivada con sus nuevos datos.');
-                }
-                return back()->withErrors(['national_id' => 'Este documento ya pertenece a una alumna/o activa en tu estudio.'])->withInput();
+            if ($existingStudent && $existingStudent->trashed()) {
+                $existingStudent->restore();
+                $existingStudent->update($request->except(['national_id']));
+                return back()->with('success', 'La alumna/o estaba en la papelera y ha sido reactivada con sus nuevos datos.');
             }
+            return back()->withErrors(['national_id' => 'Este documento ya pertenece a una alumna/o activa en tu estudio.'])->withInput();
         }
 
-        // 3. VALIDACIÓN BLINDADA
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
             'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
-                'nullable', 
-                'string',
-                'max:255',
-                new ValidDocument($countryCode), // Usamos el código real seleccionado
-                Rule::unique('students', 'national_id')->where(function ($query) use ($studioId) {
-                    return $query->where('studio_id', $studioId);
-                })
+                'nullable', 'string', 'max:255', new ValidDocument($countryCode),
+                // Ya no validamos unique local aquí, el servicio lo hizo arriba.
             ],
-            'email'       => 'nullable|email|max:255',
+            // 👇 REGLA DE ORO 1:1 INYECTADA 👇
+            'email' => [
+                'nullable', 'email', 'max:255',
+                function ($attribute, $value, $fail) use ($request) {
+                    $existingUser = \App\Models\User::where('email', $value)->first();
+                    // Si el correo existe pero le pertenece a un RUT distinto, bloqueamos.
+                    if ($existingUser && $existingUser->national_id !== $request->national_id) {
+                        $fail('Este correo ya está registrado con otro documento. ');
+                    }
+                }
+            ],
             'phone'       => 'nullable|string|max:255'
         ]);
 
-        Student::create($request->all());
-        return back()->with('success', 'Alumna/o creada correctamente.');
+        // =========================================================
+        // 2. MOTOR DE ONBOARDING VÍA SERVICIO
+        // =========================================================
+        $identity = $identityService->resolveGlobalUser(
+            $request->national_id, 
+            $request->email, 
+            trim($request->first_name . ' ' . $request->last_name)
+        );
+
+        $user = $identity['user'];
+
+        $studentData = $request->all();
+        $studentData['studio_id'] = $studioId;
+        $studentData['user_id'] = $user ? $user->id : null;
+
+        $student = Student::create($studentData);
+
+        // 3. DISPARO DE NOTIFICACIONES
+        if ($user) {
+            try {
+                $studio = Studio::find($studioId);
+                
+                if ($identity['is_new']) {
+                    Mail::to($user->email)->send(new StudentWelcomeMail($studio, $student, $identity['temp_password']));
+                } else {
+                    Mail::to($user->email)->send(new UserLinkedToStudioMail($studio, $user->name));
+                }
+                
+                $user->notify(new StudentAddedNotification($studio));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Fallo onboarding alumna: ' . $e->getMessage());
+            }
+        }
+
+        return back()->with('success', 'Alumna/o creada y notificada correctamente.');
     }
 
     public function update(Request $request, $subdomain, Student $student)
@@ -108,18 +148,34 @@ class StudentController extends Controller
                 'nullable',
                 'string',
                 'max:255',
-                new ValidDocument($countryCode), // Usamos el código real seleccionado
+                new ValidDocument($countryCode),
                 Rule::unique('students', 'national_id')
                     ->ignore($student->id)
                     ->where(function ($query) use ($studioId) {
                         return $query->where('studio_id', $studioId);
                     })
             ],
-            'email'       => 'nullable|email|max:255',
+            // 👇 REGLA DE ORO 1:1 INYECTADA 👇
+            'email' => [
+                'nullable', 'email', 'max:255',
+                function ($attribute, $value, $fail) use ($request) {
+                    $existingUser = \App\Models\User::where('email', $value)->first();
+                    if ($existingUser && $existingUser->national_id !== $request->national_id) {
+                        $fail('Este correo ya está registrado con otro documento. Si es un apoderado inscribiendo a otra persona, añade "+nombre" antes del @ (ej: correo+hijo@gmail.com).');
+                    }
+                }
+            ],
             'phone'       => 'nullable|string|max:255'
         ]);
 
         $student->update($request->all());
+        
+        // Sincronización silenciosa opcional: si el estudiante tiene un user_id, 
+        // puedes actualizar el correo en la tabla global para que no queden desfasados
+        if ($student->user_id && $request->filled('email')) {
+            \App\Models\User::where('id', $student->user_id)->update(['email' => $request->email]);
+        }
+        
         return back()->with('success', 'Datos actualizados.');
     }
 

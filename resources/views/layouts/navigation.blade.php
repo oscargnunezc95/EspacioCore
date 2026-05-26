@@ -93,13 +93,14 @@
                                 </svg>
                                 <span>Mis Espacios</span>
                             </a>
+                            
                         @endauth
                     </div>
                 </div>
 
-                <div class="hidden xl:flex xl:items-center xl:ml-6">
+                <div class="flex items-center gap-2 xl:gap-6">
                     @guest
-                        <div class="flex items-center space-x-4">
+                        <div class="hidden xl:flex items-center space-x-4">
                             <a href="{{ route('login') }}" class="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors">
                                 Iniciar Sesión
                             </a>
@@ -110,45 +111,56 @@
                     @endguest
 
                     @auth
-                        <div class="relative ml-3" x-data="{ openProfile: false }" @click.outside="openProfile = false" @close.stop="openProfile = false">
-                            <button @click="openProfile = ! openProfile" class="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 focus:outline-none transition-colors">
-                                <div class="h-9 w-9 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-900 font-black border border-zinc-200 shadow-sm hover:border-zinc-300 transition-all">
-                                    {{ substr(Auth::user()->name, 0, 1) }}
-                                </div>
-                                <span class="hidden lg:block">{{ explode(' ', Auth::user()->name)[0] }}</span>
-                                <svg class="h-4 w-4 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                            </button>
+                        <div class="flex items-center gap-2 xl:gap-4">
+                            {{-- ============================================== --}}
+                            {{-- CAMPANITA DE NOTIFICACIONES (INYECCIÓN AQUÍ) --}}
+                            {{-- ============================================== --}}
+                            <div class="pt-1">
+                                <x-notifications-dropdown />
+                            </div>
 
-                            <div x-show="openProfile" 
-                                 x-transition:enter="transition ease-out duration-200" 
-                                 x-transition:enter-start="opacity-0 scale-95 translate-y-2" 
-                                 x-transition:enter-end="opacity-100 scale-100 translate-y-0" 
-                                 x-transition:leave="transition ease-in duration-150" 
-                                 x-transition:leave-start="opacity-100 scale-100 translate-y-0" 
-                                 x-transition:leave-end="opacity-0 scale-95 translate-y-2" 
-                                 class="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-lg bg-white border border-zinc-100 py-2 z-50 hidden"
-                                 :class="{'hidden': !openProfile}" x-cloak>
-                                
-                                <div class="px-4 py-2 border-b border-zinc-100 mb-1 text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Tu Cuenta</div>
-                                <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">Configuración de Perfil</a>
-                                <a href="{{ route('global.payments.index') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">Historial de Pagos</a>
-                                
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-rose-600 font-bold hover:bg-rose-50 transition">Cerrar Sesión</button>
-                                </form>
+                            {{-- MENÚ DE PERFIL (ESCRITORIO & TABLET) --}}
+                            <div class="relative hidden sm:block" x-data="{ openProfile: false }" @click.outside="openProfile = false" @close.stop="openProfile = false">
+                                <button @click="openProfile = ! openProfile" class="flex items-center gap-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 focus:outline-none transition-colors">
+                                    <div class="h-9 w-9 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-900 font-black border border-zinc-200 shadow-sm hover:border-zinc-300 transition-all">
+                                        {{ substr(Auth::user()->name, 0, 1) }}
+                                    </div>
+                                    <span class="hidden lg:block">{{ explode(' ', Auth::user()->name)[0] }}</span>
+                                    <svg class="h-4 w-4 text-zinc-400 hidden xl:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+
+                                <div x-show="openProfile" 
+                                     x-transition:enter="transition ease-out duration-200" 
+                                     x-transition:enter-start="opacity-0 scale-95 translate-y-2" 
+                                     x-transition:enter-end="opacity-100 scale-100 translate-y-0" 
+                                     x-transition:leave="transition ease-in duration-150" 
+                                     x-transition:leave-start="opacity-100 scale-100 translate-y-0" 
+                                     x-transition:leave-end="opacity-0 scale-95 translate-y-2" 
+                                     class="absolute right-0 top-full mt-2 w-48 rounded-xl shadow-lg bg-white border border-zinc-100 py-2 z-50 hidden"
+                                     :class="{'hidden': !openProfile}" x-cloak>
+                                    
+                                    <div class="px-4 py-2 border-b border-zinc-100 mb-1 text-[10px] text-zinc-400 font-bold uppercase tracking-widest">Tu Cuenta</div>
+                                    <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">Configuración de Perfil</a>
+                                    <a href="{{ route('profile.family.index') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">Familia</a>
+                                    <a href="{{ route('global.payments.index') }}" class="block px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 transition">Historial de Pagos</a>
+                                    
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="block w-full text-left px-4 py-2 text-sm text-rose-600 font-bold hover:bg-rose-50 transition">Cerrar Sesión</button>
+                                    </form>
+                                </div>
                             </div>
                         </div>
                     @endauth
-                </div>
 
-                {{-- BOTÓN HAMBURGUESA MÓVIL --}}
-                <div class="-mr-2 flex items-center xl:hidden">
-                    <button @click="mobileMenuOpen = true" class="inline-flex items-center justify-center p-2 rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 focus:outline-none transition pointer-events-auto">
-                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                        </svg>
-                    </button>
+                    {{-- BOTÓN HAMBURGUESA MÓVIL --}}
+                    <div class="flex items-center xl:hidden">
+                        <button @click="mobileMenuOpen = true" class="inline-flex items-center justify-center p-2 rounded-lg text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 focus:outline-none transition pointer-events-auto">
+                            <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -234,6 +246,10 @@
                 <a href="{{ route('global.payments.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm font-bold text-zinc-700 hover:bg-zinc-200/50 rounded-xl transition">
                     <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
                     Historial de Pagos
+                </a>
+                <a href="{{ route('profile.family.index') }}" class="flex items-center gap-3 px-3 py-2 text-sm font-bold text-zinc-700 hover:bg-zinc-200/50 rounded-xl transition">
+                    <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                    Familia
                 </a>
                 <a href="{{ route('profile.edit') }}" class="flex items-center gap-3 px-3 py-2 text-sm font-bold text-zinc-700 hover:bg-zinc-200/50 rounded-xl transition">
                     <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>

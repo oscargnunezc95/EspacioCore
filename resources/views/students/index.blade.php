@@ -36,7 +36,6 @@
             </div>
         </div>
 
-        {{-- A partir de aquí sigue intacto el resto de tu código (filtros, tablas, modales, etc.) --}}
         
         @if (session('success'))
             <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2">
@@ -156,7 +155,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500 font-medium">Sin alumnas/os activas en el directorio.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-zinc-500 font-medium">Sin alumnas/os activas en el directorio.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -237,7 +236,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500 font-medium">La papelera está vacía.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-zinc-500 font-medium">La papelera está vacía.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

@@ -3,9 +3,8 @@
 namespace App\Services;
 
 use App\Models\Studio;
-use App\Models\Payment;
+use App\Models\ClassSession;
 use App\Models\Student;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use App\Services\PricingService;
@@ -19,189 +18,124 @@ class MercadoPagoService
         $this->pricingService = $pricingService;
     }
 
-    /**
-     * -----------------------------------------------------------------
-     * FASE 1: CHECKOUT (Generar link de pago)
-     * -----------------------------------------------------------------
-     */
-    public function createPreference(int $studioId, array $sessionIds, $user)
+    public function createPreference($studioId, $selections, $user)
     {
         $studio = Studio::findOrFail($studioId);
+        \MercadoPago\SDK::setAccessToken($studio->mp_access_token ?? config('services.mercadopago.token'));
 
-        if (!$studio->mp_access_token) {
-            throw new \Exception("El estudio aún no está habilitado para recibir pagos online.");
+        $items = [];
+        // Agrupamos las selecciones recibidas del frontend por student_id
+        $selectionsByStudent = collect($selections)->groupBy('student_id');
+
+        foreach ($selectionsByStudent as $studentId => $selectionItems) {
+            $student = Student::withoutGlobalScopes()->find($studentId);
+            if (!$student) continue;
+
+            $checkedSessionIds = $selectionItems->pluck('session_id')->toArray();
+
+            $result = $this->pricingService->calculateCart($studioId, $checkedSessionIds);
+
+            if ($result['total'] > 0) {
+                $item = new \MercadoPago\Item();
+                $item->title = 'Reserva Clases - ' . $student->first_name;
+                $item->quantity = 1; 
+                $item->unit_price = (float) $result['total'];
+                $item->currency_id = 'CLP';
+                $items[] = $item;
+            }
         }
 
-        $cartData = $this->pricingService->calculateCart($studioId, $sessionIds);
-        $totalAmount = $cartData['total'];
+        // 4. Creamos la Preferencia
+        $preference = new \MercadoPago\Preference();
+        $preference->items = $items;
+        
+        $preference->external_reference = json_encode([
+            'user_id' => $user->id,
+            'selections' => $selections,
+            'studio_id' => $studioId
+        ]);
 
-        if ($totalAmount <= 0) {
-            throw new \Exception("El monto a pagar no es válido.");
-        }
-
-        $domain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
-        $protocol = request()->secure() ? 'https://' : 'http://';
-        $baseUrl = $protocol . $studio->subdomain . '.' . $domain;
-
-        $payload = [
-            'items' => [
-                [
-                    'title'       => 'Reserva de Clases - ' . $studio->name,
-                    'description' => count($sessionIds) . ' clase(s) seleccionada(s)',
-                    'quantity'    => 1,
-                    'unit_price'  => (float) $totalAmount,
-                    'currency_id' => 'CLP',
-                ]
-            ],
-            // 👇 ELIMINAMOS ESTO POR COMPLETO 👇
-            // 'payer' => [
-            //     'email' => 'TESTUSER1313865840731392797@testuser.com',
-            //     'name'  => 'APRO',
-            // ],
-            'back_urls' => [
-                'success' => $baseUrl . '/pagos/exito',
-                'pending' => $baseUrl . '/pagos/pendiente',
-                'failure' => $baseUrl . '/pagos/error',
-            ],
-            'auto_return' => 'approved',
-            // Empaquetamos la metadata crítica aquí para recuperarla en el Webhook
-            'external_reference' => json_encode([
-                'studio_id'   => $studioId, 
-                'user_id'     => $user->id, 
-                'session_ids' => $sessionIds
-            ]),
-            'notification_url' => 'https://quotable-draw-decipher.ngrok-free.dev/api/webhooks/mercadopago',
+        $domain = config('app.url');
+        $preference->back_urls = [
+            'success' => "{$domain}/pagos/success",
+            'failure' => "{$domain}/pagos/failure",
+            'pending' => "{$domain}/pagos/pending"
         ];
+        
+        $preference->auto_return = 'approved';
+        $preference->save();
 
-        $response = Http::withToken($studio->mp_access_token)
-            ->post('https://api.mercadopago.com/checkout/preferences', $payload);
-
-        if ($response->successful()) {
-            return $response->json();
+        if (!$preference->init_point) {
+            throw new \Exception("Error al generar el link de pago con Mercado Pago.");
         }
 
-        Log::error('Error al crear preferencia MP: ', $response->json());
-        throw new \Exception("Fallo de comunicación con Mercado Pago.");
+        return [
+            'init_point' => $preference->init_point,
+            'preference_id' => $preference->id
+        ];
     }
 
     /**
-     * -----------------------------------------------------------------
-     * FASE 2: WEBHOOK DE ALUMNAS (Procesar Pago Recibido)
-     * -----------------------------------------------------------------
+     * =====================================================================
+     * 2. PROCESAMIENTO DEL WEBHOOK (MP -> SISTEMA)
+     * =====================================================================
      */
-    public function processStudentPayment($paymentId, $mpUserId)
+    public function processStudentPayment($dataId, $mpUserId = null)
     {
-        $studio = Studio::where('mp_user_id', $mpUserId)->first();
+        // 1. Configuramos el Token (En webhooks usualmente validamos con el Access Token Global)
+        \MercadoPago\SDK::setAccessToken(config('services.mercadopago.token'));
+        
+        $payment = \MercadoPago\Payment::find_by_id($dataId);
 
-        if (!$studio) {
-            Log::error("Webhook MP: Estudio no encontrado para el mp_user_id {$mpUserId}");
+        if (!$payment || $payment->status !== 'approved') {
+            Log::info("Pago {$dataId} ignorado o no aprobado. Estado: " . ($payment->status ?? 'null'));
             return;
         }
 
-        $response = Http::withToken($studio->mp_access_token)
-            ->get("https://api.mercadopago.com/v1/payments/{$paymentId}");
+        // 2. Extraemos la metadata que inyectamos en createPreference
+        $meta = json_decode($payment->external_reference, true);
+        $selectionsPagadas = $meta['selections'] ?? [];
 
-        if (!$response->successful() || $response->json()['status'] !== 'approved') {
-            return; 
-        }
-
-        $paymentData = $response->json();
-        $reference = json_decode($paymentData['external_reference'], true);
-
-        if (!$reference || !isset($reference['user_id'], $reference['session_ids'])) {
-            return;
-        }
-
-        // Transacción ACID: Si falla una inscripción, se revierte el pago entero
-        DB::transaction(function () use ($paymentData, $studio, $reference) {
-            
-            // 1. Evitamos dobles cobros (Idempotencia)
-            if (Payment::where('mp_payment_id', $paymentData['id'])->exists()) {
-                return; 
-            }
-
-            $user = \App\Models\User::find($reference['user_id']);
-
-            // 2. MAGIA ARQUITECTÓNICA: Asegurar que exista la ficha de Alumna.
-            $student = Student::firstOrCreate(
-                ['user_id' => $user->id, 'studio_id' => $studio->id],
-                [
-                    'first_name'  => $user->name,
-                    'email'       => $user->email,
-                    'national_id' => $user->national_id,
-                    'country_id'  => $user->country_id,
-                    'is_guest'    => 0,
-                ]
-            );
-
-            // 3. Obtenemos el ID del Taller de la primera clase para cumplir con la BD
-            $firstSession = \App\Models\ClassSession::find($reference['session_ids'][0]);
-            if (!$firstSession) return;
-
-            // 4. Creamos el Recibo Oficial
-            $payment = Payment::create([
-                'studio_id'      => $studio->id,
-                'student_id'     => $student->id,
-                'workshop_id'    => $firstSession->workshop_id,
-                'amount'         => $paymentData['transaction_amount'],
-                'payment_method' => 'mercadopago',
-                'payment_type'   => count($reference['session_ids']) > 1 ? 'pack' : 'clase_suelta',
-                'mp_payment_id'  => $paymentData['id'],
-                'status'         => 'approved'
-            ]);
-
-            // 5. --- LÓGICA DE INSCRIPCIÓN EN TABLAS PIVOTE ---
-            foreach ($reference['session_ids'] as $sessionId) {
-                
-                // A) Vinculamos el pago histórico a esta sesión
-                $payment->classSessions()->syncWithoutDetaching([
-                    $sessionId => ['student_id' => $student->id]
-                ]);
-
-                // B) MAGIA DE OPTIMIZACIÓN: Actualizamos el estado a 'paid'
-                // Esto anula su deuda y la quita de la vista del carrito instantáneamente.
-                $student->classSessions()->syncWithoutDetaching([
-                    $sessionId => ['payment_status' => 'paid'] 
-                ]);
-            }
-
-            Log::info("¡ÉXITO! Pago {$paymentData['id']} procesado e inscripciones confirmadas para la alumna {$student->id}");
-        });
-        // 👇 INYECTAR FLUJO DE COMUNICACIÓN AQUÍ 👇
+        DB::beginTransaction();
         try {
-            $payment = \App\Models\Payment::where('mp_payment_id', $paymentData['id'])->first();
-            
-            if ($payment && $payment->student) {
-                $student = $payment->student;
+            foreach ($selectionsPagadas as $sel) {
+                $session = ClassSession::withoutGlobalScopes()->find($sel['session_id']);
                 
-                if ($student->email) {
-                    \Illuminate\Support\Facades\Mail::to($student->email)->send(
-                        new \App\Mail\StudentPaymentReceiptMail($studio, $payment, $student->first_name)
-                    );
+                if ($session) {
+                    // Marcamos SOLO al alumno específico que se pagó
+                    $session->students()
+                        ->withoutGlobalScopes()
+                        ->updateExistingPivot($sel['student_id'], ['payment_status' => 'paid']);
+                        
+                    $session->attendances()->firstOrCreate(['student_id' => $sel['student_id']]);
                 }
             }
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::error('Webhook MP: Pago guardado, pero falló el envío del correo: ' . $e->getMessage());
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error("Error asignando pago {$dataId} en BD: " . $e->getMessage());
+            throw $e;
         }
     }
 
     /**
-     * -----------------------------------------------------------------
-     * FASE 3: WEBHOOK SAAS (Tus propias Suscripciones)
-     * -----------------------------------------------------------------
+     * =====================================================================
+     * 3. SUSCRIPCIONES SAAS (ESTUDIOS -> PLATAFORMA)
+     * =====================================================================
      */
-    public function getSubscriptionDetails($preapprovalId)
+    public function getSubscriptionDetails($dataId)
     {
-        // Reemplaza 'TU_ACCESS_TOKEN_MAESTRO' por el tuyo propio de .env
-        $masterToken = env('MERCADOPAGO_ACCESS_TOKEN'); 
-
-        $response = Http::withToken($masterToken)
-            ->get("https://api.mercadopago.com/preapproval/{$preapprovalId}");
-
-        if ($response->successful()) {
-            return $response->json();
+        \MercadoPago\SDK::setAccessToken(config('services.mercadopago.token'));
+        
+        $preapproval = \MercadoPago\Preapproval::find_by_id($dataId);
+        
+        if (!$preapproval) {
+            throw new \Exception("Suscripción {$dataId} no encontrada en Mercado Pago.");
         }
 
-        throw new \Exception("No se pudo obtener la suscripción {$preapprovalId} de MP.");
+        return [
+            'external_reference' => $preapproval->external_reference, // Usualmente el ID del Studio
+            'status' => $preapproval->status
+        ];
     }
 }

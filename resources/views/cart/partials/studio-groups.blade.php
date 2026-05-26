@@ -1,30 +1,19 @@
 @foreach($groupedSessions as $studioId => $sessions)
     @php
         $studio = $sessions->first()->workshop->studio;
+        $studioPromos = $promotions->get($studio->id, collect());
+        $studioPacks = $packs->get($studio->id, collect());
 
-        // CONSULTAS RÁPIDAS PARA EL MODAL DE PROMOCIONES
-        $studioPromos = \App\Models\Promotion::with('workshopPrices.workshop')
-            ->where('studio_id', $studio->id)
-            ->get();
-            
-        $studioPacks = \App\Models\WorkshopPrice::with('workshop')
-            ->whereHas('workshop', function($q) use ($studio) {
-                $q->where('studio_id', $studio->id);
-            })
-            ->where('class_count', '>', 1)
-            ->get()
-            ->groupBy('workshop.name');
-
-        // LOGO DEL ESTUDIO
         $studioLogo = $studio->icon_path ?? $studio->logo_path ?? null;
         $studioAvatar = $studioLogo 
             ? asset('storage/' . $studioLogo) 
             : 'https://ui-avatars.com/api/?name='.urlencode($studio->name).'&color=0f766e&background=ccfbf1';
 
-        // CONSTRUCCIÓN DEL LINK DEL ESTUDIO
         $domain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
         $protocol = request()->secure() ? 'https://' : 'http://';
         $fullStudioUrl = $protocol . $studio->subdomain . '.' . $domain;
+        
+        $hasMercadoPago = !empty($studio->mp_access_token);
     @endphp
     
     <div class="bg-white rounded-3xl border border-zinc-200 shadow-sm overflow-hidden mb-8 studio-cart-group" data-studio-id="{{ $studio->id }}">
@@ -32,20 +21,15 @@
         {{-- Cabecera del Estudio --}}
         <div class="bg-zinc-50 border-b border-zinc-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div class="flex items-center gap-4">
-                {{-- Imagen del Estudio --}}
                 <img src="{{ $studioAvatar }}" alt="{{ $studio->name }}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover shrink-0 border border-zinc-200 shadow-sm bg-white">
-                
                 <div class="flex flex-col">
                     <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
                         <h2 class="text-lg sm:text-xl font-black text-zinc-900 leading-none">{{ $studio->name }}</h2>
-                        {{-- BOTÓN INTERACTIVO "VER OFERTAS" --}}
                         <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="hidden sm:flex text-[10px] font-bold text-teal-700 bg-white border border-teal-200 shadow-sm px-2.5 py-1 rounded-md hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 active:scale-95 items-center gap-1 uppercase tracking-widest leading-none mt-0.5">
                             <svg class="w-3 h-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v1m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Ver Ofertas
                         </button>
                     </div>
-                    
-                    {{-- LINK FUNCIONAL AL SUBDOMINIO --}}
                     <a href="{{ $fullStudioUrl }}" target="_blank" class="group/link flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-indigo-600 transition-colors w-fit mt-1">
                         <svg class="w-3.5 h-3.5 text-zinc-400 group-hover/link:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
                         <span class="underline decoration-transparent group-hover/link:decoration-indigo-200 transition-all">{{ $studio->subdomain }}.{{ $domain }}</span>
@@ -55,11 +39,10 @@
             
             <label class="flex items-center gap-2 cursor-pointer hover:bg-zinc-200/50 p-2 rounded-lg transition-colors w-fit sm:w-auto">
                 <span class="text-sm font-bold text-zinc-700">Seleccionar Todo</span>
-                <input type="checkbox" onchange="toggleStudioSelection(this, {{ $studio->id }})" class="w-5 h-5 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900 cursor-pointer">
+                <input type="checkbox" onchange="toggleStudioSelection(this, {{ $studio->id }})" class="w-5 h-5 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900 cursor-pointer" {{ !$hasMercadoPago ? 'disabled' : 'checked' }}>
             </label>
         </div>
 
-        {{-- Versión Móvil del botón --}}
         <div class="sm:hidden bg-zinc-50/80 px-4 py-3 border-b border-zinc-200">
             <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="w-full bg-white border border-teal-200 shadow-sm text-xs font-bold text-teal-700 py-2.5 rounded-xl hover:bg-teal-50 transition-all active:scale-95 flex justify-center items-center gap-1.5 uppercase tracking-widest">
                 <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -67,51 +50,79 @@
             </button>
         </div>
 
+        @if(!$hasMercadoPago)
+            <div class="bg-amber-50 border-b border-amber-100 px-6 py-3 flex items-start sm:items-center gap-3">
+                <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                <p class="text-sm font-medium text-amber-800 leading-snug">
+                    Este espacio aún no habilita los pagos online. Comunícate directamente con <span class="font-bold">{{ $studio->name }}</span> para coordinar.
+                </p>
+            </div>
+        @endif
+
         {{-- Lista de Clases del Estudio --}}
-        <ul class="divide-y divide-zinc-100 px-6 py-2">
+        <ul class="divide-y divide-zinc-100 px-6 py-2 {{ !$hasMercadoPago ? 'opacity-75 grayscale-[20%]' : '' }}">
             @foreach($sessions as $session)
                 @php
                     $basePrice = $session->workshop->prices->where('class_count', 1)->first()->price ?? 0;
-                    
-                    // FOTO DEL TALLER
                     $workshopImg = $session->workshop->image_path ?? null;
                     $workshopAvatar = $workshopImg 
                         ? asset('storage/' . $workshopImg) 
                         : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff';
                 @endphp
-                <li class="py-4 flex items-center justify-between group">
-                    <label class="flex items-center gap-4 cursor-pointer flex-1">
-                        <input type="checkbox" 
-                            name="selected_sessions[]" 
-                            value="{{ $session->id }}" 
-                            data-studio-id="{{ $studio->id }}"
-                            onchange="calculateCart()"
-                            class="session-checkbox w-5 h-5 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900 cursor-pointer transition-all duration-200 shrink-0">
-                        
-                        {{-- Miniatura del taller --}}
-                        <img src="{{ $workshopAvatar }}" alt="Taller" class="w-10 h-10 rounded-lg object-cover border border-zinc-200 shrink-0 shadow-sm">
-
+                <li class="py-5 flex flex-col group">
+                    {{-- Info General de la Sesión --}}
+                    <div class="flex items-center gap-4 mb-3">
+                        <img src="{{ $workshopAvatar }}" alt="Taller" class="w-12 h-12 rounded-xl object-cover border border-zinc-200 shrink-0 shadow-sm">
                         <div class="flex-1">
-                            <p class="font-bold text-zinc-900 group-hover:text-indigo-600 transition-colors">{{ $session->workshop->name }}</p>
+                            <p class="font-bold text-zinc-900 leading-tight">{{ $session->workshop->name }}</p>
                             <p class="text-sm text-zinc-500 flex items-center gap-1.5 mt-0.5">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                                 {{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d M') }} a las {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}
                             </p>
                         </div>
-                    </label>
-                    
-                    <div class="text-right flex items-center gap-4 ml-4">
-                        <span class="text-sm font-black text-zinc-900">${{ number_format($basePrice, 0, ',', '.') }}</span>
-                        
-                        <button type="button" onclick="removeCartItem({{ $session->id }}, this)" class="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors focus:outline-none" title="Remover clase">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                        </button>
+                    </div>
+
+                    {{-- Lista Individual de Alumnos en esta sesión --}}
+                    <div class="mt-2 sm:ml-16 flex flex-col gap-2 border-l-2 border-zinc-100 pl-4">
+                        @foreach($session->students as $st)
+                            @php
+                                $isTitular = ($st->national_id === auth()->user()->national_id || $st->first_name === auth()->user()->name);
+                                $depId = 'null';
+                                if (!$isTitular) {
+                                    $dep = auth()->user()->dependents->where('national_id', $st->national_id)->first();
+                                    $depId = $dep ? $dep->id : 'null';
+                                }
+                            @endphp
+                            <label class="flex items-center justify-between cursor-pointer p-2.5 hover:bg-zinc-50 rounded-xl transition-colors group/chk border border-transparent hover:border-zinc-200">
+                                <div class="flex items-center gap-3">
+                                    {{-- EL VALUE AHORA ES COMPUESTO: session_id-student_id --}}
+                                    <input type="checkbox" 
+                                        value="{{ $session->id }}-{{ $st->id }}" 
+                                        data-studio-id="{{ $studio->id }}"
+                                        onchange="calculateCart()"
+                                        class="session-checkbox w-5 h-5 text-indigo-600 border-zinc-300 rounded focus:ring-indigo-600 cursor-pointer transition-all duration-200 disabled:bg-zinc-100 disabled:cursor-not-allowed"
+                                        {{ !$hasMercadoPago ? 'disabled' : '' }}
+                                        checked>
+                                    <span class="text-sm font-bold text-zinc-700 group-hover/chk:text-indigo-600 transition-colors">
+                                        {{ $st->first_name }} {{ $st->last_name }}
+                                        @if($isTitular) <span class="text-[9px] bg-zinc-200 text-zinc-600 px-1.5 py-0.5 rounded uppercase tracking-widest ml-1">Titular</span> @endif
+                                    </span>
+                                </div>
+                                
+                                <div class="flex items-center gap-4">
+                                    <span class="text-sm font-black text-zinc-900">${{ number_format($basePrice, 0, ',', '.') }}</span>
+                                    <button type="button" onclick="removeCartItem({{ $session->id }}, {{ $depId }}, this)" class="p-1.5 text-zinc-400 hover:text-rose-500 hover:bg-rose-100 rounded-lg transition-colors focus:outline-none" title="Remover reserva">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                    </button>
+                                </div>
+                            </label>
+                        @endforeach
                     </div>
                 </li>
             @endforeach
         </ul>
 
-        {{-- Footer de Total por Estudio --}}
+        {{-- Footer de Total (Igual) --}}
         <div class="bg-zinc-50 px-6 py-5 border-t border-zinc-200 flex flex-col md:flex-row justify-between items-center gap-4">
             <div class="w-full md:w-auto">
                 <p class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Desglose</p>
@@ -119,21 +130,23 @@
                     <span class='text-zinc-400'>0 clases seleccionadas</span>
                 </div>
             </div>
-            
             <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
                 <div class="text-right">
                     <p class="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-1">Total Estudio</p>
                     <p class="text-2xl font-black text-zinc-900 leading-none" id="total-{{ $studio->id }}">$0</p>
                 </div>
-                <button onclick="payStudio({{ $studio->id }})" disabled id="btn-pay-{{ $studio->id }}" class="bg-zinc-900 text-white font-bold w-36 h-12 rounded-xl flex items-center justify-center hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-95 shadow-sm">
-                    Pagar Selección
-                </button>
+                @if($hasMercadoPago)
+                    <button onclick="payStudio({{ $studio->id }})" disabled id="btn-pay-{{ $studio->id }}" class="bg-zinc-900 text-white font-bold w-36 h-12 rounded-xl flex items-center justify-center hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 active:scale-95 shadow-sm">
+                        Pagar Selección
+                    </button>
+                @else
+                    <button disabled class="bg-zinc-200 text-zinc-400 font-bold w-36 h-12 rounded-xl flex items-center justify-center cursor-not-allowed shadow-inner text-sm uppercase tracking-wider">
+                        No Disponible
+                    </button>
+                @endif
             </div>
         </div>
-
-        {{-- ======================================================== --}}
-        {{-- EL MODAL DE PROMOCIONES (Estilo Refinado) --}}
-        {{-- ======================================================== --}}
+        {{-- EL MODAL DE PROMOCIONES SE MANTIENE EXACTAMENTE IGUAL --}}
         <div id="promo-modal-{{ $studio->id }}" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6">
             <div class="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity" onclick="closePromoModal('promo-modal-{{ $studio->id }}')"></div>
             
@@ -167,7 +180,6 @@
                                             @if($promo->type === 'specific_combo')
                                                 <p class="text-sm text-zinc-500 mt-1 mb-2">Para activar este combo, debes seleccionar:</p>
                                                 
-                                                {{-- EXPLICACIÓN DETALLADA DEL COMBO --}}
                                                 <ul class="space-y-1.5 bg-zinc-50 p-3 rounded-xl border border-zinc-100 mb-3">
                                                     @foreach($promo->workshopPrices as $reqPrice)
                                                         <li class="flex items-center gap-2 text-sm text-zinc-700 font-medium">

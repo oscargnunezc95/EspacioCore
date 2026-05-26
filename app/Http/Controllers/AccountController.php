@@ -39,13 +39,17 @@ class AccountController extends Controller
 
             Log::info("El estudio {$studio->name} ha desvinculado su cuenta de Mercado Pago.");
 
-            // 👇 INYECCIÓN DEL CORREO DE DESVINCULACIÓN 👇
             try {
-                if ($studio->user && $studio->user->email) {
-                    Mail::to($studio->user->email)->send(new StudioMercadoPagoUnlinkedMail($studio));
+                if ($studio->user) {
+                    // A) Envía el Correo
+                    if ($studio->user->email) {
+                        Mail::to($studio->user->email)->send(new StudioMercadoPagoUnlinkedMail($studio));
+                    }
+                    // B) 👇 NUEVA INYECCIÓN: Campanita para la Dueña 👇
+                    $studio->user->notify(new \App\Notifications\StudioMPUnlinkedNotification($studio));
                 }
             } catch (\Exception $e) {
-                Log::error('Se desvinculó MP, pero falló el envío del correo: ' . $e->getMessage());
+                Log::error('Se desvinculó MP, pero fallaron las alertas: ' . $e->getMessage());
             }
         }
 

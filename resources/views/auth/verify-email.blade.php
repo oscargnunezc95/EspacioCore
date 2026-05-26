@@ -13,7 +13,7 @@
         <h2 class="text-2xl font-black text-center text-zinc-900 mb-4 tracking-tight">Revisa tu correo</h2>
 
         <div class="mb-6 text-sm text-zinc-600 text-center leading-relaxed font-medium">
-            ¡Gracias por unirte! Antes de comenzar a gestionar tu estudio, necesitamos verificar tu identidad. 
+            ¡Gracias por unirte! Antes de continuar, necesitamos verificar tu identidad. 
             Haz clic en el enlace que acabamos de enviar a tu correo electrónico.
         </div>
 

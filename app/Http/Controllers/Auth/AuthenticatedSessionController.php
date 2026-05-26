@@ -30,7 +30,7 @@ class AuthenticatedSessionController extends Controller
 
         // AHORA SÍ: Si intentó entrar a una ruta protegida, lo enviamos ahí.
         // Si viene de iniciar sesión normalmente, lo mandamos al Lobby de sus estudios.
-        return redirect()->intended(route('studios.index', absolute: false));
+        return redirect()->intended(route('global.classes.student', absolute: false));
     }
 
     /**

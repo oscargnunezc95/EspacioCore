@@ -84,18 +84,25 @@ class User extends Authenticatable implements MustVerifyEmail
     protected static function booted()
     {
         static::saved(function ($user) {
-            // Si el usuario acaba de agregar o modificar su RUT/DNI
             if ($user->isDirty('national_id') && !empty($user->national_id)) {
                 
-                // 1. Buscamos profesores que tengan este RUT Y EL MISMO PAÍS
-                Teacher::where('national_id', $user->national_id)
+                // 1. Buscamos y vinculamos Staff
+                $teachersUpdated = Teacher::where('national_id', $user->national_id)
                        ->where('country_id', $user->country_id)
+                       ->whereNull('user_id') // Solo actualizamos los que estaban huérfanos
                        ->update(['user_id' => $user->id]);
 
-                // 2. Hacemos lo mismo para las alumnas
-                Student::where('national_id', $user->national_id)
+                // 2. Buscamos y vinculamos Fichas de Alumna
+                $studentsUpdated = Student::where('national_id', $user->national_id)
                        ->where('country_id', $user->country_id)
+                       ->whereNull('user_id')
                        ->update(['user_id' => $user->id]);
+                       
+                // 3. Si hubo magia, enviamos un aviso unificado
+                if ($studentsUpdated > 0 || $teachersUpdated > 0) {
+                    // (Opcional) Puedes crear una notificación genérica para este hito
+                    // $user->notify(new \App\Notifications\AccountMergedNotification());
+                }
             }
         });
     }
@@ -122,5 +129,9 @@ class User extends Authenticatable implements MustVerifyEmail
                 return DocumentService::standardize($value, $countryCode);
             }
         );
+    }
+    public function dependents()
+    {
+        return $this->hasMany(UserDependent::class);
     }
 }

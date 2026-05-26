@@ -14,5 +14,6 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(UserStudioSeeder::class);
         $this->call(AreaDisciplineSeeder::class);
+       // $this->call(PaisSeeder::class);
     }
 }

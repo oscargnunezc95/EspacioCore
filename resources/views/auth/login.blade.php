@@ -1,7 +1,7 @@
 <x-guest-layout>
 <div class="flex flex-col lg:flex-row w-full min-h-screen">
     
-    <div class="flex flex-col justify-center flex-1 px-8 py-12 sm:px-16 lg:px-24 xl:px-32 bg-white">
+    <div class="flex flex-col justify-center flex-1 px-8 py-8 sm:px-16 lg:px-24 xl:px-32 bg-white">
         <div class="w-full max-w-sm mx-auto lg:mx-0">
             
             <div class="mb-10">

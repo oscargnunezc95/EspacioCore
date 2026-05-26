@@ -54,13 +54,17 @@ class MercadoPagoOAuthController extends Controller
                     'mp_user_id'       => $data['user_id'],
                 ]);
 
-                // 👇 INYECCIÓN DEL CORREO DE VINCULACIÓN 👇
                 try {
-                    if ($studio->user && $studio->user->email) {
-                        Mail::to($studio->user->email)->send(new StudioMercadoPagoLinkedMail($studio));
+                    if ($studio->user) {
+                        // A) Envía el Correo
+                        if ($studio->user->email) {
+                            Mail::to($studio->user->email)->send(new StudioMercadoPagoLinkedMail($studio));
+                        }
+                        // B) 👇 NUEVA INYECCIÓN: Campanita para la Dueña 👇
+                        $studio->user->notify(new \App\Notifications\StudioMPLinkedNotification($studio));
                     }
                 } catch (\Exception $e) {
-                    Log::error('Se vinculó MP, pero falló el envío del correo: ' . $e->getMessage());
+                    Log::error('Se vinculó MP, pero fallaron las alertas: ' . $e->getMessage());
                 }
 
                 return redirect()->route('account.index', ['subdomain' => $studio->subdomain])

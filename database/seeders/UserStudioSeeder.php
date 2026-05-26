@@ -25,7 +25,9 @@ class UserStudioSeeder extends Seeder
                 'currency_code' => 'CLP',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
+            ]
+        );
+        Country::firstOrCreate(
             [
                 'name' => 'Otro / Internacional',
                 'code' => 'OT',

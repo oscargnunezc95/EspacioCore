@@ -1,5 +1,5 @@
 <x-app-layout>
-    <div class="py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4 mb-24">
+    <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
         
         {{-- Título y subtítulo (Ahora visible en todos los tamaños) --}}
         <div class="text-center mb-8 md:mb-12">

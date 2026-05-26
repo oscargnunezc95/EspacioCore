@@ -9,6 +9,12 @@ use App\Models\Teacher;
 use App\Services\DocumentService;
 use App\Rules\ValidDocument;
 use App\Models\Country; 
+use Illuminate\Support\Facades\Mail;
+use App\Models\Studio;
+use App\Mail\TeacherInvitationMail;
+use App\Mail\UserLinkedToStudioMail;
+use App\Notifications\TeacherAddedNotification;
+use App\Services\TenantIdentityService; // 👈 NUEVO
 
 class TeacherController extends Controller
 {
@@ -23,56 +29,87 @@ class TeacherController extends Controller
         return view('teachers.index', compact('teachers', 'inactiveTeachers', 'countries'));
     }
 
-    public function store(Request $request, $subdomain)
+    public function store(Request $request, $subdomain, TenantIdentityService $identityService) // 👈 Inyección
     {
         $studioId = Config::get('tenant.studio_id');
-        
-        // 1. OBTENER EL CÓDIGO DEL PAÍS (Elegancia PHP 8: en 1 sola línea)
         $countryCode = Country::find($request->country_id)?->code ?? 'OT';
 
-        // 2. ESTANDARIZAR EL DOCUMENTO ANTES DE VALIDAR (Defensa en Profundidad)
         if ($request->filled('national_id')) {
             $request->merge([
                 'national_id' => DocumentService::standardize($request->national_id, $countryCode)
             ]);
+        }
 
-            // LÓGICA DE RESCATE (Papelera de Profesores)
+        // 1. VERIFICACIÓN RÁPIDA: ¿Ya existe en este estudio?
+        if ($identityService->isTeacherInStudio($request->national_id, $studioId)) {
             $existingTeacher = Teacher::withTrashed()
                 ->where('studio_id', $studioId)
                 ->where('national_id', $request->national_id)
                 ->first();
 
-            if ($existingTeacher) {
-                if ($existingTeacher->trashed()) {
-                    $existingTeacher->restore();
-                    $existingTeacher->update($request->except(['national_id']));
-                    return back()->with('success', 'El profesor estaba en la papelera y ha sido reactivado con sus nuevos datos.');
-                }
-                return back()->withErrors(['national_id' => 'Este documento ya pertenece a un profesor activo en tu equipo.'])->withInput();
+            if ($existingTeacher && $existingTeacher->trashed()) {
+                $existingTeacher->restore();
+                $existingTeacher->update($request->except(['national_id']));
+                return back()->with('success', 'El profesor estaba en la papelera y ha sido reactivado con sus nuevos datos.');
             }
+            return back()->withErrors(['national_id' => 'Este documento ya pertenece a un profesor activo en tu equipo.'])->withInput();
         }
 
-        // 3. VALIDACIÓN BLINDADA
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
             'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
-                'nullable', 
-                'string',
-                'max:255',
-                new ValidDocument($countryCode), // Usamos el código real seleccionado
-                Rule::unique('teachers', 'national_id')->where(function ($query) use ($studioId) {
-                    return $query->where('studio_id', $studioId);
-                })
+                'nullable', 'string', 'max:255', new ValidDocument($countryCode)
             ],
-            'email'       => 'nullable|email|max:255',
+            'email' => [
+                'nullable', 'email', 'max:255',
+                function ($attribute, $value, $fail) use ($request) {
+                    $existingUser = \App\Models\User::where('email', $value)->first();
+                    // Si el correo existe pero le pertenece a un RUT distinto, bloqueamos.
+                    if ($existingUser && $existingUser->national_id !== $request->national_id) {
+                        $fail('Este correo ya está registrado con otro documento.');
+                    }
+                }
+            ],
             'phone'       => 'nullable|string|max:255',
         ]);
 
-        Teacher::create($request->all());
+        // =========================================================
+        // 2. MOTOR DE ONBOARDING VÍA SERVICIO
+        // =========================================================
+        $identity = $identityService->resolveGlobalUser(
+            $request->national_id, 
+            $request->email, 
+            trim($request->first_name . ' ' . $request->last_name)
+        );
 
-        return back()->with('success', 'Profesor registrado. Si el documento coincide con una cuenta global, se vinculará automáticamente.');
+        $user = $identity['user'];
+
+        $teacherData = $request->all();
+        $teacherData['studio_id'] = $studioId;
+        $teacherData['user_id'] = $user ? $user->id : null;
+
+        $teacher = Teacher::create($teacherData);
+
+        // 3. DISPARO DE NOTIFICACIONES
+        if ($user) {
+            try {
+                $studio = Studio::find($studioId);
+                
+                if ($identity['is_new']) {
+                    Mail::to($user->email)->send(new TeacherInvitationMail($studio, $teacher, $identity['temp_password']));
+                } else {
+                    Mail::to($user->email)->send(new UserLinkedToStudioMail($studio, $user->name));
+                }
+                
+                $user->notify(new TeacherAddedNotification($studio));
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::error('Fallo onboarding profesor: ' . $e->getMessage());
+            }
+        }
+
+        return back()->with('success', 'Profesor registrado y notificado correctamente.');
     }
 
     public function update(Request $request, $subdomain, Teacher $teacher)

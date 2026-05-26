@@ -20,17 +20,6 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // 2. Insertamos Chile automáticamente (ID será 1)
-        DB::table('countries')->insert([
-            'name' => 'Chile',
-            'code' => 'CL',
-            'tax_id_label' => 'RUT',
-            'tax_id_regex' => '^(\d{7,8}[0-9Kk])$',
-            'currency_code' => 'CLP',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-
         // 3. Vinculamos los Usuarios al País (Por defecto 1: Chile)
         Schema::table('users', function (Blueprint $table) {
             $table->foreignId('country_id')->default(1)->constrained('countries');

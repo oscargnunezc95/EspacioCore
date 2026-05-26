@@ -144,7 +144,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-12 text-center text-zinc-500 font-medium text-sm">No hay profesores activos en el equipo.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-zinc-500 font-medium text-sm">No hay profesores activos en el equipo.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -221,7 +221,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-12 text-center text-sm text-zinc-500 font-medium">La papelera está vacía.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-zinc-500 font-medium">La papelera está vacía.</td></tr>
                         @endforelse
                     </tbody>
                 </table>

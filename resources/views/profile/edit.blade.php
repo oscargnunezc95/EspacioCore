@@ -1,6 +1,6 @@
 <x-app-layout>
-    {{-- Restringimos a max-w-4xl para que los formularios no se estiren de forma grotesca en PC --}}
-    <div class="py-8 md:py-12 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+    {{-- Restringimos a max-w-7xl para que los formularios no se estiren de forma grotesca en PC --}}
+    <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
         
         <div class="text-center mb-10 md:mb-14">
             <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Mi Perfil</h1>

@@ -4,9 +4,21 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-// Detecta el directorio del usuario actual dinámicamente (Ej: C:\Users\TuUsuario)
 const homedir = os.homedir();
 const host = 'estadoprisma.test';
+
+// 1. Definimos las rutas
+const keyPath = path.resolve(homedir, `.config/herd/config/valet/Certificates/${host}.key`);
+const certPath = path.resolve(homedir, `.config/herd/config/valet/Certificates/${host}.crt`);
+
+// 2. Comprobamos si los archivos existen realmente
+let httpsConfig = false;
+if (fs.existsSync(keyPath) && fs.existsSync(certPath)) {
+    httpsConfig = {
+        key: fs.readFileSync(keyPath),
+        cert: fs.readFileSync(certPath),
+    };
+}
 
 export default defineConfig({
     plugins: [
@@ -21,10 +33,6 @@ export default defineConfig({
     server: {
         host,
         hmr: { host },
-        https: {
-            // Construye la ruta dinámicamente sin importar en qué PC estés
-            key: fs.readFileSync(path.resolve(homedir, `.config/herd/config/valet/Certificates/${host}.key`)),
-            cert: fs.readFileSync(path.resolve(homedir, `.config/herd/config/valet/Certificates/${host}.crt`)),
-        },
+        https: httpsConfig, // Automático: usa los certificados solo si existen
     },
 });

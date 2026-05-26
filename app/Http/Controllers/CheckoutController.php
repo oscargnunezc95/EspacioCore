@@ -14,31 +14,24 @@ class CheckoutController extends Controller
      */
     public function generarCheckout(Request $request, MercadoPagoService $mpService)
     {
-        // 1. Validación de seguridad estricta
         $request->validate([
             'studio_id' => ['required', 'integer', 'exists:studios,id'],
-            'session_ids' => ['required', 'array'],
-            'session_ids.*' => ['integer', 'exists:class_sessions,id']
+            'selections' => ['required', 'array'],
+            'selections.*.session_id' => ['required', 'integer'],
+            'selections.*.student_id' => ['required', 'integer']
         ]);
 
         try {
-            $user = Auth::user(); // Tomamos al alumno logueado
+            $user = Auth::user(); 
             
-            // 2. Delegamos la lógica financiera al Servicio
             $preference = $mpService->createPreference(
                 $request->studio_id, 
-                $request->session_ids, 
+                $request->selections, 
                 $user
             );
 
-            // 3. Devolvemos el link seguro (init_point) al Javascript
-            return response()->json([
-                'init_point' => $preference['init_point']
-            ]);
+            return response()->json(['init_point' => $preference['init_point']]);
 
-        } catch (\Throwable $e) {
-            Log::error('Error en Checkout: ' . $e->getMessage() . ' Línea: ' . $e->getLine());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
+        } catch (\Throwable $e) { ... }
     }
 }

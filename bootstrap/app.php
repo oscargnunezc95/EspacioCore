@@ -15,18 +15,16 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registramos los alias para usarlos en web.php
         $middleware->alias([
             'identify.studio' => \App\Http\Middleware\IdentifyStudio::class,
-            // NUESTRO NUEVO GUARDIA DE SEGURIDAD
             'check.profile'   => \App\Http\Middleware\CheckProfileCompletion::class,
         ]);
 
-        // Le dice a Laravel que redirija a los usuarios logueados al Lobby, no al dashboard genérico.
-        $middleware->redirectUsersTo('/mis-estudios');
+        // Redirección dinámica basada en el nombre de la ruta (Best Practice)
+        $middleware->redirectUsersTo(fn () => route('global.classes.student'));
 
-        // 👇 EL PARCHE DE QA PARA PERMITIR LA ENTRADA DEL WEBHOOK 👇
+        // Exclusiones CSRF (Deben mantenerse como URIs/Strings)
         $middleware->validateCsrfTokens(except: [
-            'api/webhooks/mercadopago', // Usa esta si la ruta está en api.php
-            'webhooks/mercadopago',     // Agrega esta también por si la pusiste en web.php
-            // También puedes usar comodines como: '*/webhooks/mercadopago'
+            'api/webhooks/mercadopago',
+            'webhooks/mercadopago',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
