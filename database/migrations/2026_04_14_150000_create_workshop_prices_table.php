@@ -11,11 +11,13 @@ return new class extends Migration
         Schema::create('workshop_prices', function (Blueprint $table) {
             $table->id();
             $table->foreignId('workshop_id')->constrained()->cascadeOnDelete();
-            
+
             $table->integer('class_count'); // Ej: 4 (clases)
             $table->integer('price'); // Ej: 25000 ($)
-            $table->boolean('is_monthly')->default(false); // ¿Aplica la regla del primer mes?
-            
+            $table->boolean('is_monthly')->default(false); // Aplica la regla del primer mes?
+            $table->integer('introductory_price')->nullable()->after('is_monthly');
+            $table->boolean('is_introductory_active')->default(false)->after('introductory_price');
+
             $table->timestamps();
         });
     }

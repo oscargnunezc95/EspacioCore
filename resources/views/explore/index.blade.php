@@ -1,9 +1,88 @@
-<x-app-layout>
+<x-app-layout
+    :metaTitle="$seo['title']"
+    :metaDescription="$seo['description']"
+    :canonicalUrl="$seo['canonical']"
+    ogType="website"
+    :metaRobots="$seo['page'] > 1 ? 'noindex, follow' : 'index, follow'"
+>
+    <x-slot name="structuredData">
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": "ItemList",
+  "itemListElement": [
+    @foreach($sessions as $i => $session)
+    {
+      "@@type": "ListItem",
+      "position": {{ $i + 1 }},
+      "item": {
+        "@@type": "Event",
+        "name": "{{ $session->workshop->name }}",
+        "startDate": "{{ \Carbon\Carbon::parse($session->date)->toIso8601String() }}",
+        "location": {
+          "@@type": "Place",
+          "name": "{{ $session->workshop->studio->name }}",
+          "address": {
+            "@@type": "PostalAddress",
+            "addressLocality": "{{ $session->workshop->city ?? $session->workshop->studio->city }}",
+            "addressRegion": "{{ $session->workshop->region ?? $session->workshop->studio->region }}",
+            "addressCountry": "{{ $session->workshop->country ?? $session->workshop->studio->country }}"
+          }
+        },
+        "performer": {
+          "@@type": "Person",
+          "name": "{{ $session->workshop->teacher ? trim($session->workshop->teacher->first_name . ' ' . $session->workshop->teacher->last_name) : 'Por asignar' }}"
+        },
+        "offers": {
+          "@@type": "Offer",
+          "price": "{{ $session->workshop->prices->where('class_count', 1)->first()->price ?? 0 }}",
+          "priceCurrency": "CLP"
+        }
+      }
+    }@if(!$loop->last),@endif
+    @endforeach
+  ]
+}
+</script>
+    </x-slot>
+
     <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+
+        {{-- Breadcrumbs semanticos --}}
+        @if(count($breadcrumbs) > 1)
+        <nav class="mb-4" aria-label="Breadcrumb">
+            <ol class="flex flex-wrap items-center gap-1 text-xs font-medium text-zinc-400">
+                @foreach($breadcrumbs as $crumb)
+                    @if(!$loop->last)
+                        <li><a href="{{ $crumb['url'] }}" class="hover:text-indigo-600 transition-colors">{{ $crumb['label'] }}</a></li>
+                        <li class="mx-1">/</li>
+                    @else
+                        <li class="text-zinc-700 font-bold">{{ $crumb['label'] }}</li>
+                    @endif
+                @endforeach
+            </ol>
+        </nav>
+        @endif
         
         <div class="text-center mb-10 md:mb-14">
-            <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Descubre tu próxima clase</h1>
-            <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">Encuentra y reserva sesiones en los mejores estudios cerca de ti.</p>
+            <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
+                @if($seo['city'] && $seo['area'])
+                    Clases de {{ $seo['area'] }} en {{ $seo['city'] }}
+                @elseif($seo['city'])
+                    Talleres y Clases en {{ $seo['city'] }}
+                @elseif($seo['area'])
+                    Clases de {{ $seo['area'] }}
+                @else
+                    Descubre tu proxima clase
+                @endif
+            </h1>
+            <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">
+                @if($seo['total'] > 0)
+                    {{ $seo['total'] }} {{ $seo['total'] == 1 ? 'clase encontrada' : 'clases encontradas' }}. Encuentra y reserva sesiones en los mejores estudios cerca de ti.
+                @else
+                    Intenta ajustando los filtros de busqueda para ver mas opciones.
+                @endif
+            </p>
         </div>
 
         <div x-data="{ openFilters: false }" class="mb-8">

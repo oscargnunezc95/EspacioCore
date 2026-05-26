@@ -25,6 +25,7 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentReturnController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\SeoController;
 
 $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
 
@@ -50,6 +51,10 @@ Route::domain($baseDomain)->group(function () {
     // Landing Page y Explorar
     Route::get('/', [HomeController::class, 'index'])->name('home');
     Route::get('/explorar', [ExploreController::class, 'index'])->name('explore');
+
+    // SEO: robots.txt y sitemap.xml
+    Route::get('/robots.txt', [SeoController::class, 'robots']);
+    Route::get('/sitemap.xml', [SeoController::class, 'sitemap']);
 
     // ---------------------------------------------------------
     // RUTAS PÚBLICAS / INVITADOS (OAuth Google y Completar)

@@ -16,7 +16,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('google_id')->nullable()->unique()->after('email');
+            $table->string('national_id')->nullable()->unique()->after('email');
+            $table->string('google_id')->nullable()->unique()->after('national_id');
+            $table->foreignId('country_id')->default(1)->constrained('countries');
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();

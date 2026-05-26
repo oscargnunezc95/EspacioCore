@@ -13,20 +13,26 @@ return new class extends Migration
     {
         Schema::create('teachers', function (Blueprint $table) {
             $table->id();
-            // Relación con el estudio (Multi-tenant)
             $table->foreignId('studio_id')->constrained()->cascadeOnDelete();
-            
-            // Relación con el usuario global (Nullable porque puede no haberse registrado aún)
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            
+            $table->foreignId('country_id')->nullable()->constrained('countries');
+
             // Datos del profesor
-            $table->string('name');
-            $table->string('email');
+            $table->string('first_name');
+            $table->string('last_name')->nullable();
+            $table->string('email')->nullable();
             $table->string('phone')->nullable();
+
+            // Identificacion
+            $table->string('national_id')->nullable()->after('user_id');
+
             $table->boolean('is_active')->default(true);
-            
+
             $table->timestamps();
-            $table->softDeletes(); // Requerido porque usamos SoftDeletes en el modelo
+            $table->softDeletes();
+
+            // Garantizamos que no se repita el mismo profesor en el MISMO estudio
+            $table->unique(['studio_id', 'national_id']);
         });
     }
 

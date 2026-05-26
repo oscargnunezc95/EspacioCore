@@ -1,4 +1,27 @@
-<x-guest-layout>
+<x-guest-layout
+    metaTitle="EstadoPrisma — Software de Gestion para Estudios de Danza, Circo y Acrobacia"
+    metaDescription="Centraliza reservas, automatiza la cobranza con Mercado Pago y ofrece una experiencia impecable a tus alumnos. El sistema operativo para tu academia, estudio o taller."
+    ogType="website"
+    metaRobots="index, follow"
+>
+    <x-slot name="structuredData">
+<script type="application/ld+json">
+{
+  "@@context": "https://schema.org",
+  "@@type": "SoftwareApplication",
+  "name": "EstadoPrisma",
+  "applicationCategory": "BusinessApplication",
+  "operatingSystem": "Web",
+  "description": "Software de gestion para estudios de danza, circo y acrobacia. Centraliza reservas, automatiza cobranza y ofrece portales para alumnos y profesores.",
+  "offers": {
+    "@@type": "Offer",
+    "price": "0",
+    "priceCurrency": "CLP"
+  }
+}
+</script>
+    </x-slot>
+
     <div class="bg-white min-h-screen selection:bg-indigo-100 selection:text-indigo-900 font-sans">
         
         {{-- ========================================== --}}
@@ -12,18 +35,18 @@
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
                 </span>
-                EstadoPrisma 1.0 ya está disponible
+                EstadoPrisma 1.0 ya esta disponible
             </div>
 
             <h1 class="text-5xl md:text-7xl font-black text-zinc-900 tracking-tighter mb-6 leading-[1.1] max-w-4xl">
-                El sistema operativo <br class="hidden md:block">
+                Software de gestion <br class="hidden md:block">
                 <span class="text-transparent bg-clip-text bg-gradient-to-r from-zinc-900 via-zinc-700 to-zinc-500">
-                    para tu estudio.
+                    para tu academia.
                 </span>
             </h1>
             
             <p class="mt-4 text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto leading-relaxed">
-                Centraliza reservas, automatiza la cobranza y ofrece una experiencia impecable a tus alumnos. Todo en una única plataforma diseñada para escalar.
+                Centraliza reservas, automatiza la cobranza con Mercado Pago y ofrece una experiencia impecable a tus alumnos. Todo en una unica plataforma disenada para estudios de danza, circo, acrobacia y mas.
             </p>
             
             {{-- Dual Call To Action --}}
