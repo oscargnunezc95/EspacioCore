@@ -16,12 +16,18 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
-            $table->string('national_id')->nullable()->unique()->after('email');
+            
+            // Columna sin el unique() individual — ahora NOT NULL
+            $table->string('national_id')->after('email');
+            
             $table->string('google_id')->nullable()->unique()->after('national_id');
             $table->foreignId('country_id')->default(1)->constrained('countries');
             $table->string('password');
             $table->rememberToken();
             $table->timestamps();
+
+            // Índice único compuesto para permitir el mismo documento en distintos países
+            $table->unique(['national_id', 'country_id']);
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

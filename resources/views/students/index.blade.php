@@ -287,7 +287,7 @@
                             <select name="country_id" id="inputCountryId" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none cursor-pointer {{ $errors->has('country_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                                 <option value="">Selecciona un país...</option>
                                 @foreach($countries as $country)
-                                    <option value="{{ $country->id }}" {{ old('country_id') == $country->id ? 'selected' : '' }}>
+                                    <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>
                                         {{ $country->name }}
                                     </option>
                                 @endforeach
@@ -295,8 +295,8 @@
                             @error('country_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">N° de Documento <span class="text-zinc-400 font-normal">(Opc.)</span></label>
-                            <input type="text" name="national_id" id="inputNationalId" value="{{ old('national_id') }}" placeholder="Ej: 19.123.456-7" 
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">N° de Documento <span class="text-rose-500">*</span></label>
+                            <input type="text" name="national_id" id="inputNationalId" value="{{ old('national_id') }}" placeholder="Ej: 19.123.456-7" required
                                    class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none {{ $errors->has('national_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                             @error('national_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>

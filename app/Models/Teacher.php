@@ -42,6 +42,11 @@ class Teacher extends Model
         return $this->belongsTo(Country::class);
     }
 
+    public function teacherPayments()
+    {
+        return $this->hasMany(TeacherPayment::class);
+    }
+
     // LÓGICA DE VINCULACIÓN: Cuando el Admin crea/edita al profe
     protected static function booted()
     {

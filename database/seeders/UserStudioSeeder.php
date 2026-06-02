@@ -23,21 +23,23 @@ class UserStudioSeeder extends Seeder
                 'tax_id_label' => 'RUT',
                 'tax_id_regex' => '^(\d{7,8}[0-9Kk])$',
                 'currency_code' => 'CLP',
+                'currency_symbol' => '$',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
         );
-        Country::firstOrCreate(
+/*         Country::firstOrCreate(
             [
                 'name' => 'Otro / Internacional',
                 'code' => 'OT',
                 'tax_id_label' => 'Pasaporte / ID',
                 'tax_id_regex' => '^.+$',
                 'currency_code' => 'USD',
+                'currency_symbol' => 'US$',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
-        );
+        ); */
         // 1. Usuario Administrador Principal
         $admin = User::firstOrCreate(
             ['email' => 'oscargnunezc18@gmail.com'],
@@ -131,6 +133,8 @@ class UserStudioSeeder extends Seeder
                 ],
                 [
                     'first_name' => $data['teacher'],
+                    'country_id' => 1, // Chile
+                    'national_id' => 'SEED-T' . $studio->id,
                     'is_active' => true,
                 ]
             );
@@ -171,6 +175,8 @@ class UserStudioSeeder extends Seeder
                     [
                         'first_name' => $a['first'],
                         'last_name' => $a['last'],
+                        'country_id' => 1, // Chile
+                        'national_id' => 'SEED-S' . Studio::max('id') . '-' . rand(1000, 9999),
                         'is_guest' => false,
                     ]
                 );

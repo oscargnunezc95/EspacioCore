@@ -46,30 +46,33 @@
                     <label for="name" class="block text-sm font-bold text-zinc-700">Nombre completo</label>
                     <div class="mt-1.5">
                         <input id="name" name="name" type="text" value="{{ old('name') }}" required autofocus autocomplete="name"
-                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('name') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
+                    <x-input-error :messages="$errors->get('name')" class="mt-1.5" />
                 </div>
 
                 <div>
                     <label for="email" class="block text-sm font-bold text-zinc-700">Correo electrónico</label>
                     <div class="mt-1.5">
                         <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email"
-                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('email') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
+                    <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
                 </div>
 
                 <div class="mb-4">
                     <label for="country_id" class="block text-sm font-bold text-zinc-700">País</label>
                     <div class="mt-1.5">
                         <select id="country_id" name="country_id" required
-                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('country_id') border-rose-500 ring-2 ring-rose-200 @enderror">
                             @foreach($countries as $country)
-                                <option value="{{ $country->id }}" {{ old('country_id') == $country->id ? 'selected' : '' }}>
+                                <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>
                                     {{ $country->name }}
                                 </option>
                             @endforeach
                         </select>
                     </div>
+                    <x-input-error :messages="$errors->get('country_id')" class="mt-1.5" />
                 </div>
 
                 <div>
@@ -80,24 +83,27 @@
                     <div class="mt-1.5">
                         <input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" required
                             placeholder="Ej: 12345678-9"
-                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('national_id') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
+                    <x-input-error :messages="$errors->get('national_id')" class="mt-1.5" />
                 </div>
 
                 <div>
                     <label for="password" class="block text-sm font-bold text-zinc-700">Contraseña</label>
                     <div class="mt-1.5">
                         <input id="password" name="password" type="password" required autocomplete="new-password"
-                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('password') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
+                    <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
                 </div>
 
                 <div>
                     <label for="password_confirmation" class="block text-sm font-bold text-zinc-700">Confirmar contraseña</label>
                     <div class="mt-1.5">
                         <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password"
-                            class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
+                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('password_confirmation') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
+                    <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1.5" />
                 </div>
 
                 <div class="pt-4">

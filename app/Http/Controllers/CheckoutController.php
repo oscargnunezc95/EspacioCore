@@ -32,6 +32,9 @@ class CheckoutController extends Controller
 
             return response()->json(['init_point' => $preference['init_point']]);
 
-        } catch (\Throwable $e) { ... }
+        } catch (\Throwable $e) {
+            Log::error('Error generando checkout: ' . $e->getMessage());
+            return response()->json(['error' => 'Error al generar el pago.'], 500);
+        }
     }
 }

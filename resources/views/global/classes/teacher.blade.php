@@ -6,6 +6,15 @@
             <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">Tu agenda unificada como Profesor/a.</p>
         </div>
 
+        @if(!$mpLinked)
+            <div class="mb-6 text-center">
+                <p class="text-xs text-amber-600 font-medium">
+                    ⚠ Recuerda vincular tu cuenta de Mercado Pago para recibir los pagos del estudio.
+                    <a href="{{ route('global.payments.index') }}" class="underline font-bold hover:text-amber-800">Ir a Pagos</a>
+                </p>
+            </div>
+        @endif
+
         {{-- Controles de Navegación del Mes --}}
         @php
             $prevMonth = $monthDate->copy()->subMonth()->format('Y-m');

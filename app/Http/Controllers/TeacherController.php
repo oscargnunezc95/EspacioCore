@@ -5,16 +5,17 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 use App\Models\Teacher;
+use App\Models\User;
+use App\Models\Studio;
+use App\Models\Country;
 use App\Services\DocumentService;
 use App\Rules\ValidDocument;
-use App\Models\Country; 
-use Illuminate\Support\Facades\Mail;
-use App\Models\Studio;
 use App\Mail\TeacherInvitationMail;
-use App\Mail\UserLinkedToStudioMail;
+use App\Mail\UserLinkedAsTeacherMail;
 use App\Notifications\TeacherAddedNotification;
-use App\Services\TenantIdentityService; // 👈 NUEVO
 
 class TeacherController extends Controller
 {
@@ -29,7 +30,12 @@ class TeacherController extends Controller
         return view('teachers.index', compact('teachers', 'inactiveTeachers', 'countries'));
     }
 
-    public function store(Request $request, $subdomain, TenantIdentityService $identityService) // 👈 Inyección
+    /**
+     * Crea un profesor SIN forzar la creación de usuario global.
+     * Si existe un User con el mismo national_id+country_id o email, se vincula.
+     * Si no, queda como perfil huérfano (user_id = null) y se envía invitación.
+     */
+    public function store(Request $request, $subdomain)
     {
         $studioId = Config::get('tenant.studio_id');
         $countryCode = Country::find($request->country_id)?->code ?? 'OT';
@@ -41,7 +47,10 @@ class TeacherController extends Controller
         }
 
         // 1. VERIFICACIÓN RÁPIDA: ¿Ya existe en este estudio?
-        if ($identityService->isTeacherInStudio($request->national_id, $studioId)) {
+        if ($request->filled('national_id') && Teacher::withoutGlobalScopes()
+                ->where('national_id', $request->national_id)
+                ->where('studio_id', $studioId)
+                ->exists()) {
             $existingTeacher = Teacher::withTrashed()
                 ->where('studio_id', $studioId)
                 ->where('national_id', $request->national_id)
@@ -55,36 +64,47 @@ class TeacherController extends Controller
             return back()->withErrors(['national_id' => 'Este documento ya pertenece a un profesor activo en tu equipo.'])->withInput();
         }
 
+        // 2. Validación
+        $attributes = [
+            'first_name'  => 'nombre',
+            'email'       => 'correo electrónico',
+            'country_id'  => 'país',
+            'national_id' => 'documento de identidad',
+            'phone'       => 'teléfono',
+        ];
+
+        $messages = [
+            'required' => 'El :attribute es obligatorio.',
+            'email'    => 'El :attribute debe ser una dirección válida.',
+            'string'   => 'El :attribute debe ser texto.',
+            'max'      => 'El :attribute no debe superar los :max caracteres.',
+            'exists'   => 'El :attribute seleccionado no es válido.',
+        ];
+
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
             'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
-                'nullable', 'string', 'max:255', new ValidDocument($countryCode)
+                'required', 'string', 'max:255', new ValidDocument($countryCode)
             ],
             'email' => [
                 'nullable', 'email', 'max:255',
                 function ($attribute, $value, $fail) use ($request) {
-                    $existingUser = \App\Models\User::where('email', $value)->first();
-                    // Si el correo existe pero le pertenece a un RUT distinto, bloqueamos.
+                    $existingUser = User::where('email', $value)->first();
                     if ($existingUser && $existingUser->national_id !== $request->national_id) {
                         $fail('Este correo ya está registrado con otro documento.');
                     }
                 }
             ],
             'phone'       => 'nullable|string|max:255',
-        ]);
+        ], $messages, $attributes);
 
-        // =========================================================
-        // 2. MOTOR DE ONBOARDING VÍA SERVICIO
-        // =========================================================
-        $identity = $identityService->resolveGlobalUser(
-            $request->national_id, 
-            $request->email, 
-            trim($request->first_name . ' ' . $request->last_name)
-        );
-
-        $user = $identity['user'];
+        // 3. BÚSQUEDA DE USUARIO GLOBAL (SIN CREAR)
+        // Solo por national_id + country_id — el email no se usa para vincular
+        $user = User::where('national_id', $request->national_id)
+            ->where('country_id', $request->country_id)
+            ->first();
 
         $teacherData = $request->all();
         $teacherData['studio_id'] = $studioId;
@@ -92,24 +112,27 @@ class TeacherController extends Controller
 
         $teacher = Teacher::create($teacherData);
 
-        // 3. DISPARO DE NOTIFICACIONES
+        // 4. DISPARO DE NOTIFICACIONES
+        $studio = Studio::find($studioId);
+
         if ($user) {
+            // Vinculado a un usuario existente
             try {
-                $studio = Studio::find($studioId);
-                
-                if ($identity['is_new']) {
-                    Mail::to($user->email)->send(new TeacherInvitationMail($studio, $teacher, $identity['temp_password']));
-                } else {
-                    Mail::to($user->email)->send(new UserLinkedToStudioMail($studio, $user->name));
-                }
-                
+                Mail::to($user->email)->send(new UserLinkedAsTeacherMail($studio, $user->name));
                 $user->notify(new TeacherAddedNotification($studio));
             } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::error('Fallo onboarding profesor: ' . $e->getMessage());
+                Log::error('Fallo notificación vinculación profesor: ' . $e->getMessage());
+            }
+        } elseif ($request->filled('email')) {
+            // Huérfano con email → invitación a registrarse
+            try {
+                Mail::to($request->email)->queue(new TeacherInvitationMail($studio, $teacher));
+            } catch (\Exception $e) {
+                Log::error('Fallo envío invitación profesor: ' . $e->getMessage());
             }
         }
 
-        return back()->with('success', 'Profesor registrado y notificado correctamente.');
+        return back()->with('success', 'Profesor registrado correctamente.');
     }
 
     public function update(Request $request, $subdomain, Teacher $teacher)
@@ -126,25 +149,43 @@ class TeacherController extends Controller
             ]);
         }
 
-        // 3. VALIDACIÓN BLINDADA
+        // 3. VALIDACIÓN BLINDADA — con mensajes en español
+        $attributes = [
+            'first_name'  => 'nombre',
+            'country_id'  => 'país',
+            'national_id' => 'documento de identidad',
+            'email'       => 'correo electrónico',
+            'phone'       => 'teléfono',
+        ];
+
+        $messages = [
+            'required' => 'El :attribute es obligatorio.',
+            'email'    => 'El :attribute debe ser una dirección válida.',
+            'string'   => 'El :attribute debe ser texto.',
+            'max'      => 'El :attribute no debe superar los :max caracteres.',
+            'exists'   => 'El :attribute seleccionado no es válido.',
+            'unique'   => 'Este :attribute ya está registrado en tu estudio para este país.',
+        ];
+
         $request->validate([
             'first_name'  => 'required|string|max:255',
             'last_name'   => 'nullable|string|max:255',
             'country_id'  => 'required|exists:countries,id', 
             'national_id' => [
-                'nullable',
+                'required',
                 'string',
                 'max:255',
-                new ValidDocument($countryCode), // Usamos el código real seleccionado
+                new ValidDocument($countryCode),
                 Rule::unique('teachers', 'national_id')
                     ->ignore($teacher->id)
-                    ->where(function ($query) use ($studioId) {
-                        return $query->where('studio_id', $studioId);
+                    ->where(function ($query) use ($studioId, $request) {
+                        return $query->where('studio_id', $studioId)
+                                     ->where('country_id', $request->country_id);
                     })
             ],
             'email'       => 'nullable|email|max:255',
             'phone'       => 'nullable|string|max:255',
-        ]);
+        ], $messages, $attributes);
 
         $teacher->update($request->all());
 

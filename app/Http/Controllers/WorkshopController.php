@@ -12,6 +12,8 @@ use App\Models\Teacher;
 use App\Models\Area;
 use App\Models\Discipline;
 use App\Models\Studio;
+use App\Notifications\WorkshopAssignedNotification;
+use Illuminate\Support\Facades\Log;
 
 class WorkshopController extends Controller
 {
@@ -46,8 +48,9 @@ class WorkshopController extends Controller
         $this->validateWorkshop($request);
 
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $workshop = null;
 
-        DB::transaction(function () use ($request, $studio) {
+        DB::transaction(function () use ($request, $studio, &$workshop) {
             $area = Area::firstOrCreate(['name' => trim($request->area)]);
             $discipline = Discipline::firstOrCreate([
                 'area_id' => $area->id,
@@ -55,7 +58,7 @@ class WorkshopController extends Controller
             ]);
 
             // Excluimos los arrays y la imagen para procesarlos individualmente
-            $data = $request->except(['prices', 'schedules', 'area', 'discipline', 'image']);
+            $data = $request->except(['prices', 'schedules', 'area', 'discipline', 'image', 'single_class_price']);
             
             $data['studio_id'] = $studio->id;
             $data['discipline_id'] = $discipline->id;
@@ -110,16 +113,24 @@ class WorkshopController extends Controller
                 }
             }
 
-            // 3. Generar Sesión para Clase Única (Masterclass)
-            if ($workshop->is_single_class) {
-                ClassSession::create([
-                    'studio_id'   => $workshop->studio_id,
-                    'workshop_id' => $workshop->id,
-                    'date'        => $workshop->specific_date,
-                    'start_time'  => $request->start_time
+            // 2.5 Precio único para clase única (Masterclass)
+            if ($workshop->is_single_class && $request->filled('single_class_price')) {
+                $workshop->prices()->create([
+                    'class_count' => 1,
+                    'price'       => $request->single_class_price,
+                    'is_monthly'  => false,
                 ]);
             }
+
+            // NOTA: La sesión de clase única se genera desde TrainingMonthController
+            // cuando el estudio incluye el workshop en la grilla mensual.
+            // Así se evitan duplicados y se respeta la decisión del estudio.
         });
+
+        // Notificar al profesor si se asignó uno
+        if ($workshop && $workshop->teacher_id) {
+            $this->notifyTeacherWorkshopAssigned($workshop, $studio);
+        }
 
         return back()->with('success', 'Taller configurado y guardado correctamente.');
     }
@@ -129,15 +140,16 @@ class WorkshopController extends Controller
         $this->validateWorkshop($request);
 
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $teacherChanged = false;
 
-        DB::transaction(function () use ($request, $workshop, $studio) {
+        DB::transaction(function () use ($request, $workshop, $studio, &$teacherChanged) {
             $area = Area::firstOrCreate(['name' => trim($request->area)]);
             $discipline = Discipline::firstOrCreate([
                 'area_id' => $area->id,
                 'name' => trim($request->discipline)
             ]);
 
-            $data = $request->except(['prices', 'schedules', 'area', 'discipline', 'image']);
+            $data = $request->except(['prices', 'schedules', 'area', 'discipline', 'image', 'single_class_price']);
             $data['discipline_id'] = $discipline->id;
             $data['is_single_class'] = $request->is_single_class == '1';
             $data['use_main_location'] = $request->boolean('use_main_location');
@@ -170,6 +182,11 @@ class WorkshopController extends Controller
 
             $workshop->update($data);
 
+            // Detectar si cambió el profesor asignado
+            if ($workshop->wasChanged('teacher_id')) {
+                $teacherChanged = true;
+            }
+
             // 1. Sincronizar Horarios Dinámicos Múltiples
             if (!$workshop->is_single_class) {
                 $workshop->schedules()->delete(); // Limpiamos los viejos por seguridad
@@ -198,6 +215,15 @@ class WorkshopController extends Controller
                 }
             }
 
+            // 2.5 Precio único para clase única (Masterclass)
+            if ($workshop->is_single_class && $request->filled('single_class_price')) {
+                $workshop->prices()->create([
+                    'class_count' => 1,
+                    'price'       => $request->single_class_price,
+                    'is_monthly'  => false,
+                ]);
+            }
+
             // 3. Sincronizar Sesión para Clase Única
             if ($workshop->is_single_class) {
                 ClassSession::updateOrCreate(
@@ -210,6 +236,11 @@ class WorkshopController extends Controller
                 );
             }
         });
+
+        // Notificar al profesor si se cambió la asignación y hay un teacher_id nuevo
+        if ($teacherChanged && $workshop->teacher_id) {
+            $this->notifyTeacherWorkshopAssigned($workshop, $studio);
+        }
 
         return back()->with('success', 'Taller actualizado exitosamente.');
     }
@@ -257,7 +288,10 @@ class WorkshopController extends Controller
 
             'max_students'      => 'nullable|integer|min:1',
             
-            // VALIDACIÓN DEL ARREGLO DE PRECIOS
+            // Precio para clase única (Masterclass)
+            'single_class_price' => 'required_if:is_single_class,1|nullable|numeric|min:0',
+            
+            // VALIDACIÓN DEL ARREGLO DE PRECIOS (solo talleres recurrentes)
             'prices'                       => 'nullable|array',
             'prices.*.class_count'         => 'required|integer|min:1',
             'prices.*.price'               => 'required|numeric|min:0',
@@ -309,5 +343,22 @@ class WorkshopController extends Controller
 
         return redirect()->route('workshops.index', ['subdomain' => $subdomain])
                          ->with('success', 'Lista actualizada para: ' . $workshop->name);
+    }
+
+    /**
+     * Notifica al profesor por email y notificación in-app que se le asignó un taller.
+     */
+    private function notifyTeacherWorkshopAssigned(Workshop $workshop, Studio $studio): void
+    {
+        try {
+            $teacher = Teacher::with('user')->find($workshop->teacher_id);
+            if (!$teacher || !$teacher->user) {
+                return;
+            }
+
+            $teacher->user->notify(new WorkshopAssignedNotification($workshop, $studio));
+        } catch (\Exception $e) {
+            Log::error('Fallo notificación asignación taller: ' . $e->getMessage());
+        }
     }
 }

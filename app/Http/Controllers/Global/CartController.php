@@ -21,29 +21,52 @@ class CartController extends Controller
         if (Auth::check()) {
             $user = Auth::user();
             
-            // 1. Obtenemos los IDs de las fichas de alumna exactas
-            $studentIds = \App\Models\Student::withoutGlobalScopes()
-                                             ->where('user_id', $user->id)
-                                             ->pluck('id')
-                                             ->toArray();
+            // ─── PRINCIPIO: "Separar la Identidad de la Tutoría" ─────────────
+            // El user_id en students es quien ASISTE. El apoderado gestiona
+            // familiares vía user_dependents, NO vía user_id.
 
-            if (!empty($studentIds)) {
-                // 2. CONSULTA BLINDADA
+            // 1. Mis propias fichas de alumna
+            $ownStudentIds = \App\Models\Student::withoutGlobalScopes()
+                ->where('user_id', $user->id)
+                ->pluck('id')
+                ->toArray();
+
+            // 2. Fichas de mis familiares/dependientes
+            $dependentNationalIds = \App\Models\UserDependent::where('user_id', $user->id)
+                ->pluck('national_id')
+                ->toArray();
+
+            $dependentStudentIds = [];
+            if (!empty($dependentNationalIds)) {
+                $dependentStudentIds = \App\Models\Student::withoutGlobalScopes()
+                    ->whereIn('national_id', $dependentNationalIds)
+                    ->where(function ($q) use ($user) {
+                        $q->whereNull('user_id')
+                          ->orWhere('user_id', '!=', $user->id);
+                    })
+                    ->pluck('id')
+                    ->toArray();
+            }
+
+            $allStudentIds = array_unique(array_merge($ownStudentIds, $dependentStudentIds));
+
+            if (!empty($allStudentIds)) {
+                // 3. CONSULTA BLINDADA
                 $dbSessions = ClassSession::withoutGlobalScopes()
                     ->with([
                         'workshop' => fn($q) => $q->withoutGlobalScopes(), 
                         'workshop.studio', 
                         'workshop.prices',
                         // Cargar SOLO los estudiantes pendientes de este usuario
-                        'students' => function ($q) use ($studentIds) {
+                        'students' => function ($q) use ($allStudentIds) {
                             $q->withoutGlobalScopes()
-                              ->whereIn('students.id', $studentIds)
+                              ->whereIn('students.id', $allStudentIds)
                               ->where('class_session_student.payment_status', 'pending');
                         }
                     ])
-                    ->whereHas('students', function ($query) use ($studentIds) {
+                    ->whereHas('students', function ($query) use ($allStudentIds) {
                         $query->withoutGlobalScopes()
-                              ->whereIn('students.id', $studentIds)
+                              ->whereIn('students.id', $allStudentIds)
                               ->where('class_session_student.payment_status', 'pending'); 
                     })
                     ->where('date', '>=', now()->toDateString())
@@ -51,12 +74,12 @@ class CartController extends Controller
                     ->orderBy('start_time', 'asc')
                     ->get();
 
-                // 3. Agrupamos por estudio
+                // 4. Agrupamos por estudio
                 $groupedSessions = $dbSessions->groupBy(function($session) {
                     return $session->workshop->studio_id ?? 0;
                 });
 
-                // 4. EXTRAEMOS LA DATA DE PROMOCIONES
+                // 5. EXTRAEMOS LA DATA DE PROMOCIONES
                 [$promotions, $packs] = $this->loadPromoData($groupedSessions->keys()->toArray());
             }
         }

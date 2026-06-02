@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Services\DocumentService;
 use App\Models\Country;
 
-#[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id'])]
+#[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id', 'dependent_decision_pending', 'dependent_decision_owner_id', 'mp_access_token', 'mp_refresh_token', 'mp_user_id'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail 
 {
@@ -53,22 +53,40 @@ class User extends Authenticatable implements MustVerifyEmail
      */
     public function getPendingReservationsCountAttribute(): int
     {
-        // 1. Buscamos todas sus fichas de alumna
-        $studentIds = \App\Models\Student::withoutGlobalScopes()
+        // 1. Buscamos todas sus fichas de alumna (las propias)
+        $ownStudentIds = \App\Models\Student::withoutGlobalScopes()
             ->where('user_id', $this->id)
             ->pluck('id')
             ->toArray();
 
-        if (empty($studentIds)) {
+        // 2. Buscamos las fichas de sus familiares/dependientes
+        $dependentNationalIds = \App\Models\UserDependent::where('user_id', $this->id)
+            ->pluck('national_id')
+            ->toArray();
+
+        $dependentStudentIds = [];
+        if (!empty($dependentNationalIds)) {
+            $dependentStudentIds = \App\Models\Student::withoutGlobalScopes()
+                ->whereIn('national_id', $dependentNationalIds)
+                ->where(function ($q) {
+                    $q->whereNull('user_id')
+                      ->orWhere('user_id', '!=', $this->id);
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $allStudentIds = array_unique(array_merge($ownStudentIds, $dependentStudentIds));
+
+        if (empty($allStudentIds)) {
             return 0;
         }
 
-        // 2. MAGIA DE OPTIMIZACIÓN BLINDADA: Cuenta directa O(1)
+        // 3. MAGIA DE OPTIMIZACIÓN BLINDADA: Cuenta directa O(1)
         return \App\Models\ClassSession::withoutGlobalScopes()
-            ->whereHas('students', function ($query) use ($studentIds) {
+            ->whereHas('students', function ($query) use ($allStudentIds) {
                 $query->withoutGlobalScopes()
-                      ->whereIn('students.id', $studentIds)
-                      // 👇 El mismo blindaje explícito que usamos en el CartController 👇
+                      ->whereIn('students.id', $allStudentIds)
                       ->where('class_session_student.payment_status', 'pending'); 
             })
             ->where('date', '>=', now()->toDateString())

@@ -12,14 +12,14 @@ return new class extends Migration
             $table->id();
             $table->foreignId('studio_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->foreignId('country_id')->nullable()->constrained('countries');
+            $table->foreignId('country_id')->constrained('countries');
 
             // Datos Personales
             $table->string('first_name');
             $table->string('last_name')->nullable();
 
             // Identificacion
-            $table->string('national_id')->nullable()->after('user_id');
+            $table->string('national_id')->after('user_id');
 
             // Contacto
             $table->string('email')->nullable();
@@ -29,8 +29,8 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Garantizamos que no se repita el mismo alumno en el MISMO estudio
-            $table->unique(['studio_id', 'national_id']);
+            // Mismo documento no puede repetirse en el mismo estudio para el mismo país
+            $table->unique(['studio_id', 'national_id', 'country_id']);
         });
     }
 

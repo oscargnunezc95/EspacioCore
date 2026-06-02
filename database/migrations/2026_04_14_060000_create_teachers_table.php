@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('studio_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignId('country_id')->nullable()->constrained('countries');
+            $table->foreignId('country_id')->constrained('countries');
 
             // Datos del profesor
             $table->string('first_name');
@@ -24,15 +24,15 @@ return new class extends Migration
             $table->string('phone')->nullable();
 
             // Identificacion
-            $table->string('national_id')->nullable()->after('user_id');
+            $table->string('national_id')->after('user_id');
 
             $table->boolean('is_active')->default(true);
 
             $table->timestamps();
             $table->softDeletes();
 
-            // Garantizamos que no se repita el mismo profesor en el MISMO estudio
-            $table->unique(['studio_id', 'national_id']);
+            // Mismo documento no puede repetirse en el mismo estudio para el mismo país
+            $table->unique(['studio_id', 'national_id', 'country_id']);
         });
     }
 

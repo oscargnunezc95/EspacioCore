@@ -118,6 +118,7 @@
 
                                             $isPaid = $session->is_paid ?? false;
                                             $isCancelled = $session->is_cancelled ?? ($session->status === 'cancelled') ?? false;
+                                            $hasFamily = !empty($session->family_student_ids);
                                             
                                             if ($isCancelled) {
                                                 $cardClasses = 'border-zinc-200 bg-zinc-50 opacity-75 grayscale';
@@ -138,6 +139,9 @@
                                                 data-address="{{ $session->workshop->studio->address ?? 'Dirección no especificada' }}"
                                                 data-status="{{ $isPaid ? 'paid' : 'unpaid' }}"
                                                 data-cancelled="{{ $isCancelled ? 'true' : 'false' }}"
+                                                data-available="{{ $session->available_spots ?? $session->workshop->max_students ?? '?' }}"
+                                                data-max="{{ $session->max_spots ?? $session->workshop->max_students ?? '?' }}"
+                                                data-pending="{{ $session->pending_count ?? 0 }}"
                                                 class="relative w-full text-left p-2 pl-3 bg-white border {{ $cardClasses }} rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95 flex items-center gap-2.5">
                                             
                                             <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
@@ -165,8 +169,11 @@
                                                 <div class="text-[10px] font-bold mt-0.5 truncate {{ $isCancelled ? 'text-zinc-500' : 'text-zinc-600' }}">
                                                     {{ $session->workshop->name }}
                                                 </div>
-                                                <div class="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-0.5 truncate group-hover:text-zinc-600 transition-colors">
+                                                <div class="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-0.5 truncate group-hover:text-zinc-600 transition-colors flex items-center gap-1">
                                                     {{ $session->workshop->studio->name }}
+                                                    @if($hasFamily)
+                                                        <span class="text-[7px] bg-violet-100 text-violet-600 px-1 py-0 rounded font-black tracking-wider shrink-0">FAMILIAR</span>
+                                                    @endif
                                                 </div>
                                             </div>
                                         </button>
@@ -215,6 +222,17 @@
                 </div>
 
                 <div class="space-y-3 mb-8">
+                    {{-- CUPOS DISPONIBLES --}}
+                    <div class="flex items-center gap-3 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
+                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-violet-500">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Cupos</p>
+                            <p id="modalCupos" class="text-sm font-bold text-zinc-900">—</p>
+                        </div>
+                    </div>
+
                     <div class="flex items-center gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
                         <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-indigo-500">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
@@ -289,7 +307,23 @@
             const statusBanner = document.getElementById('modalStatusBanner');
             const isPaid = button.getAttribute('data-status') === 'paid';
             const isCancelled = button.getAttribute('data-cancelled') === 'true';
-            
+
+            // --- CUPOS DISPONIBLES ---
+            const available = parseInt(button.getAttribute('data-available')) || 0;
+            const maxSpots = parseInt(button.getAttribute('data-max')) || 0;
+            const pending = parseInt(button.getAttribute('data-pending')) || 0;
+            const cuposEl = document.getElementById('modalCupos');
+            if (maxSpots > 0) {
+                const percentFilled = maxSpots > 0 ? Math.round(( (maxSpots - available) / maxSpots) * 100) : 0;
+                let cuposHTML = `<span class="font-black ${available <= 0 ? 'text-rose-600' : available <= 3 ? 'text-amber-600' : 'text-emerald-600'}">${available} de ${maxSpots} cupos disponibles</span>`;
+                if (pending > 0) {
+                    cuposHTML += ` <span class="text-zinc-400 font-medium">· ${pending} ${pending === 1 ? 'interesado' : 'interesados'} sin pagar</span>`;
+                }
+                cuposEl.innerHTML = cuposHTML;
+            } else {
+                cuposEl.innerText = 'Sin límite de cupos';
+            }
+
             if (isCancelled) {
                 statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-100 border-rose-200 text-rose-800';
                 statusBanner.innerHTML = `

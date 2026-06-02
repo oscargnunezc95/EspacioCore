@@ -20,6 +20,7 @@ class PaisSeeder extends Seeder
                 'tax_id_label' => 'RUT',
                 'tax_id_regex' => '^(\d{7,8}[0-9Kk])$',
                 'currency_code' => 'CLP',
+                'currency_symbol' => '$',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
@@ -31,6 +32,7 @@ class PaisSeeder extends Seeder
                 'tax_id_label' => 'Pasaporte / ID',
                 'tax_id_regex' => '^.+$',
                 'currency_code' => 'USD',
+                'currency_symbol' => 'US$',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]

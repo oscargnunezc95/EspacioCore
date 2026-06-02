@@ -96,7 +96,7 @@
             <form action="{{ route('explore') }}" method="GET">
                 <div x-show="openFilters" x-transition.opacity.duration.300ms @click="openFilters = false" class="fixed inset-0 bg-zinc-900/60 z-[60] md:hidden" style="display: none;"></div>
 
-                <div :class="openFilters ? 'translate-x-0' : 'translate-x-full'" class="fixed inset-y-0 right-0 z-[70] w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-in-out flex flex-col md:static md:translate-x-0 md:z-auto md:w-full md:max-w-none md:bg-white md:p-6 md:rounded-2xl md:shadow-sm md:border md:border-zinc-200" x-cloak>
+                <div :class="openFilters ? 'translate-x-0' : 'translate-x-full'" class="fixed inset-y-0 right-0 z-[70] w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-in-out flex flex-col md:static md:translate-x-0 md:z-auto md:w-full md:max-w-none md:bg-white md:p-6 md:rounded-2xl md:shadow-sm md:border md:border-zinc-200 translate-x-full" x-cloak>
                     <div class="flex items-center justify-between p-5 border-b border-zinc-100 md:hidden shrink-0">
                         <h2 class="text-xl font-black text-zinc-900">Filtros</h2>
                         <button type="button" @click="openFilters = false" class="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-50 rounded-full transition-colors">
@@ -220,6 +220,43 @@
                             </div>
                         </div>
 
+                        {{-- ============================================================ --}}
+                        {{-- INDICADOR DE CUPOS (VERSIÓN OPTIMIZADA)                      --}}
+                        {{-- ============================================================ --}}
+                        @php
+                            $maxSpots     = $session->max_spots ?? 99;
+                            $pendingCount = $session->pending_count ?? 0;
+                            $available    = $session->available_spots ?? $maxSpots;
+                            $isFull       = $available <= 0;
+                            $almostFull   = $available <= 3 && $available > 0;
+                        @endphp
+
+                        <div class="mt-4 pt-4 border-t border-zinc-100">
+                            <div class="flex items-center justify-between text-xs">
+                                <div class="flex items-center gap-2">
+                                    @if ($isFull)
+                                        <span class="font-black text-rose-600 flex items-center gap-1 bg-rose-50 px-2 py-1 rounded-md border border-rose-100">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                                            Lleno
+                                        </span>
+                                    @elseif ($almostFull)
+                                        <span class="font-black text-amber-600 bg-amber-50 px-2 py-1 rounded-md border border-amber-100">
+                                            ¡Quedan {{ $available }} {{ $available === 1 ? 'cupo' : 'cupos' }}!
+                                        </span>
+                                    @else
+                                        <span class="font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
+                                            {{ $available }} {{ $available === 1 ? 'cupo disponible' : 'cupos disponibles' }}
+                                        </span>
+                                    @endif
+                                </div>
+                                @if ($pendingCount > 0)
+                                    <span class="font-bold text-amber-600">
+                                        {{ $pendingCount }} {{ $pendingCount === 1 ? 'interesado' : 'interesados' }}
+                                    </span>
+                                @endif
+                            </div>
+                        </div>
+
                         {{-- MAGIA BLADE: DETECCIÓN EXACTA DE FAMILIARES --}}
                         @php
                             $dbSelections = $dbSelectionsBySession[$session->id] ?? [];
@@ -256,7 +293,7 @@
                                         <div class="relative flex items-center justify-center w-full">
                                             <span class="flex items-center gap-2 transition-opacity duration-200 opacity-100 group-hover/btn:opacity-0">
                                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> 
-                                                {{ $enrolledCount === 1 ? ($hasDependents ? '1 Seleccionado' : 'En Portal') : $enrolledCount.' en Portal' }}
+                                                {{ $enrolledCount === 1 ? ($hasDependents ? '1 en Portal' : 'En Portal') : $enrolledCount.' en Portal' }}
                                             </span>
                                             <span class="absolute inset-0 flex items-center justify-center gap-2 transition-opacity duration-200 opacity-0 group-hover/btn:opacity-100">
                                                 @if($hasDependents)
@@ -838,7 +875,6 @@
 
         async function confirmReservations() {
             const btn = document.getElementById('floating-confirm-btn');
-            const originalBtnHTML = btn.innerHTML; // Guardamos el estado del botón
             
             btn.innerHTML = `<svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Procesando...`;
             btn.disabled = true;
@@ -857,27 +893,6 @@
             });
 
             const payload = { enrollments: formattedSessions };
-
-            // ==========================================
-            // 🔥 ZONA DE DEBUG: INTERCEPCIÓN DEL PAYLOAD
-            // ==========================================
-            console.group("🚀 DEBUG: ENVIANDO AL BACKEND");
-            console.log("Estructura original de pendingClasses (Map):", pendingClasses);
-            console.log("Arreglo formateado que procesará el foreach:");
-            console.table(formattedSessions);
-            console.log("JSON exacto que viaja en el body:", JSON.stringify(payload, null, 2));
-            console.groupEnd();
-
-            // Pausamos la ejecución para que leas la consola
-            const proceed = confirm("👀 ¡Debug activado! Revisa la consola (F12) para ver la tabla de datos.\n\n¿Los datos son correctos? Presiona 'Aceptar' para enviarlos al servidor, o 'Cancelar' para abortar.");
-            
-            if (!proceed) {
-                console.log("🛑 Envío abortado por el usuario.");
-                btn.innerHTML = originalBtnHTML;
-                btn.disabled = false;
-                return; // Matamos la función aquí, el fetch nunca se ejecuta
-            }
-            // ==========================================
 
             fetch("{{ route('global.student.enroll.bulk') }}", {
                 method: 'POST',

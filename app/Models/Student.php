@@ -69,6 +69,10 @@ class Student extends Model
     }
 
     // MAGIA 2: Sincronización Automática (Lado del Estudio)
+    // Registro temporal para transportar el escenario de saving → saved
+    // sin contaminar $attributes (que se escribirían como columnas SQL).
+    protected static array $scenarioRegistry = [];
+
     protected static function booted()
     {
         static::saving(function ($student) {
@@ -82,48 +86,61 @@ class Student extends Model
                 
                 if ($user) {
                     $student->user_id = $user->id;
-                    $student->active_scenario = 'A'; // Marca temporal para el evento saved
+                    self::$scenarioRegistry[spl_object_id($student)] = 'A';
                     return;
                 }
 
                 // ESCENARIO C: ¿Existe como Familiar/Dependiente de alguien?
+                // PRINCIPIO: "Separar la Identidad de la Tutoría"
+                // El user_id en students SIEMPRE es la persona que ASISTE a la clase.
+                // El apoderado administra vía user_dependents, NO vía user_id.
+                // Si el dependiente tiene su propia cuenta, Escenario A ya lo habría vinculado.
+                // Si no, user_id queda null — el apoderado lo gestiona por el puente user_dependents.
                 $dependent = UserDependent::where('national_id', $student->national_id)
                                           ->where('country_id', $student->country_id)
                                           ->first();
                 
                 if ($dependent) {
-                    // La ficha del estudio le pertenece al Dueño del familiar
-                    $student->user_id = $dependent->user_id; 
-                    $student->active_scenario = 'C'; 
+                    // NO asignamos el user_id del apoderado. La ficha pertenece al dependiente.
+                    self::$scenarioRegistry[spl_object_id($student)] = 'C';
                     return;
                 }
 
                 // ESCENARIO B: No existe. Es un alumno local.
-                $student->active_scenario = 'B';
+                self::$scenarioRegistry[spl_object_id($student)] = 'B';
             }
         });
 
         static::saved(function ($student) {
+            $key = spl_object_id($student);
+            $scenario = self::$scenarioRegistry[$key] ?? null;
+
             // Despachamos correos en segundo plano SOLO si acaba de ocurrir la magia
-            if (isset($student->active_scenario)) {
+            if ($scenario) {
                 
-                if ($student->active_scenario === 'A') {
+                if ($scenario === 'A') {
                     $user = User::find($student->user_id);
                     if ($user) {
                         $user->notify(new \App\Notifications\LocalProfileLinkedNotification($student));
                         \Illuminate\Support\Facades\Mail::to($user->email)->send(new \App\Mail\LocalProfileLinkedMail($student));
                     }
                 } 
-                elseif ($student->active_scenario === 'C') {
-                    $parentUser = User::find($student->user_id);
-                    if ($parentUser) {
-                        $parentUser->notify(new \App\Notifications\DependentProfileLinkedNotification($student));
-                        \Illuminate\Support\Facades\Mail::to($parentUser->email)->send(new \App\Mail\DependentProfileLinkedMail($student));
+                elseif ($scenario === 'C') {
+                    // Buscar al apoderado vía UserDependent (ya no está en user_id del student)
+                    $dependentLink = UserDependent::where('national_id', $student->national_id)
+                        ->where('country_id', $student->country_id)
+                        ->first();
+                    if ($dependentLink) {
+                        $parentUser = User::find($dependentLink->user_id);
+                        if ($parentUser) {
+                            $parentUser->notify(new \App\Notifications\DependentProfileLinkedNotification($student));
+                            \Illuminate\Support\Facades\Mail::to($parentUser->email)->send(new \App\Mail\DependentProfileLinkedMail($student));
+                        }
                     }
                 }
                 
-                // Limpiamos la marca para evitar bucles si se actualiza el modelo después
-                unset($student->active_scenario); 
+                // Limpiamos el registro para no acumular basura
+                unset(self::$scenarioRegistry[$key]);
             }
         });
     }

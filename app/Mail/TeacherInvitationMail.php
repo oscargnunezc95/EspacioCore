@@ -18,7 +18,12 @@ class TeacherInvitationMail extends Mailable
     public $teacher;
     public $temporaryPassword;
 
-    public function __construct(Studio $studio, Teacher $teacher, $temporaryPassword)
+    /**
+     * @param Studio       $studio
+     * @param Teacher      $teacher
+     * @param string|null  $temporaryPassword  Null si es invitación huérfana (sin User creado)
+     */
+    public function __construct(Studio $studio, Teacher $teacher, $temporaryPassword = null)
     {
         $this->studio = $studio;
         $this->teacher = $teacher;

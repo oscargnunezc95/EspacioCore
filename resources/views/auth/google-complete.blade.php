@@ -29,7 +29,7 @@
                             class="block w-full px-4 py-3 bg-zinc-50 border border-zinc-200 rounded-xl text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm">
                             <option value="">Selecciona tu país</option>
                             @foreach($countries as $country)
-                                <option value="{{ $country->id }}">{{ $country->name }}</option>
+                                <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>{{ $country->name }}</option>
                             @endforeach
                         </select>
                     </div>

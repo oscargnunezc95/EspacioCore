@@ -72,6 +72,14 @@ class DashboardService
             ->whereMonth('created_at', $month)
             ->sum('amount');
 
+        // Nómina del mes (pagos a profesores con status paid)
+        $monthlyPayroll = \App\Models\TeacherPayment::whereYear('created_at', $year)
+            ->whereMonth('created_at', $month)
+            ->where('status', 'paid')
+            ->sum('amount');
+
+        $netMargin = $monthlyRevenue - $monthlyPayroll;
+
         $onlineMethods = ['online', 'mercadopago', 'pasarela de pago'];
         $revenueByMethod = [
             'online' => 0,
@@ -89,6 +97,8 @@ class DashboardService
 
         return [
             'monthlyRevenue' => $monthlyRevenue,
+            'monthlyPayroll' => $monthlyPayroll,
+            'netMargin'      => $netMargin,
             'revenuePercentages' => [
                 'online' => $monthlyRevenue > 0 ? round(($revenueByMethod['online'] / $monthlyRevenue) * 100) : 0,
                 'transferencia' => $monthlyRevenue > 0 ? round(($revenueByMethod['transferencia'] / $monthlyRevenue) * 100) : 0,

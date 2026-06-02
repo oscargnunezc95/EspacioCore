@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkshopSchedule extends Model
 {
@@ -12,5 +13,10 @@ class WorkshopSchedule extends Model
     public function workshop()
     {
         return $this->belongsTo(Workshop::class);
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(ClassSession::class, 'workshop_schedule_id');
     }
 }

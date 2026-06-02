@@ -92,7 +92,8 @@ class TrainingMonthController extends Controller
                                 'start_time' => $schedule->start_time 
                             ],
                             [
-                                'studio_id' => $studio->id
+                                'studio_id' => $studio->id,
+                                'workshop_schedule_id' => $schedule->id,
                             ]
                         );
                         

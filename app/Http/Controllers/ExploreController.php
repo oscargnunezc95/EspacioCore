@@ -7,14 +7,22 @@ use App\Models\ClassSession;
 use App\Models\Area;
 use Illuminate\Support\Facades\Log;
 use App\Models\Workshop;
+use App\Services\ExploreService;
 use Carbon\Carbon;
 
 class ExploreController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * Muestra la página pública de exploración de clases con:
+     *  - Filtros por ciudad, categoría, fecha
+     *  - Cupos disponibles e interesados por sesión
+     *  - Cola visual de estudiantes (nombres solo para auth)
+     */
+    public function index(Request $request, ExploreService $exploreService)
     {
         // 1. Consulta base apagando scopes globales en cascada
         $query = ClassSession::withoutGlobalScopes()->with([
+            'schedule',
             'workshop' => function($q) {
                 $q->withoutGlobalScopes(); 
             },
@@ -57,6 +65,9 @@ class ExploreController extends Controller
                           ->paginate(24)
                           ->withQueryString();
 
+        // 3.5 ENRIQUECER: Cupos disponibles, interesados y cola visual por sesión
+        $sessions = $exploreService->enrichSessionStats($sessions);
+
         // 4. Datos para selectores
         $areas = Area::withoutGlobalScopes()->orderBy('name', 'asc')->get();
         $cities = Workshop::withoutGlobalScopes()
@@ -71,14 +82,36 @@ class ExploreController extends Controller
         if (auth()->check()) {
             $user = auth()->user();
             $userId = $user->id;
-            
+
+            // ─── PRINCIPIO: "Separar la Identidad de la Tutoría" ─────────────
+            // El user_id en students es la persona que ASISTE.
+            // El apoderado también debe ver las inscripciones de sus familiares.
+
+            // 1. Obtener los national_id de mis dependientes
+            $dependentNationalIds = \App\Models\UserDependent::where('user_id', $user->id)
+                ->pluck('national_id')
+                ->toArray();
+
+            // 2. Cargar sesiones donde estoy yo O mis familiares
             $userSessions = ClassSession::withoutGlobalScopes()
-                ->whereHas('students', function ($q) use ($userId) {
-                    $q->withoutGlobalScopes()->where('students.user_id', $userId);
+                ->whereHas('students', function ($q) use ($userId, $dependentNationalIds) {
+                    $q->withoutGlobalScopes()
+                      ->where(function ($sub) use ($userId, $dependentNationalIds) {
+                          $sub->where('students.user_id', $userId);
+                          if (!empty($dependentNationalIds)) {
+                              $sub->orWhereIn('students.national_id', $dependentNationalIds);
+                          }
+                      });
                 })
                 ->where('date', '>=', Carbon::today()->toDateString())
-                ->with(['students' => function ($q) use ($userId) {
-                    $q->withoutGlobalScopes()->where('students.user_id', $userId);
+                ->with(['students' => function ($q) use ($userId, $dependentNationalIds) {
+                    $q->withoutGlobalScopes()
+                      ->where(function ($sub) use ($userId, $dependentNationalIds) {
+                          $sub->where('students.user_id', $userId);
+                          if (!empty($dependentNationalIds)) {
+                              $sub->orWhereIn('students.national_id', $dependentNationalIds);
+                          }
+                      });
                 }])
                 ->get();
 

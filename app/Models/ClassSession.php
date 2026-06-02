@@ -12,6 +12,7 @@ class ClassSession extends Model
 
     protected $fillable = [
         'workshop_id',
+        'workshop_schedule_id',
         'date',
         'start_time',
         'is_cancelled',
@@ -33,6 +34,34 @@ class ClassSession extends Model
         return $this->belongsToMany(Payment::class, 'class_session_payment')
                     ->withPivot('student_id')
                     ->withTimestamps();
+    }
+
+    // Relación directa al WorkshopSchedule (jerarquía Workshop -> Schedule -> Session)
+    public function schedule()
+    {
+        return $this->belongsTo(WorkshopSchedule::class, 'workshop_schedule_id');
+    }
+
+    /**
+     * Accessor: devuelve el max_students según la jerarquía.
+     * 1. Si la sesión tiene horario → usa schedule.max_students
+     * 2. Si es clase única (sin horario) → usa workshop.max_students
+     * 3. Fallback → 99 (sin límite)
+     */
+    public function getMaxStudentsAttribute(): int
+    {
+        // Prioridad 1: el horario específico
+        if ($this->schedule && $this->schedule->max_students !== null) {
+            return (int) $this->schedule->max_students;
+        }
+
+        // Prioridad 2: el workshop (para clases únicas sin schedule)
+        if ($this->workshop && $this->workshop->max_students !== null) {
+            return (int) $this->workshop->max_students;
+        }
+
+        // Fallback
+        return 99;
     }
 
     // AQUÍ ESTÁ LA OPTIMIZACIÓN (Simétrica al modelo Student)

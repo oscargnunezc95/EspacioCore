@@ -7,11 +7,15 @@ use Laravel\Socialite\Facades\Socialite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\Rule; // <-- NUEVO
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 use App\Models\User;
+use App\Models\Student;
+use App\Models\Teacher;
+use App\Models\UserDependent;
 use App\Models\Country;
-use App\Services\DocumentService; // <-- NUEVO
-use App\Rules\ValidDocument;      // <-- NUEVO
+use App\Services\DocumentService;
+use App\Rules\ValidDocument;
 
 class GoogleController extends Controller
 {
@@ -98,7 +102,21 @@ class GoogleController extends Controller
             ]);
         }
 
-        // 3. VALIDACIÓN BLINDADA (Usamos ValidDocument y Rule::unique)
+        // 3. VALIDACIÓN BLINDADA — con mensajes en español
+        $attributes = [
+            'country_id'  => 'país',
+            'national_id' => 'documento de identidad',
+        ];
+
+        $messages = [
+            'required'            => 'El :attribute es obligatorio.',
+            'unique'              => 'Este :attribute ya está registrado.',
+            'unique_national_id_country' => 'Este documento ya está registrado en el país seleccionado.',
+            'exists'              => 'El :attribute seleccionado no es válido.',
+            'string'              => 'El :attribute debe ser texto.',
+            'max'                 => 'El :attribute no debe superar los :max caracteres.',
+        ];
+
         $request->validate([
             'country_id' => ['required', 'exists:countries,id'],
             'national_id' => [
@@ -106,9 +124,10 @@ class GoogleController extends Controller
                 'string', 
                 'max:255',
                 new ValidDocument($countryCode),
-                Rule::unique('users', 'national_id')->where('country_id', $request->country_id)
+                // Validación compuesta: único dentro del mismo país
+                Rule::unique('users', 'national_id')->where('country_id', $request->country_id),
             ],
-        ]);
+        ], $messages, $attributes);
 
         // Creamos el usuario disparando la "Magia" (El mutador en User.php hará su doble chequeo aquí)
         $user = User::create([
@@ -120,11 +139,58 @@ class GoogleController extends Controller
             'password' => bcrypt(Str::random(16)), 
         ]);
 
+        // ─── DETECCIÓN DE DEPENDIENTE PRE-EXISTENTE (ANTES del barrido) ─────
+        $existingDependent = UserDependent::where('national_id', $user->national_id)
+            ->where('country_id', $user->country_id)
+            ->where('user_id', '!=', $user->id)
+            ->first();
+
+        if ($existingDependent) {
+            // Guardar en BD para que persista aunque se pierda la sesión
+            $user->update([
+                'dependent_decision_pending'   => true,
+                'dependent_decision_owner_id'  => $existingDependent->user_id,
+            ]);
+
+            Auth::login($user);
+            return redirect()->route('profile.dependent.decision');
+        }
+
+        // ─── BARRIBO DE RECLAMACIÓN (solo si NO es dependiente pre-existente) ─
+        $this->claimOrphanProfiles($user);
+
         session()->forget('google_user_data');
         
         Auth::login($user);
 
         // Redirigimos al Explorador (o al Lobby de estudios)
         return redirect()->route('explore');
+    }
+
+    /**
+     * Barrido de Reclamación: busca fichas huérfanas en students y teachers
+     * y las vincula al nuevo User creado.
+     * Solo empareja por national_id + country_id — el email no se usa.
+     */
+    private function claimOrphanProfiles(User $user): void
+    {
+        try {
+            $studentsUpdated = Student::where('national_id', $user->national_id)
+                ->where('country_id', $user->country_id)
+                ->whereNull('user_id')
+                ->update(['user_id' => $user->id]);
+
+            $teachersUpdated = Teacher::where('national_id', $user->national_id)
+                ->where('country_id', $user->country_id)
+                ->whereNull('user_id')
+                ->update(['user_id' => $user->id]);
+
+            $total = $studentsUpdated + $teachersUpdated;
+            if ($total > 0) {
+                Log::info("Barrido Google: {$total} fichas huérfanas vinculadas al usuario #{$user->id} ({$user->email})");
+            }
+        } catch (\Exception $e) {
+            Log::error('Error en barrido de reclamación (Google): ' . $e->getMessage());
+        }
     }
 }

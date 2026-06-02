@@ -19,10 +19,12 @@ class DashboardController extends Controller
             'newStudentsCount'    => $metrics['newStudentsCount'],
             'occupancyRate'       => $metrics['occupancyData']['occupancyRate'],
             'monthlyRevenue'      => $metrics['financialData']['monthlyRevenue'],
+            'monthlyPayroll'      => $metrics['financialData']['monthlyPayroll'],
+            'netMargin'           => $metrics['financialData']['netMargin'],
             'revenuePercentages'  => $metrics['financialData']['revenuePercentages'],
             'todayClasses'        => $metrics['todayClasses'],
             'studentsWithDebt'    => $metrics['studentsWithDebt'],
-            'historicalData'      => $metrics['historicalData'], // <--- NUEVO
+            'historicalData'      => $metrics['historicalData'],
         ]);
     }
 }

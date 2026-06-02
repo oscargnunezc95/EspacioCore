@@ -402,7 +402,7 @@
                         </div>
 
                         {{-- Contenedor Clase Única (Masterclass) --}}
-                        <div id="container_single_class_details" class="hidden mt-2 border-t border-zinc-200/60 pt-4 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div id="container_single_class_details" class="hidden mt-2 border-t border-zinc-200/60 pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 mb-1.5">Fecha Exacta *</label>
                                 <input type="date" name="specific_date" id="w_specific_date" value="{{ old('specific_date') }}" onclick="try { this.showPicker(); } catch(e) {}"
@@ -420,11 +420,17 @@
                                 <input type="number" name="max_students" id="w_max_students" value="{{ old('max_students') }}" placeholder="Ej: 15" min="1"
                                     class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
                             </div>
+                            <div>
+                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Precio (CLP) *</label>
+                                <input type="number" name="single_class_price" id="w_single_price" value="{{ old('single_class_price') }}" placeholder="Ej: 15000" min="0" step="100"
+                                    class="w-full rounded-xl border {{ $errors->has('single_class_price') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
+                                @error('single_class_price') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
+                            </div>
                         </div>
                     </div>
                     
-                    {{-- PLANES DE PRECIOS --}}
-                    <div class="col-span-1 md:col-span-2 border-t border-zinc-200 pt-5 mt-2">
+                    {{-- PLANES DE PRECIOS (solo talleres recurrentes) --}}
+                    <div id="container_prices" class="col-span-1 md:col-span-2 border-t border-zinc-200 pt-5 mt-2">
                         <div class="flex justify-between items-center mb-4">
                             <div>
                                 <h4 class="text-sm font-bold text-zinc-900">Planes de Precios</h4>
@@ -674,19 +680,33 @@
             const isSingle = document.getElementById('type_single').checked;
             const containerSchedules = document.getElementById('container_schedules');
             const containerSingle = document.getElementById('container_single_class_details');
+            const containerPrices = document.getElementById('container_prices');
             const inputDate = document.getElementById('w_specific_date');
             const inputTime = document.getElementById('w_start_time');
+            const inputPrice = document.getElementById('w_single_price');
 
             if (isSingle) {
                 containerSchedules.classList.add('hidden');
                 containerSingle.classList.remove('hidden');
+                containerPrices.classList.add('hidden');
                 inputDate.setAttribute('required', 'required');
                 inputTime.setAttribute('required', 'required');
+                inputPrice.setAttribute('required', 'required');
+                // Deshabilitar inputs de horarios para que el navegador no los valide
+                containerSchedules.querySelectorAll('input, select').forEach(el => el.disabled = true);
+                // Deshabilitar inputs de planes de precios también
+                containerPrices.querySelectorAll('input, select').forEach(el => el.disabled = true);
             } else {
                 containerSchedules.classList.remove('hidden');
                 containerSingle.classList.add('hidden');
+                containerPrices.classList.remove('hidden');
                 inputDate.removeAttribute('required');
                 inputTime.removeAttribute('required');
+                inputPrice.removeAttribute('required');
+                // Re-habilitar inputs de horarios
+                containerSchedules.querySelectorAll('input, select').forEach(el => el.disabled = false);
+                // Re-habilitar inputs de planes de precios
+                containerPrices.querySelectorAll('input, select').forEach(el => el.disabled = false);
             }
         }
 
@@ -759,6 +779,7 @@
                 document.getElementById('w_specific_date').value = '';
                 document.getElementById('w_start_time').value = '';
                 document.getElementById('w_max_students').value = '';
+                document.getElementById('w_single_price').value = '';
 
                 // Reiniciar Horarios Multiples
                 document.getElementById('schedules_container').innerHTML = '';
@@ -840,6 +861,9 @@
 
             if (w.is_single_class) {
                 document.getElementById('type_single').checked = true;
+                // Popular precio de clase única desde el primer price con class_count=1
+                const singlePrice = w.prices?.find(p => p.class_count == 1);
+                document.getElementById('w_single_price').value = singlePrice ? singlePrice.price : '';
             } else {
                 document.getElementById('type_monthly').checked = true;
             }

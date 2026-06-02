@@ -130,6 +130,12 @@
                                 
                                 {{-- Acciones --}}
                                 <td class="px-4 md:px-6 py-4 text-right space-x-2 md:space-x-3 whitespace-nowrap">
+                                    <a href="{{ route('teachers.payroll.show', ['subdomain' => request()->route('subdomain'), 'teacher' => $teacher->id]) }}" 
+                                       class="inline-flex items-center gap-1.5 text-xs md:text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors align-middle"
+                                       title="Ver liquidación">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                                        <span class="hidden lg:inline">Nómina</span>
+                                    </a>
                                     <button type="button" onclick='openEditTeacherModal(@json($teacher))' class="inline-block align-middle text-xs md:text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">
                                         Editar
                                     </button>
@@ -278,7 +284,7 @@
                             <select name="country_id" id="t_country_id" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none cursor-pointer {{ $errors->has('country_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                                 <option value="">Selecciona un país...</option>
                                 @foreach($countries as $country)
-                                    <option value="{{ $country->id }}" {{ old('country_id') == $country->id ? 'selected' : '' }}>
+                                    <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>
                                         {{ $country->name }}
                                     </option>
                                 @endforeach
@@ -286,8 +292,8 @@
                             @error('country_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">N° de Documento <span class="text-zinc-400 font-normal">(Opc.)</span></label>
-                            <input type="text" name="national_id" id="t_national_id" value="{{ old('national_id') }}" placeholder="Ej: 19.123.456-7" 
+                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">N° de Documento <span class="text-rose-500">*</span></label>
+                            <input type="text" name="national_id" id="t_national_id" value="{{ old('national_id') }}" placeholder="Ej: 19.123.456-7" required
                                    class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('national_id') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-zinc-300' }}">
                             @error('national_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>

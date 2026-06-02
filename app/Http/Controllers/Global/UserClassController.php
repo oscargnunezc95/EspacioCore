@@ -11,8 +11,12 @@ use App\Models\Student;
 use App\Models\Teacher;
 use App\Models\ClassSession;
 use App\Models\Studio;
+use App\Models\UserDependent;
 use Carbon\Carbon;
 use App\Notifications\StudentAddedNotification;
+use App\Notifications\SpotReservedNotification;
+use App\Notifications\ClassFullNotification;
+use App\Services\ExploreService;
 
 class UserClassController extends Controller
 {
@@ -23,25 +27,52 @@ class UserClassController extends Controller
         $month = $request->query('month');
         $monthDate = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
 
-        $studentIds = Student::withoutGlobalScopes()
+        // ─── PRINCIPIO: "Separar la Identidad de la Tutoría" ─────────────────
+        // El user_id en students es la persona que ASISTE a la clase.
+        // El apoderado gestiona familiares vía user_dependents, NO vía user_id.
+
+        // 1. Mis propias fichas de alumno (yo asisto)
+        $ownStudentIds = Student::withoutGlobalScopes()
             ->where('user_id', $user->id)
             ->pluck('id')
             ->toArray();
 
-        if (empty($studentIds)) {
+        // 2. Fichas de mis familiares/dependientes (ellos asisten, yo gestiono)
+        $dependentNationalIds = UserDependent::where('user_id', $user->id)
+            ->pluck('national_id')
+            ->toArray();
+
+        $dependentStudentIds = [];
+        if (!empty($dependentNationalIds)) {
+            $dependentStudentIds = Student::withoutGlobalScopes()
+                ->whereIn('national_id', $dependentNationalIds)
+                ->where(function ($q) use ($user) {
+                    // Excluir mis propias fichas (yo puedo ser dependiente de alguien más)
+                    $q->whereNull('user_id')
+                      ->orWhere('user_id', '!=', $user->id);
+                })
+                ->pluck('id')
+                ->toArray();
+        }
+
+        $allStudentIds = array_unique(array_merge($ownStudentIds, $dependentStudentIds));
+
+        if (empty($allStudentIds)) {
             $sessionsByDate = collect();
-            return view('global.classes.student', compact('monthDate', 'sessionsByDate'));
+            $dependentStudentIdsFlat = [];
+            return view('global.classes.student', compact('monthDate', 'sessionsByDate', 'dependentStudentIdsFlat'));
         }
 
         $sessions = ClassSession::withoutGlobalScopes()
             ->with([
+                'schedule',
                 'workshop' => fn($q) => $q->withoutGlobalScopes(), 
                 'workshop.studio', 
                 'workshop.teacher',
-                'students' => fn($q) => $q->withoutGlobalScopes()->whereIn('students.id', $studentIds)
+                'students' => fn($q) => $q->withoutGlobalScopes()->whereIn('students.id', $allStudentIds)
             ])
-            ->whereHas('students', function ($q) use ($studentIds) {
-                $q->withoutGlobalScopes()->whereIn('students.id', $studentIds);
+            ->whereHas('students', function ($q) use ($allStudentIds) {
+                $q->withoutGlobalScopes()->whereIn('students.id', $allStudentIds);
             })
             ->whereYear('date', $monthDate->year)
             ->whereMonth('date', $monthDate->month)
@@ -49,9 +80,22 @@ class UserClassController extends Controller
             ->orderBy('start_time', 'asc')
             ->get();
 
+        // Enriquecer con cupos disponibles e interesados
+        $exploreService = app(ExploreService::class);
+        $sessions = $exploreService->enrichSessionCollection($sessions);
+
+        // Marcar cada sesión con qué estudiantes son familiares (para la vista)
+        $dependentStudentIdsFlat = $dependentStudentIds;
+        $sessions->each(function ($session) use ($dependentStudentIdsFlat) {
+            $session->family_student_ids = $session->students
+                ->filter(fn($st) => in_array($st->id, $dependentStudentIdsFlat))
+                ->pluck('id')
+                ->toArray();
+        });
+
         $sessionsByDate = $sessions->groupBy('date');
 
-        return view('global.classes.student', compact('monthDate', 'sessionsByDate'));
+        return view('global.classes.student', compact('monthDate', 'sessionsByDate', 'dependentStudentIdsFlat'));
     }
 
     public function asTeacher(Request $request)
@@ -82,7 +126,10 @@ class UserClassController extends Controller
 
         $sessionsByDate = $sessions->groupBy('date');
 
-        return view('global.classes.teacher', compact('monthDate', 'sessionsByDate'));
+        $user = Auth::user();
+        $mpLinked = !empty($user->mp_access_token);
+
+        return view('global.classes.teacher', compact('monthDate', 'sessionsByDate', 'mpLinked'));
     }
 
     public function teacherSession($id)
@@ -167,15 +214,24 @@ class UserClassController extends Controller
 
             if ($student) {
                 if (empty($student->user_id)) {
-                    $student->update(['user_id' => $user->id, 'email' => $user->email]);
+                    // PRINCIPIO: user_id es quien ASISTE. Si es un dependiente sin cuenta, queda null.
+                    // Si el dependiente tiene cuenta, Scenario A del booted::saving lo vinculará.
+                    // NUNCA asignar $user->id si la persona que asiste es otra.
+                    $isSelf = ($attendee['national_id'] === $user->national_id);
+                    if ($isSelf) {
+                        $student->update(['user_id' => $user->id, 'email' => $user->email]);
+                    }
+                    // Si es familiar, el user_id queda null (o lo setea booted::saving si el User existe)
                 }
             } else {
                 $student = new Student();
-                $student->user_id     = $user->id; 
+                // PRINCIPIO: user_id es la persona que ASISTE, no quien gestiona
+                $isSelf = ($attendee['national_id'] === $user->national_id);
+                $student->user_id     = $isSelf ? $user->id : null;
                 $student->studio_id   = $studioId;
                 $student->first_name  = $attendee['first_name'];
                 $student->last_name   = $attendee['last_name'];
-                $student->email       = $user->email; 
+                $student->email       = $isSelf ? $user->email : null;
                 $student->national_id = $attendee['national_id'];
                 $student->is_guest    = false;
                 $student->save();
@@ -256,6 +312,9 @@ class UserClassController extends Controller
                             'national_id' => $dependent->national_id,
                             'country_id'  => $dependent->country_id ?? $user->country_id, 
                         ];
+                    } else {
+                        // Familiar no encontrado o no pertenece a este usuario
+                        continue;
                     }
                 }
 
@@ -271,21 +330,28 @@ class UserClassController extends Controller
 
                 if ($student) {
                     if (empty($student->user_id)) {
-                        $student->update([
-                            'user_id' => $user->id, 
-                            'email' => $user->email,
-                            'country_id' => $attendee['country_id']
-                        ]);
+                        // PRINCIPIO: user_id es quien ASISTE. Solo asignar si es el propio usuario.
+                        $isSelf = ($attendee['national_id'] === $user->national_id);
+                        if ($isSelf) {
+                            $student->update([
+                                'user_id'    => $user->id, 
+                                'email'      => $user->email,
+                                'country_id' => $attendee['country_id']
+                            ]);
+                        }
                     }
                 } else {
                     if ($action === 'remove') continue; // No crear ficha si solo queremos borrar
 
+                    // PRINCIPIO: user_id es la persona que ASISTE, no quien gestiona
+                    $isSelf = ($attendee['national_id'] === $user->national_id);
+
                     $student = new Student();
-                    $student->user_id     = $user->id;
+                    $student->user_id     = $isSelf ? $user->id : null;
                     $student->studio_id   = $studioId;
                     $student->first_name  = $attendee['first_name'];
                     $student->last_name   = $attendee['last_name'];
-                    $student->email       = $user->email; 
+                    $student->email       = $isSelf ? $user->email : null;
                     $student->country_id  = $attendee['country_id']; 
                     $student->national_id = $attendee['national_id'];
                     $student->is_guest    = false;
@@ -315,6 +381,62 @@ class UserClassController extends Controller
             }
 
             DB::commit();
+
+            // ===================================================
+            // NOTIFICACIONES: Avisar a otros interesados que los cupos bajan
+            // ===================================================
+            $affectedSessionIds = collect($request->enrollments)
+                ->where('action', 'add')
+                ->pluck('session_id')
+                ->unique();
+
+            foreach ($affectedSessionIds as $sid) {
+                $session = ClassSession::withoutGlobalScopes()
+                    ->with(['workshop' => fn($q) => $q->withoutGlobalScopes(), 'schedule'])
+                    ->find($sid);
+
+                if (!$session) continue;
+
+                $maxStudents = $session->max_students; // Accessor: schedule->max_students ?? 99
+                $paidCount = DB::table('class_session_student')
+                    ->where('class_session_id', $sid)
+                    ->where('payment_status', 'paid')
+                    ->count();
+                $availableSpots = max(0, $maxStudents - $paidCount);
+
+                // Buscar TODOS los estudiantes pendientes de esta sesión (excepto los que acaban de pagar)
+                $pendingStudentIds = DB::table('class_session_student')
+                    ->where('class_session_id', $sid)
+                    ->where('payment_status', 'pending')
+                    ->pluck('student_id');
+
+                if ($pendingStudentIds->isEmpty()) continue;
+
+                // Obtener los Users dueños de esos Students
+                $pendingUsers = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
+                    $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
+                })->get();
+
+                if ($availableSpots <= 0) {
+                    // CLASE LLENA: email + in-app para todos los pendientes
+                    foreach ($pendingUsers as $user) {
+                        try {
+                            $user->notify(new ClassFullNotification($session));
+                        } catch (\Exception $e) {
+                            Log::error('Error enviando ClassFullNotification: ' . $e->getMessage());
+                        }
+                    }
+                } else {
+                    // SpotReserved: solo in-app para los pendientes
+                    foreach ($pendingUsers as $user) {
+                        try {
+                            $user->notify(new SpotReservedNotification($session, $availableSpots));
+                        } catch (\Exception $e) {
+                            Log::error('Error enviando SpotReservedNotification: ' . $e->getMessage());
+                        }
+                    }
+                }
+            }
 
             return response()->json([
                 'status' => 'success', 

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Country extends Model
 {
-    protected $fillable = ['name', 'code', 'tax_id_label', 'tax_id_regex', 'currency_code'];
+    protected $fillable = ['name', 'code', 'tax_id_label', 'tax_id_regex', 'currency_code', 'currency_symbol'];
 
     public function users()
     {

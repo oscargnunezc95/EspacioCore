@@ -86,7 +86,8 @@
                     <div class="mt-2 sm:ml-16 flex flex-col gap-2 border-l-2 border-zinc-100 pl-4">
                         @foreach($session->students as $st)
                             @php
-                                $isTitular = ($st->national_id === auth()->user()->national_id || $st->first_name === auth()->user()->name);
+                                // PRINCIPIO: user_id es quien ASISTE. Si es auth()->id(), es el titular.
+                                $isTitular = ($st->user_id === auth()->id());
                                 $depId = 'null';
                                 if (!$isTitular) {
                                     $dep = auth()->user()->dependents->where('national_id', $st->national_id)->first();

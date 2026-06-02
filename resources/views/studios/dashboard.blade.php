@@ -15,8 +15,8 @@
             </div>
         </div>
 
-        {{-- 1. PASTILLAS DE KPI (Ahora son 3 columnas) --}}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        {{-- 1. PASTILLAS DE KPI OPERATIVOS --}}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300">
                 <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Alumnas Activas</p>
                 <p class="text-2xl font-black text-zinc-900">{{ $activeStudentsCount }}</p>
@@ -28,6 +28,24 @@
             <div class="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300">
                 <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Nuevas (Mes)</p>
                 <p class="text-2xl font-black text-zinc-900">{{ $newStudentsCount }}</p>
+            </div>
+        </div>
+
+        {{-- 2. PASTILLAS DE KPI FINANCIEROS --}}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+            <div class="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300">
+                <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Ingresos (Ventas)</p>
+                <p class="text-2xl font-black text-emerald-600">${{ number_format($monthlyRevenue, 0, ',', '.') }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300">
+                <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Nómina (Profesores)</p>
+                <p class="text-2xl font-black text-amber-600">${{ number_format($monthlyPayroll, 0, ',', '.') }}</p>
+            </div>
+            <div class="bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm transition-all duration-200 hover:shadow-md hover:border-zinc-300">
+                <p class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">Margen Operativo</p>
+                <p class="text-2xl font-black {{ $netMargin >= 0 ? 'text-emerald-600' : 'text-rose-600' }}">
+                    {{ $netMargin >= 0 ? '+' : '' }}${{ number_format($netMargin, 0, ',', '.') }}
+                </p>
             </div>
         </div>
 

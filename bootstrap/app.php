@@ -14,8 +14,9 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Registramos los alias para usarlos en web.php
         $middleware->alias([
-            'identify.studio' => \App\Http\Middleware\IdentifyStudio::class,
-            'check.profile'   => \App\Http\Middleware\CheckProfileCompletion::class,
+            'identify.studio'        => \App\Http\Middleware\IdentifyStudio::class,
+            'check.profile'          => \App\Http\Middleware\CheckProfileCompletion::class,
+            'dependent.decision'     => \App\Http\Middleware\EnsureDependentDecisionResolved::class,
         ]);
 
         // Redirección dinámica basada en el nombre de la ruta (Best Practice)

@@ -26,6 +26,7 @@ use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\PaymentReturnController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\SeoController;
+use App\Http\Controllers\SupportController;
 
 $baseDomain = parse_url(config('app.url'), PHP_URL_HOST) ?: 'estadoprisma.test';
 
@@ -40,6 +41,10 @@ Route::middleware(['web', 'auth'])->group(function () {
 // RUTA DE WEBHOOKS (Abierta para cualquier dominio/túnel)
 // ========================================================
 Route::post('/api/webhooks/mercadopago', [\App\Http\Controllers\WebhookController::class, 'mercadopago'])->name('webhooks.mp');
+
+// Callbacks globales de MercadoPago para pago a profesores (dominio principal, sin subdominio)
+Route::get('/api/payroll/mp/success', [\App\Http\Controllers\PayrollController::class, 'mpSuccessGlobal'])->name('payroll.mp.success.global');
+Route::get('/api/payroll/mp/failure', [\App\Http\Controllers\PayrollController::class, 'mpFailureGlobal'])->name('payroll.mp.failure.global');
 
 /*
 |--------------------------------------------------------------------------
@@ -56,6 +61,10 @@ Route::domain($baseDomain)->group(function () {
     Route::get('/robots.txt', [SeoController::class, 'robots']);
     Route::get('/sitemap.xml', [SeoController::class, 'sitemap']);
 
+    // Soporte público: consultas y agendamiento de demo
+    Route::get('/soporte', [SupportController::class, 'create'])->name('support.create');
+    Route::post('/soporte', [SupportController::class, 'store'])->name('support.store');
+
     // ---------------------------------------------------------
     // RUTAS PÚBLICAS / INVITADOS (OAuth Google y Completar)
     // ---------------------------------------------------------
@@ -71,7 +80,15 @@ Route::domain($baseDomain)->group(function () {
     // ---------------------------------------------------------
     // RUTAS AUTENTICADAS (Lobby y Gestión Global del Usuario)
     // ---------------------------------------------------------
-    Route::middleware(['auth', 'verified', 'check.profile'])->group(function () {
+
+    // Decisión de dependiente: requiere perfil completo (national_id + country_id)
+    Route::middleware(['auth', 'verified', 'check.profile', 'dependent.decision'])->group(function () {
+        Route::get('/profile/dependiente/decision', [FamilyController::class, 'dependentDecision'])->name('profile.dependent.decision');
+        Route::post('/profile/dependiente/unlink', [FamilyController::class, 'unlinkDependent'])->name('profile.dependent.unlink');
+        Route::post('/profile/dependiente/share', [FamilyController::class, 'shareAndKeepDependent'])->name('profile.dependent.share');
+    });
+
+    Route::middleware(['auth', 'verified', 'check.profile', 'dependent.decision'])->group(function () {
         
         // El botón de la UI apuntará aquí
         Route::get('/oauth/mercadopago/redirect', [MercadoPagoOAuthController::class, 'redirect'])
@@ -80,6 +97,11 @@ Route::domain($baseDomain)->group(function () {
         // Mercado Pago nos devolverá aquí
         Route::get('/oauth/mercadopago/callback', [MercadoPagoOAuthController::class, 'callback'])
             ->name('mp.oauth.callback');
+
+        // OAuth Mercado Pago para Profesores (vincula al User global)
+        Route::get('/oauth/mercadopago/profesor/redirect', [MercadoPagoOAuthController::class, 'redirect'])
+            ->defaults('source', 'teacher')
+            ->name('mp.oauth.teacher.redirect');
 
         // Carrito / Reservas
         Route::get('/mis-reservas', [App\Http\Controllers\Global\CartController::class, 'index'])->name('cart.index');
@@ -112,11 +134,12 @@ Route::domain($baseDomain)->group(function () {
         //gestión de miembros familiares (apoderados, hijos, etc.)
         Route::get('/profile/familia', [FamilyController::class, 'index'])->name('profile.family.index');
         Route::post('/profile/familia', [FamilyController::class, 'store'])->name('profile.family.store');
-        Route::put('/profile/familia/{dependent}', [FamilyController::class, 'update'])->name('profile.family.update'); // 👈 Esta es la nueva
+        Route::put('/profile/familia/{dependent}', [FamilyController::class, 'update'])->name('profile.family.update');
         Route::delete('/profile/familia/{dependent}', [FamilyController::class, 'destroy'])->name('profile.family.destroy');
 
         // Historial de Pagos del Usuario
         Route::get('/mis-pagos', [\App\Http\Controllers\Global\PaymentHistoryController::class, 'index'])->name('global.payments.index');
+        Route::delete('/mis-pagos/mercadopago', [\App\Http\Controllers\Global\PaymentHistoryController::class, 'disconnectMercadoPago'])->name('global.payments.mp.disconnect');
         
         Route::post('/api/student/enroll-toggle', [UserClassController::class, 'toggleEnrollment'])->name('global.student.enroll.toggle');
 
@@ -187,5 +210,13 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
         Route::post('/students/{student}/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
         Route::get('/api/students/{student}/available-sessions', [PaymentController::class, 'getAvailableSessions']);
+
+        // Módulo de Liquidaciones (Payroll) - Anidado por Profesor
+        Route::get('/teachers/{teacher}/payroll/{month?}', [\App\Http\Controllers\PayrollController::class, 'show'])->name('teachers.payroll.show');
+        Route::post('/teachers/{teacher}/payroll', [\App\Http\Controllers\PayrollController::class, 'store'])->name('teachers.payroll.store');
+        Route::get('/teachers/{teacher}/payroll/mp/success', [\App\Http\Controllers\PayrollController::class, 'mpSuccess'])->name('teachers.payroll.mp.success');
+        Route::get('/teachers/{teacher}/payroll/mp/failure', [\App\Http\Controllers\PayrollController::class, 'mpFailure'])->name('teachers.payroll.mp.failure');
+        Route::get('/teachers/{teacher}/payroll/{payment}/resume', [\App\Http\Controllers\PayrollController::class, 'resume'])->name('teachers.payroll.resume');
+        Route::delete('/teachers/{teacher}/payroll/{payment}', [\App\Http\Controllers\PayrollController::class, 'destroy'])->name('teachers.payroll.destroy');
     });
 });

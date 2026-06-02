@@ -16,10 +16,13 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade'); // El apoderado
             $table->string('first_name');
             $table->string('last_name')->nullable();
-            $table->string('national_id')->nullable(); // RUT del familiar
-            $table->foreignId('country_id')->constrained();
+            $table->string('national_id'); // RUT del familiar — obligatorio
+            $table->foreignId('country_id')->constrained('countries');
             $table->string('relationship')->nullable(); // 'Hijo/a', 'Pareja', etc.
             $table->timestamps();
+
+            // Mismo familiar no puede estar duplicado para el mismo usuario y país
+            $table->unique(['user_id', 'national_id', 'country_id']);
         });
     }
 

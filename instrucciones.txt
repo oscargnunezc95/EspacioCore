@@ -1,0 +1,8 @@
+https://estadoprisma.test/global/student/enroll/bulk 500 (Internal Server Error)
+confirmReservations	@	explorar:2022
+onclick	@	explorar:1507
+explorar:2045 Error en bulk: 
+(anonymous)	@	explorar:2045
+Promise.catch		
+confirmReservations	@	explorar:2044
+onclick	@	explorar:1507

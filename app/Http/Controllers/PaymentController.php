@@ -8,6 +8,8 @@ use App\Models\Payment;
 use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Models\Promotion;
+use App\Notifications\ClassFullNotification;
+use App\Notifications\SpotReservedNotification;
 use App\Mail\StudentPaymentReceiptMail;
 use App\Mail\StudioPaymentNotificationMail;
 use Illuminate\Support\Facades\DB;
@@ -108,52 +110,48 @@ class PaymentController extends Controller
             return back()->withErrors('El pago y la asistencia se registraron correctamente, pero hubo un problema al enviar los correos de confirmación.');
         }
 
+        // 7. NOTIFICACIONES: Avisar a estudiantes pendientes si la clase se llenó
+        try {
+            foreach ($request->session_ids as $sessionId) {
+                $session = ClassSession::withoutGlobalScopes()
+                    ->with(['workshop' => fn($q) => $q->withoutGlobalScopes(), 'schedule'])
+                    ->find($sessionId);
+
+                if (!$session) continue;
+
+                $maxStudents = $session->max_students; // Accessor: schedule->max_students ?? 99
+                $paidCount = DB::table('class_session_student')
+                    ->where('class_session_id', $sessionId)
+                    ->where('payment_status', 'paid')
+                    ->count();
+                $availableSpots = max(0, $maxStudents - $paidCount);
+
+                $pendingStudentIds = DB::table('class_session_student')
+                    ->where('class_session_id', $sessionId)
+                    ->where('payment_status', 'pending')
+                    ->pluck('student_id');
+
+                if ($pendingStudentIds->isEmpty()) continue;
+
+                $pendingUsers = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
+                    $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
+                })->get();
+
+                if ($availableSpots <= 0) {
+                    foreach ($pendingUsers as $user) {
+                        $user->notify(new ClassFullNotification($session));
+                    }
+                } else {
+                    foreach ($pendingUsers as $user) {
+                        $user->notify(new SpotReservedNotification($session, $availableSpots));
+                    }
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error enviando notificaciones post-pago manual: ' . $e->getMessage());
+        }
+
         return back()->with('success', '¡Pago y asistencia registrados correctamente!');
-    }
-
-    /**
-     * Actualiza una promoción existente en la base de datos.
-     * @note Se recomienda migrar este método a un PromotionController dedicado.
-     */
-    public function update(Request $request, $subdomain, Promotion $promotion)
-    {
-        // 1. Validación estricta de los datos entrantes
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:specific_combo,additional_discount',
-            'total_price' => 'nullable|required_if:type,specific_combo|numeric|min:0',
-            'workshop_price_ids' => 'nullable|required_if:type,specific_combo|array',
-            'workshop_price_ids.*' => 'exists:workshop_prices,id', 
-            'class_count' => 'nullable|required_if:type,additional_discount|integer|min:1',
-            'additional_price' => 'nullable|required_if:type,additional_discount|numeric|min:0',
-        ]);
-
-        // 2. Limpieza de estado preventivo
-        if ($validated['type'] === 'specific_combo') {
-            $validated['class_count'] = null;
-            $validated['additional_price'] = null;
-        } else {
-            $validated['total_price'] = null;
-        }
-
-        // 3. Actualización de la entidad principal
-        $promotion->update([
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'total_price' => $validated['total_price'],
-            'class_count' => $validated['class_count'],
-            'additional_price' => $validated['additional_price'],
-        ]);
-
-        // 4. Sincronización inteligente de la tabla pivote
-        if ($validated['type'] === 'specific_combo' && !empty($validated['workshop_price_ids'])) {
-            $promotion->workshopPrices()->sync($validated['workshop_price_ids']);
-        } else {
-            $promotion->workshopPrices()->detach();
-        }
-
-        return redirect()->route('promotions.index', ['subdomain' => $subdomain])
-                         ->with('success', 'Regla de descuento actualizada correctamente.');
     }
 
     /**

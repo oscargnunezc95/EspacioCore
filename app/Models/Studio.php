@@ -60,4 +60,19 @@ class Studio extends Model
     {
         return $this->hasMany(ClassSession::class);
     }
+
+    // ─── ACCESSORS DE MONEDA ───────────────────────────────────────
+    // Navegan a través de $this->user->country para obtener la moneda
+    // del país de residencia del dueño del estudio.
+    // Incluyen fallback seguro (CLP / $) en caso de relación nula.
+
+    public function getCurrencyCodeAttribute(): string
+    {
+        return $this->user?->country?->currency_code ?? 'CLP';
+    }
+
+    public function getCurrencySymbolAttribute(): string
+    {
+        return $this->user?->country?->currency_symbol ?? '$';
+    }
 }
