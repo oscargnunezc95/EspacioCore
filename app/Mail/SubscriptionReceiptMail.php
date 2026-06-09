@@ -5,11 +5,12 @@ namespace App\Mail;
 use App\Models\Studio;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class SubscriptionReceiptMail extends Mailable
+class SubscriptionReceiptMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

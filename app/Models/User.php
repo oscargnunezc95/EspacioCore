@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Services\DocumentService;
 use App\Models\Country;
 
-#[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id', 'dependent_decision_pending', 'dependent_decision_owner_id', 'mp_access_token', 'mp_refresh_token', 'mp_user_id'])]
+#[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id', 'dependent_decision_pending', 'dependent_decision_owner_id', 'mp_access_token', 'mp_refresh_token', 'mp_user_id', 'is_super_admin'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail 
 {
@@ -51,23 +51,21 @@ class User extends Authenticatable implements MustVerifyEmail
      * Reemplaza al antiguo getUnpaidClassesCount().
      * En Blade se llama sin paréntesis: auth()->user()->pending_reservations_count
      */
-    public function getPendingReservationsCountAttribute(): int
+    public function getPendingReservationsCountAttribute()
     {
-        // 1. Buscamos todas sus fichas de alumna (las propias)
+        // 1. Mis propias fichas
         $ownStudentIds = \App\Models\Student::withoutGlobalScopes()
             ->where('user_id', $this->id)
             ->pluck('id')
             ->toArray();
 
-        // 2. Buscamos las fichas de sus familiares/dependientes
-        $dependentNationalIds = \App\Models\UserDependent::where('user_id', $this->id)
-            ->pluck('national_id')
-            ->toArray();
+        // 2. Fichas de mis familiares ACTIVOS (¡Aquí estaba el bug!)
+        $depNationalIds = $this->activeDependents()->pluck('national_id')->toArray();
 
-        $dependentStudentIds = [];
-        if (!empty($dependentNationalIds)) {
-            $dependentStudentIds = \App\Models\Student::withoutGlobalScopes()
-                ->whereIn('national_id', $dependentNationalIds)
+        $depStudentIds = [];
+        if (!empty($depNationalIds)) {
+            $depStudentIds = \App\Models\Student::withoutGlobalScopes()
+                ->whereIn('national_id', $depNationalIds)
                 ->where(function ($q) {
                     $q->whereNull('user_id')
                       ->orWhere('user_id', '!=', $this->id);
@@ -76,20 +74,17 @@ class User extends Authenticatable implements MustVerifyEmail
                 ->toArray();
         }
 
-        $allStudentIds = array_unique(array_merge($ownStudentIds, $dependentStudentIds));
+        // 3. Unimos todos los IDs válidos
+        $allStudentIds = array_unique(array_merge($ownStudentIds, $depStudentIds));
 
         if (empty($allStudentIds)) {
             return 0;
         }
 
-        // 3. MAGIA DE OPTIMIZACIÓN BLINDADA: Cuenta directa O(1)
-        return \App\Models\ClassSession::withoutGlobalScopes()
-            ->whereHas('students', function ($query) use ($allStudentIds) {
-                $query->withoutGlobalScopes()
-                      ->whereIn('students.id', $allStudentIds)
-                      ->where('class_session_student.payment_status', 'pending'); 
-            })
-            ->where('date', '>=', now()->toDateString())
+        // 4. Contamos en la tabla pivote cuántos están en estado 'pending'
+        return \Illuminate\Support\Facades\DB::table('class_session_student')
+            ->whereIn('student_id', $allStudentIds)
+            ->where('payment_status', 'pending')
             ->count();
     }
 
@@ -151,5 +146,9 @@ class User extends Authenticatable implements MustVerifyEmail
     public function dependents()
     {
         return $this->hasMany(UserDependent::class);
+    }
+    public function activeDependents()
+    {
+        return $this->hasMany(UserDependent::class)->where('status', 'active');
     }
 }

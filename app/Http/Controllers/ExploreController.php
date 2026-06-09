@@ -78,21 +78,18 @@ class ExploreController extends Controller
 
         // 5. ESTADO DE USUARIO FAMILIAR (ARQUITECTURA DE MAPAS)
         $dbSelectionsBySession = [];
+        $activeDependents = collect(); // Inicializamos para la vista
 
         if (auth()->check()) {
             $user = auth()->user();
             $userId = $user->id;
 
-            // ─── PRINCIPIO: "Separar la Identidad de la Tutoría" ─────────────
-            // El user_id en students es la persona que ASISTE.
-            // El apoderado también debe ver las inscripciones de sus familiares.
+            // 1. Cargamos los familiares activos para enviarlos a la vista
+            $activeDependents = $user->activeDependents;
 
-            // 1. Obtener los national_id de mis dependientes
-            $dependentNationalIds = \App\Models\UserDependent::where('user_id', $user->id)
-                ->pluck('national_id')
-                ->toArray();
+            // 2. Usamos esa misma relación para sacar los RUT permitidos
+            $dependentNationalIds = $activeDependents->pluck('national_id')->toArray();
 
-            // 2. Cargar sesiones donde estoy yo O mis familiares
             $userSessions = ClassSession::withoutGlobalScopes()
                 ->whereHas('students', function ($q) use ($userId, $dependentNationalIds) {
                     $q->withoutGlobalScopes()
@@ -124,7 +121,7 @@ class ExploreController extends Controller
                         if ($st->national_id === $user->national_id) {
                             $selections['titular'] = $status;
                         } else {
-                            $dep = $user->dependents->where('national_id', $st->national_id)->first();
+                            $dep = $activeDependents->where('national_id', $st->national_id)->first();
                             if ($dep) {
                                 $selections[$dep->id] = $status;
                             }
@@ -139,14 +136,12 @@ class ExploreController extends Controller
             }
         }
 
-        // ============================================================
-        // 6. SEO DINAMICO (tipo MercadoLibre)
-        // ============================================================
         $seo = $this->buildSeo($request, $sessions, $areas);
         $breadcrumbs = $this->buildBreadcrumbs($request);
 
+        // Agregamos $activeDependents al compact
         return view('explore.index', compact(
-            'sessions', 'areas', 'cities', 'dbSelectionsBySession', 'seo', 'breadcrumbs'
+            'sessions', 'areas', 'cities', 'dbSelectionsBySession', 'seo', 'breadcrumbs', 'activeDependents'
         ));
     }
 
@@ -205,7 +200,7 @@ class ExploreController extends Controller
     private function buildBreadcrumbs(Request $request): array
     {
         $bc = [
-            ['label' => 'Inicio', 'url' => route('home')],
+
             ['label' => 'Explorar Clases', 'url' => route('explore')],
         ];
 
@@ -214,7 +209,7 @@ class ExploreController extends Controller
         }
         if ($request->get('city')) {
             $bc[] = ['label' => $request->get('city'), 'url' => route('explore', $request->only(['city', 'area']))];
-        }
+        } 
 
         return $bc;
     }

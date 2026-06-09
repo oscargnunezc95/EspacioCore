@@ -12,46 +12,36 @@ use App\Models\Teacher;
 use App\Models\Student;
 use App\Models\Country;
 
-class UserStudioSeeder extends Seeder
+class PruebaSeeder extends Seeder
 {
     public function run(): void
     {
-        Country::firstOrCreate(
-            [
-                'name' => 'Chile',
-                'code' => 'CL',
-                'tax_id_label' => 'RUT',
-                'tax_id_regex' => '^(\d{7,8}[0-9Kk])$',
-                'currency_code' => 'CLP',
-                'currency_symbol' => '$',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        );
-/*         Country::firstOrCreate(
-            [
-                'name' => 'Otro / Internacional',
-                'code' => 'OT',
-                'tax_id_label' => 'Pasaporte / ID',
-                'tax_id_regex' => '^.+$',
-                'currency_code' => 'USD',
-                'currency_symbol' => 'US$',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]
-        ); */
+
         // 1. Usuario Administrador Principal
-        $admin = User::firstOrCreate(
+        $admin2 = User::firstOrCreate(
             ['email' => 'oscargnunezc18@gmail.com'],
             [
-                'name' => 'Oscar Nuñez',
+                'name' => 'Luis Nuñez',
                 'password' => Hash::make('qwerqwer'),
                 'email_verified_at' => now(),
-                'national_id' => '18802107-7',
+                'national_id' => '18802106-9',
                 'country_id' => 1,
             ]
         );
-
+        // 1.5 Vincular a Luis como hermano de Oscar
+        \App\Models\UserDependent::firstOrCreate(
+            [
+                'user_id' => 1,
+                'national_id' => $admin2->national_id,
+            ],
+            [
+                'first_name' => 'Luis',
+                'last_name' => 'Nuñez',
+                'country_id' => $admin2->country_id,
+                'relationship' => 'Hermano/a',
+                'status' => 'active', // Lo forzamos a activo para pruebas locales
+            ]
+        );
         // 2. Configuración de Estudios y Talleres (Adaptado a Schedules Múltiples)
         // Días: 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
         $studiosData = [
@@ -116,7 +106,7 @@ class UserStudioSeeder extends Seeder
             $studio = Studio::firstOrCreate(
                 ['subdomain' => Str::slug($data['name'])],
                 [
-                    'user_id' => $admin->id,
+                    'user_id' => 1, // ID del SuperAdmin
                     'name' => $data['name'],
                     'address' => $data['address'],
                     'city' => 'Puerto Montt',

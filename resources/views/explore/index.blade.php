@@ -48,22 +48,6 @@
 
     <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
 
-        {{-- Breadcrumbs semanticos --}}
-        @if(count($breadcrumbs) > 1)
-        <nav class="mb-4" aria-label="Breadcrumb">
-            <ol class="flex flex-wrap items-center gap-1 text-xs font-medium text-zinc-400">
-                @foreach($breadcrumbs as $crumb)
-                    @if(!$loop->last)
-                        <li><a href="{{ $crumb['url'] }}" class="hover:text-indigo-600 transition-colors">{{ $crumb['label'] }}</a></li>
-                        <li class="mx-1">/</li>
-                    @else
-                        <li class="text-zinc-700 font-bold">{{ $crumb['label'] }}</li>
-                    @endif
-                @endforeach
-            </ol>
-        </nav>
-        @endif
-        
         <div class="text-center mb-10 md:mb-14">
             <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">
                 @if($seo['city'] && $seo['area'])
@@ -76,6 +60,7 @@
                     Descubre tu proxima clase
                 @endif
             </h1>
+            
             <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">
                 @if($seo['total'] > 0)
                     {{ $seo['total'] }} {{ $seo['total'] == 1 ? 'clase encontrada' : 'clases encontradas' }}. Encuentra y reserva sesiones en los mejores estudios cerca de ti.
@@ -84,8 +69,28 @@
                 @endif
             </p>
         </div>
-
-        <div x-data="{ openFilters: false }" class="mb-8">
+        {{-- 2. BREADCRUMBS (Independientes y pegados a los filtros) --}}
+        @if(count($breadcrumbs) > 0)
+        <nav class="mb-3" aria-label="Breadcrumb">
+            <ol class="flex flex-wrap items-center gap-1 text-xs font-medium text-zinc-400" itemscope itemtype="https://schema.org/BreadcrumbList">
+                @foreach($breadcrumbs as $index => $crumb)
+                    <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="flex items-center">
+                        @if(!$loop->last)
+                            <a itemprop="item" href="{{ $crumb['url'] }}" class="hover:text-indigo-600 transition-colors">
+                                <span itemprop="name">{{ $crumb['label'] }}</span>
+                            </a>
+                            <meta itemprop="position" content="{{ $index + 1 }}" />
+                            <span class="mx-1 text-zinc-300">/</span>
+                        @else
+                            <span itemprop="name" class="text-zinc-700 font-bold" aria-current="page">{{ $crumb['label'] }}</span>
+                            <meta itemprop="position" content="{{ $index + 1 }}" />
+                        @endif
+                    </li>
+                @endforeach
+            </ol>
+        </nav>
+        @endif
+        <div x-data="{ openFilters: false }" class="mb-4">
             <div class="md:hidden flex justify-end mb-4">
                 <button @click="openFilters = true" type="button" class="w-full bg-white border border-zinc-200 text-zinc-900 font-black py-3.5 px-4 rounded-2xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-transform">
                     <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
@@ -488,7 +493,7 @@
                     <span class="text-[10px] font-black uppercase tracking-widest hidden"></span>
                 </button>
                 
-                @foreach(Auth::user()->dependents as $dependent)
+                @foreach($activeDependents as $dependent)
                     <button type="button" onclick="toggleModalSelection({{ $dependent->id }})" id="modal_opt_{{ $dependent->id }}" class="w-full flex items-center justify-between p-4 rounded-xl border-2 border-zinc-100 hover:border-emerald-200 transition-all group">
                         <div class="flex flex-col text-left">
                             <span class="font-bold text-zinc-900 text-sm">{{ $dependent->first_name }} {{ $dependent->last_name }}</span>
@@ -675,7 +680,7 @@
         // 2. LÓGICA DE MULTI-SELECCIÓN (ÓRDENES CLARAS)
         // ==========================================
         const isLoggedIn = @json(Auth::check());
-        const hasDependents = @json(Auth::check() ? Auth::user()->dependents->count() > 0 : false);
+        const hasDependents = @json(isset($activeDependents) ? $activeDependents->count() > 0 : false);
         
         let pendingClasses = new Map(); 
         let currentModalSessionId = null;

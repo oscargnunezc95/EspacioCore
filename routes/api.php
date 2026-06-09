@@ -11,7 +11,3 @@ use App\Http\Controllers\WebhookController;
 | peticiones automáticas de servidores externos (como Mercado Pago).
 |--------------------------------------------------------------------------
 */
-
-Route::post('/webhooks/mercadopago', [WebhookController::class, 'handleMercadoPago']);
-Route::get('/api/payroll/mp/success', [\App\Http\Controllers\PayrollController::class, 'mpSuccessGlobal'])->name('payroll.mp.success.global');
-Route::get('/api/payroll/mp/failure', [\App\Http\Controllers\PayrollController::class, 'mpFailureGlobal'])->name('payroll.mp.failure.global');

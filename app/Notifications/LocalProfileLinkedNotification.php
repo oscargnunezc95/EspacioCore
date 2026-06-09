@@ -38,6 +38,7 @@ class LocalProfileLinkedNotification extends Notification implements ShouldQueue
             'url' => route('global.payments.index'), // Redirección directa al Portal de Pagos
             'type' => 'profile_link',
             'studio_id' => $studio->id
+            'icon'    => 'success', // <-- ¡Esta es la llave que faltaba!
         ];
     }
 }

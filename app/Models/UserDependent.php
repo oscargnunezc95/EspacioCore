@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class UserDependent extends Model
 {
     protected $fillable = [
-        'user_id', 'first_name', 'last_name', 'national_id', 'country_id', 'relationship'
+        'user_id', 'first_name', 'last_name', 'national_id', 'country_id', 'relationship', 'status'
     ];
 
     public function user(): BelongsTo

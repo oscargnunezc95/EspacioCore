@@ -422,7 +422,7 @@
                             </div>
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 mb-1.5">Precio (CLP) *</label>
-                                <input type="number" name="single_class_price" id="w_single_price" value="{{ old('single_class_price') }}" placeholder="Ej: 15000" min="0" step="100"
+                                <input type="number" name="single_class_price" id="w_single_price" value="{{ old('single_class_price') }}" placeholder="Ej: 15000" min="0"
                                     class="w-full rounded-xl border {{ $errors->has('single_class_price') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
                                 @error('single_class_price') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                             </div>

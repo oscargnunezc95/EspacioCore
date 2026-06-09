@@ -19,6 +19,8 @@ use App\Http\Controllers\StudioPublicController;
 use App\Http\Controllers\Global\UserClassController;
 use App\Http\Controllers\Global\FamilyController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\Admin\SubscriptionPlanController;
+use App\Http\Controllers\Admin\StudioManagementController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\MercadoPagoOAuthController;
 use App\Http\Controllers\AccountController;
@@ -40,7 +42,7 @@ Route::middleware(['web', 'auth'])->group(function () {
 // ========================================================
 // RUTA DE WEBHOOKS (Abierta para cualquier dominio/túnel)
 // ========================================================
-Route::post('/api/webhooks/mercadopago', [\App\Http\Controllers\WebhookController::class, 'mercadopago'])->name('webhooks.mp');
+Route::post('/api/webhooks/mercadopago', [\App\Http\Controllers\WebhookController::class, 'mercadopago'])->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])->name('webhooks.mp');
 
 // Callbacks globales de MercadoPago para pago a profesores (dominio principal, sin subdominio)
 Route::get('/api/payroll/mp/success', [\App\Http\Controllers\PayrollController::class, 'mpSuccessGlobal'])->name('payroll.mp.success.global');
@@ -111,6 +113,10 @@ Route::domain($baseDomain)->group(function () {
         // --- CHECKOUT DE MERCADO PAGO AQUÍ ---
         Route::post('/pagos/generar-checkout', [CheckoutController::class, 'generarCheckout'])->name('checkout.generate');
 
+        Route::get('/pagos/exito', [PaymentReturnController::class, 'success'])->name('payments.success');
+        Route::get('/pagos/pendiente', [PaymentReturnController::class, 'pending'])->name('payments.pending');
+        Route::get('/pagos/error', [PaymentReturnController::class, 'failure'])->name('payments.failure');
+
         // Selección y Creación de Estudios (Lobby)
         Route::get('/mis-estudios', [StudioController::class, 'index'])->name('studios.index');
         Route::post('/mis-estudios', [StudioController::class, 'store'])->name('studios.store');
@@ -136,6 +142,9 @@ Route::domain($baseDomain)->group(function () {
         Route::post('/profile/familia', [FamilyController::class, 'store'])->name('profile.family.store');
         Route::put('/profile/familia/{dependent}', [FamilyController::class, 'update'])->name('profile.family.update');
         Route::delete('/profile/familia/{dependent}', [FamilyController::class, 'destroy'])->name('profile.family.destroy');
+        Route::delete('/profile/familia/salir/{dependent}', [\App\Http\Controllers\Global\FamilyController::class, 'leaveFamily'])->name('profile.family.leave');
+        Route::post('/profile/familia/{dependent}/accept', [\App\Http\Controllers\Global\FamilyController::class, 'acceptMembership'])->name('profile.family.accept-membership');
+        Route::delete('/profile/familia/{dependent}/reject', [\App\Http\Controllers\Global\FamilyController::class, 'rejectMembership'])->name('profile.family.reject-membership');
 
         // Historial de Pagos del Usuario
         Route::get('/mis-pagos', [\App\Http\Controllers\Global\PaymentHistoryController::class, 'index'])->name('global.payments.index');
@@ -144,6 +153,36 @@ Route::domain($baseDomain)->group(function () {
         Route::post('/api/student/enroll-toggle', [UserClassController::class, 'toggleEnrollment'])->name('global.student.enroll.toggle');
 
     });
+
+    // Rutas firmadas para aceptar/rechazar vínculo familiar
+    // (NO requieren dependent.decision — el usuario objetivo debe poder aceptar sin resolver su decisión)
+    Route::middleware(['auth', 'signed'])->group(function () {
+        Route::get('/profile/familia/{dependent}/accept', [FamilyController::class, 'acceptLink'])
+            ->name('profile.family.accept');
+        Route::get('/profile/familia/{dependent}/reject', [FamilyController::class, 'rejectLink'])
+            ->name('profile.family.reject');
+    });
+
+    // Panel de Super Administrador (Backoffice)
+    Route::middleware(['auth', 'super.admin'])->prefix('admin')->group(function () {
+        Route::get('/estudios', [StudioManagementController::class, 'index'])
+            ->name('admin.studios.index');
+        Route::patch('/estudios/{studio}/comision', [StudioManagementController::class, 'updateFee'])
+            ->name('admin.studios.update-fee');
+        // --- NUEVAS RUTAS PARA PLANES ---
+        Route::get('/planes', [SubscriptionPlanController::class, 'index'])
+            ->name('admin.plans.index');
+        Route::post('/planes', [SubscriptionPlanController::class, 'store'])
+            ->name('admin.plans.store');
+        Route::put('/planes/{plan}', [SubscriptionPlanController::class, 'update'])
+            ->name('admin.plans.update');
+        // Para activar/desactivar en lugar de borrar (Soft-disable)
+        Route::patch('/planes/{plan}/toggle', [SubscriptionPlanController::class, 'toggle'])
+            ->name('admin.plans.toggle');
+        Route::get('/estudios/{studio}/auditoria', [\App\Http\Controllers\Admin\StudioManagementController::class, 'audit'])
+            ->name('admin.studios.audit');
+    });
+    
 
     require __DIR__.'/auth.php';
 });
@@ -158,10 +197,6 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
     // --- ACCESO PÚBLICO AL ESTUDIO (Link in Bio / Instagram) ---
     // Esta ruta debe ser accesible sin estar logueado
     Route::get('/', [StudioPublicController::class, 'show'])->name('studio.public.show');
-    
-    Route::get('/pagos/exito', [PaymentReturnController::class, 'success'])->name('payments.success');
-    Route::get('/pagos/pendiente', [PaymentReturnController::class, 'pending'])->name('payments.pending');
-    Route::get('/pagos/error', [PaymentReturnController::class, 'failure'])->name('payments.failure');
 
     // --- GESTIÓN INTERNA DEL ESTUDIO (Requiere Auth e Identificar Estudio) ---
     Route::middleware(['web', 'auth', 'verified', 'identify.studio'])->group(function () {

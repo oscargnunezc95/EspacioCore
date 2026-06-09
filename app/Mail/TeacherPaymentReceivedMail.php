@@ -6,11 +6,12 @@ use App\Models\TeacherPayment;
 use App\Models\Studio;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class TeacherPaymentReceivedMail extends Mailable
+class TeacherPaymentReceivedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 

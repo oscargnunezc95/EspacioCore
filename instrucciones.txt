@@ -1,8 +1,23 @@
-https://estadoprisma.test/global/student/enroll/bulk 500 (Internal Server Error)
-confirmReservations	@	explorar:2022
-onclick	@	explorar:1507
-explorar:2045 Error en bulk: 
-(anonymous)	@	explorar:2045
-Promise.catch		
-confirmReservations	@	explorar:2044
-onclick	@	explorar:1507
+Actúa como un Arquitecto Backend Senior en Laravel. Necesito refactorizar tres controladores (`WebhookController`, `SubscriptionController`, y `PayrollController`) y sus servicios asociados (`MercadoPagoService`, `PayrollService`). 
+
+Nuestra regla arquitectónica inquebrantable es: "Controladores delgados, Servicios robustos. La lógica de negocio, las consultas complejas a la base de datos (Eloquent) y la manipulación de archivos NUNCA deben ir en los controladores".
+
+Por favor, realiza las siguientes refactorizaciones directamente en los archivos, manteniendo el tipado estricto y sin alterar las variables que se retornan a las vistas o las respuestas HTTP:
+
+1. REFACTORIZAR `WebhookController`:
+- Extrae completamente el método `processSaaSSubscription` y muévelo como un método público a `app/Services/MercadoPagoService.php` (o a un `SubscriptionService` si lo consideras mejor). 
+- En el controlador, dentro del switch (`case 'subscription_authorized'`), simplemente llama a ese nuevo método del servicio pasándole el `$dataId`.
+
+2. REFACTORIZAR `SubscriptionController` (`subscribe` method):
+- Extrae la validación de límite de cupos (`capacity_limit`) y la actualización del plan (`billing_cycles_count = 0`). 
+- Mueve esta lógica a un método dedicado en `MercadoPagoService` (ej. `prepareStudioForSubscription`) o procésalo directamente dentro del método que ya existe `createSubscriptionLink`. El controlador solo debe validar el Request y llamar al servicio para obtener la URL de redirección.
+
+3. REFACTORIZAR `PayrollController`:
+- En el método `store`: Extrae la lógica de almacenamiento del archivo manual (`$request->file('receipt')->store(...)`) y la creación del registro `TeacherPayment`. Crea un método en `PayrollService` llamado `processManualPayment` que se encargue de esto y retorne el modelo de pago.
+- En el mismo método `store` (Ruta Mercado Pago): Mueve la creación del registro `TeacherPayment` con estado 'pending' a un método en `PayrollService` (ej. `createPendingPayment`).
+- En el método `mpSuccessGlobal`: Extrae la búsqueda del pago pendiente y su actualización a 'paid'. Crea un método en `PayrollService` (ej. `markPaymentAsPaid`) que encapsule este UPDATE en la base de datos y retorne el pago o un booleano.
+
+IMPORTANTE: 
+- No rompas las redirecciones (`redirect()->route(...)`).
+- Si mueves lógica que usa Facades (`Log`, `Mail`, `DB`, `Config`), asegúrate de importar (use) esas clases en la parte superior de los Servicios.
+- Confírmame los nombres de los nuevos métodos que creaste en los servicios una vez finalices.

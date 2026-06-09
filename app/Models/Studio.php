@@ -29,6 +29,12 @@ class Studio extends Model
         'mp_access_token',
         'mp_refresh_token',
         'mp_user_id',
+
+        'subscription_status', 
+        'mp_preapproval_id',   
+        'subscription_expires_at',
+        'subscription_plan_id', 
+        'billing_cycles_count'
     ];
 
     public function user()
@@ -74,5 +80,9 @@ class Studio extends Model
     public function getCurrencySymbolAttribute(): string
     {
         return $this->user?->country?->currency_symbol ?? '$';
+    }
+    public function subscriptionPlan()
+    {
+        return $this->belongsTo(SubscriptionPlan::class);
     }
 }

@@ -16,6 +16,7 @@ class Payment extends Model
         'workshop_id',
         'payment_type',
         'payment_method', // <--- NUEVO CAMPO AÑADIDO
+        'platform_fee',
         'amount',
         'receipt_path',
         'mp_payment_id', // <-- NUEVO

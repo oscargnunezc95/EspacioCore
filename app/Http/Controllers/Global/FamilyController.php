@@ -12,6 +12,7 @@ use App\Models\Student;
 use App\Models\UserDependent;
 use App\Models\Country;
 use App\Services\DocumentService;
+use App\Services\FamilyDecisionService;
 use Illuminate\Validation\Rule;
 use App\Rules\ValidDocument;
 use App\Mail\DependentTransferRequestMail;
@@ -21,10 +22,55 @@ class FamilyController extends Controller
 {
     public function index()
     {
-        $dependents = Auth::user()->dependents()->orderBy('first_name')->get();
+        $user = Auth::user();
+        
+        // 1. Las personas que YO administro
+        $dependents = $user->dependents()->orderBy('first_name')->get();
         $countries = Country::orderBy('name', 'asc')->get(); 
         
-        return view('profile.family.index', compact('dependents', 'countries'));
+        // 2. Las familias a las que YO pertenezco (Alguien me agregó a mí)
+        $memberships = UserDependent::with('user')
+            ->where('national_id', $user->national_id)
+            ->where('country_id', $user->country_id)
+            ->get();
+        
+        return view('profile.family.index', compact('dependents', 'countries', 'memberships'));
+    }
+
+    /**
+     * Permite a un usuario independiente salir de la familia de un Apoderado
+     */
+    public function leaveFamily(UserDependent $dependent, FamilyDecisionService $decisionService)
+    {
+        $user = Auth::user();
+
+        // Seguridad: Solo el dueño real del documento puede sacarse a sí mismo
+        if ($user->national_id !== $dependent->national_id || $user->country_id !== $dependent->country_id) {
+            abort(403, 'No tienes permiso para realizar esta acción.');
+        }
+
+        // Notificar al apoderado ANTES de que el servicio elimine el registro
+        try {
+            $dependent->user->notify(
+                new \App\Notifications\FamilyMemberLeftNotification($user->name)
+            );
+        } catch (\Exception $e) {
+            Log::error('Error notificando salida de familiar: ' . $e->getMessage());
+        }
+
+        try {
+            // Reutilizamos tu servicio estrella para desvincular y traer las clases de vuelta
+            $transferredCount = $decisionService->unlinkAndTransferClasses($user, $dependent->user_id);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Hubo un error al salir del grupo familiar.');
+        }
+
+        $message = "Has salido del grupo familiar de {$dependent->user->name}.";
+        if ($transferredCount > 0) {
+            $message .= " Se transfirieron {$transferredCount} clases a tu cuenta personal.";
+        }
+
+        return back()->with('success', $message);
     }
 
     public function store(Request $request)
@@ -83,7 +129,10 @@ class FamilyController extends Controller
         ], $messages, $attributes);
 
         // 5. Inserción
-        $dependent = Auth::user()->dependents()->create($validated);
+        $status = ($request->input('confirmed') === 'link') ? 'pending' : 'active';
+        $dependent = Auth::user()->dependents()->create(array_merge($validated, [
+            'status' => $status,
+        ]));
 
         // 6. Notificaciones según el tipo de confirmación
         if ($request->has('confirmed')) {
@@ -168,9 +217,23 @@ class FamilyController extends Controller
                 $targetUserId = $request->target_user_id;
                 $targetUser = User::find($targetUserId);
                 if ($targetUser) {
-                    Mail::to($targetUser->email)->queue(
-                        new FamilyLinkRequestMail($targetUser, Auth::user(), $dependent)
-                    );
+                    // Notificación in-app
+                    try {
+                        $targetUser->notify(
+                            new \App\Notifications\FamilyLinkRequestedNotification(Auth::user())
+                        );
+                    } catch (\Exception $e) {
+                        Log::error('Error notificando in-app link familiar: ' . $e->getMessage());
+                    }
+
+                    // Correo
+                    try {
+                        Mail::to($targetUser->email)->queue(
+                            new FamilyLinkRequestMail($targetUser, Auth::user(), $dependent)
+                        );
+                    } catch (\Exception $e) {
+                        Log::error('Error encolando correo link familiar: ' . $e->getMessage());
+                    }
                 }
             }
         } catch (\Exception $e) {
@@ -224,9 +287,135 @@ class FamilyController extends Controller
 
     public function destroy(UserDependent $dependent)
     {
+        // Seguridad: ¿Es realmente su familiar?
         if ($dependent->user_id !== Auth::id()) abort(403);
+
+        // REGLA DE NEGOCIO: Solo notificamos si el vínculo era oficial (Activo)
+        if ($dependent->status === 'active') {
+            
+            // 1. Buscar si este familiar tiene una cuenta real de usuario en el sistema
+            $targetUser = User::where('national_id', $dependent->national_id)
+                              ->where('country_id', $dependent->country_id)
+                              ->first();
+
+            // 2. Si es un usuario real, le notificamos ANTES de destruir el registro
+            if ($targetUser) {
+                try {
+                    $targetUser->notify(
+                        new \App\Notifications\RemovedFromFamilyNotification(Auth::user()->name)
+                    );
+                } catch (\Exception $e) {
+                    Log::error('Error notificando expulsión de familiar: ' . $e->getMessage());
+                }
+            }
+        }
+
+        // 3. Destruimos el vínculo familiar (ya sea activo o una invitación pendiente)
         $dependent->delete();
+        
         return back()->with('success', 'Familiar removido de tu cuenta.');
+    }
+
+    /**
+     * Acepta una solicitud de vínculo familiar (link).
+     * Requiere firma válida y que el usuario autenticado sea el titular del documento.
+     */
+    public function acceptLink(Request $request, UserDependent $dependent)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'El enlace de confirmación no es válido o ha expirado.');
+        }
+
+        if (! Auth::check() || Auth::user()->national_id !== $dependent->national_id) {
+            abort(403, 'No tienes permiso para aceptar esta solicitud.');
+        }
+
+        $dependent->update(['status' => 'active']);
+
+        // Notificar al apoderado que su solicitud fue aceptada
+        try {
+            $dependent->user->notify(
+                new \App\Notifications\FamilyLinkAcceptedNotification(Auth::user())
+            );
+        } catch (\Exception $e) {
+            Log::error('Error notificando aceptación de vínculo familiar: ' . $e->getMessage());
+        }
+
+        return redirect()->route('explore')->with('success',
+            'Has aceptado la solicitud de vínculo familiar. Ahora tu apoderado puede inscribirte en clases y gestionar tus reservas.'
+        );
+    }
+
+    /**
+     * Rechaza una solicitud de vínculo familiar (link).
+     * Requiere firma válida y que el usuario autenticado sea el titular del documento.
+     */
+    public function rejectLink(Request $request, UserDependent $dependent)
+    {
+        if (! $request->hasValidSignature()) {
+            abort(403, 'El enlace de confirmación no es válido o ha expirado.');
+        }
+
+        if (! Auth::check() || Auth::user()->national_id !== $dependent->national_id) {
+            abort(403, 'No tienes permiso para rechazar esta solicitud.');
+        }
+
+        $dependent->delete();
+
+        return redirect()->route('explore')->with('success',
+            'Has rechazado la solicitud de vínculo familiar. Tus datos no serán gestionados por esta persona.'
+        );
+    }
+
+    /**
+     * Acepta un vínculo familiar desde la interfaz web (sin firma).
+     * Solo el titular del documento puede aceptar.
+     */
+    public function acceptMembership(UserDependent $dependent): \Illuminate\Http\RedirectResponse
+    {
+        $user = Auth::user();
+
+        if ($user->national_id !== $dependent->national_id || $user->country_id !== $dependent->country_id) {
+            abort(403, 'No tienes permiso para aceptar esta solicitud.');
+        }
+
+        if ($dependent->status !== 'pending') {
+            return back()->with('error', 'Esta solicitud ya no está pendiente.');
+        }
+
+        $dependent->update(['status' => 'active']);
+
+        // Notificar al apoderado que su solicitud fue aceptada
+        try {
+            $dependent->user->notify(
+                new \App\Notifications\FamilyLinkAcceptedNotification(Auth::user())
+            );
+        } catch (\Exception $e) {
+            Log::error('Error notificando aceptación de membresía: ' . $e->getMessage());
+        }
+
+        return back()->with('success',
+            'Has aceptado la solicitud de vínculo familiar. Ahora tu apoderado puede inscribirte en clases y gestionar tus reservas.'
+        );
+    }
+
+    /**
+     * Rechaza un vínculo familiar desde la interfaz web (sin firma).
+     * Solo el titular del documento puede rechazar.
+     */
+    public function rejectMembership(UserDependent $dependent): \Illuminate\Http\RedirectResponse
+    {
+        $user = Auth::user();
+
+        if ($user->national_id !== $dependent->national_id || $user->country_id !== $dependent->country_id) {
+            abort(403, 'No tienes permiso para rechazar esta solicitud.');
+        }
+
+        $dependent->delete();
+
+        return back()->with('success',
+            'Has rechazado la solicitud de vínculo familiar.'
+        );
     }
 
     // ─── DECISIÓN POST-REGISTRO: DEPENDIENTE PRE-EXISTENTE ─────────────
@@ -256,7 +445,7 @@ class FamilyController extends Controller
      * El nuevo usuario elige DESVINCULARSE: borra el UserDependent 
      * y transfiere todos los Student profiles asociados a su nueva cuenta.
      */
-    public function unlinkDependent(Request $request)
+    public function unlinkDependent(FamilyDecisionService $decisionService)
     {
         $user = Auth::user();
 
@@ -264,42 +453,23 @@ class FamilyController extends Controller
             return redirect()->route('explore');
         }
 
-        $oldOwnerId = $user->dependent_decision_owner_id;
-
         try {
-            // 1. Transferir Student profiles al nuevo usuario
-            //    - Pre-fix: user_id = oldOwnerId (el apoderado)
-            //    - Post-fix: user_id = null (huérfano, la persona real aún no reclama)
-            $transferred = Student::withoutGlobalScopes()
-                ->where('national_id', $user->national_id)
-                ->where('country_id', $user->country_id)
-                ->where(function ($q) use ($oldOwnerId) {
-                    $q->where('user_id', $oldOwnerId)
-                      ->orWhereNull('user_id');
-                })
-                ->update(['user_id' => $user->id]);
+            $transferredCount = $decisionService->unlinkAndTransferClasses(
+                $user, 
+                $user->dependent_decision_owner_id
+            );
 
-            Log::info("Dependent unlink: {$transferred} Student profiles transferidos de user #{$oldOwnerId} a user #{$user->id}");
-
-            // 2. Eliminar el vínculo de dependiente (buscar por national_id + country_id + owner)
-            UserDependent::where('national_id', $user->national_id)
-                ->where('country_id', $user->country_id)
-                ->where('user_id', $oldOwnerId)
-                ->delete();
-
-            // 3. Limpiar flag de decisión
-            $user->update([
-                'dependent_decision_pending'  => false,
-                'dependent_decision_owner_id' => null,
-            ]);
         } catch (\Exception $e) {
-            Log::error('Error en unlinkDependent: ' . $e->getMessage());
-            return redirect()->route('explore')->with('error', 'Hubo un error al desvincular. Intenta de nuevo.');
+            return redirect()->route('explore')
+                ->with('error', 'Hubo un error al desvincular. Intenta de nuevo.');
         }
 
-        return redirect()->route('explore')->with('success', 
-            'Te has desvinculado como familiar. ' . ($transferred > 0 ? "Se transfirieron {$transferred} clases a tu cuenta." : '')
-        );
+        $message = 'Te has desvinculado como familiar.';
+        if ($transferredCount > 0) {
+            $message .= " Se transfirieron {$transferredCount} clases a tu cuenta.";
+        }
+
+        return redirect()->route('explore')->with('success', $message);
     }
 
     /**
@@ -318,8 +488,6 @@ class FamilyController extends Controller
         $oldOwnerId = $user->dependent_decision_owner_id;
 
         // Barrido: transferir Student profiles al nuevo usuario
-        //    - Pre-fix: user_id = oldOwnerId (el apoderado)
-        //    - Post-fix: user_id = null (huérfano, la persona real aún no reclama)
         // (así el hijo también puede ver sus propias clases desde su cuenta)
         $transferred = Student::withoutGlobalScopes()
             ->where('national_id', $user->national_id)
@@ -328,7 +496,7 @@ class FamilyController extends Controller
                 $q->where('user_id', $oldOwnerId)
                   ->orWhereNull('user_id');
             })
-            ->update(['user_id' => $user->id]);
+            ->update(['user_id' => $user->id, 'country_id' => $user->country_id]);
 
         // MANTENER el UserDependent — el apoderado sigue viendo al familiar
         // Solo limpiar el flag

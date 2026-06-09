@@ -70,27 +70,73 @@ class WebhookController extends Controller
         $studioId = $subscription['external_reference'] ?? null;
         $status = $subscription['status'] ?? null;
 
-        if ($studioId && $studio = Studio::find($studioId)) {
+        if ($studioId && $studio = \App\Models\Studio::with('subscriptionPlan')->find($studioId)) {
+            
             if ($status === 'authorized') {
+                
+                // 0. Cargar el plan dinámicamente ANTES de hacer nada
+                $plan = $studio->subscriptionPlan;
+                $planName = $plan ? $plan->name : 'Pro';
+                $planSlug = $plan ? $plan->slug : 'pro';
+                $planPrice = $plan ? $plan->price : 45000;
+
+                // 1. Lógica Anti-Deslizamiento de Facturación
+                $currentExpiration = $studio->subscription_expires_at;
+                
+                // Verificamos si el estado actual es distinto a 'free' (puede ser 'pro', 'founder-elite', 'past_due', etc.)
+                if ($currentExpiration && $studio->subscription_status !== 'free') {
+                    $newExpiration = \Carbon\Carbon::parse($currentExpiration)->addMonth();
+                } else {
+                    $newExpiration = now()->addMonth();
+                }
+
+                // 2. Incrementamos el ciclo actual
+                $currentCycle = $studio->billing_cycles_count + 1;
+
+                // 3. Actualización 100% dinámica
                 $studio->update([
                     'mp_preapproval_id' => $dataId,
-                    'subscription_status' => 'pro'
+                    'subscription_status' => $planSlug, // Ahora guarda 'founder-elite', 'pro', etc.
+                    'subscription_expires_at' => $newExpiration,
+                    'billing_cycles_count' => $currentCycle
                 ]);
 
-                Mail::to($studio->user->email)->send(new SubscriptionReceiptMail($studio, 'Pro', 45000));
-                Mail::to('oscar@estadoprisma.test')->send(new NewSubscriptionAlertMail($studio, 'Pro'));
+                // 4. Evaluación del Límite de Vida del Plan (Sunsetting)
+                if ($plan && $plan->max_billing_cycles && $currentCycle >= $plan->max_billing_cycles) {
+                    
+                    // A. Cancelar cobro automático en Mercado Pago
+                    try {
+                        $mpService->cancelPreapproval($dataId);
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error("Error cancelando suscripción SaaS en MP: " . $e->getMessage());
+                    }
+                    
+                    // B. Correo de fin de beneficio
+                    \Illuminate\Support\Facades\Mail::to($studio->user->email)
+                        ->queue(new \App\Mail\PlanLifecycleEndingMail($studio));
+                        
+                } else {
+                    // Recibo normal dinámico
+                    \Illuminate\Support\Facades\Mail::to($studio->user->email)
+                        ->queue(new \App\Mail\SubscriptionReceiptMail($studio, $planName, $planPrice));
+                }
+
+                // Alerta interna para la plataforma dinámica
+                $adminEmail = env('ADMIN_NOTIFICATION_EMAIL', 'admin@estadoprisma.test');
+                \Illuminate\Support\Facades\Mail::to($adminEmail)
+                    ->queue(new \App\Mail\NewSubscriptionAlertMail($studio, $planName));
 
             } elseif (in_array($status, ['paused', 'cancelled'])) {
-                $studio->update(['subscription_status' => 'free']);
+                // Limpiamos el ID, se mantienen los beneficios hasta que expire el Cron Job
+                $studio->update(['mp_preapproval_id' => null]);
             }
 
-            // 👇 NUEVA INYECCIÓN: Campanita para la Dueña del estudio avisando estado de su plan 👇
             try {
                 if ($studio->user) {
                     $studio->user->notify(new \App\Notifications\SaaSSubscriptionNotification($studio, $status));
                 }
             } catch (\Exception $e) {
-                Log::error('Error registrando notificación in-app de suscripción SaaS: ' . $e->getMessage());
+                \Illuminate\Support\Facades\Log::error('Error registrando notificación in-app de suscripción SaaS: ' . $e->getMessage());
             }
         }
     }

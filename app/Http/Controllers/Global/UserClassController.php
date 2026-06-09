@@ -39,6 +39,7 @@ class UserClassController extends Controller
 
         // 2. Fichas de mis familiares/dependientes (ellos asisten, yo gestiono)
         $dependentNationalIds = UserDependent::where('user_id', $user->id)
+            ->where('status', 'active') // FILTRO APLICADO
             ->pluck('national_id')
             ->toArray();
 

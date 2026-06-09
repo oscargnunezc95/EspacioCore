@@ -13,6 +13,13 @@ return [
     | a conventional file to locate the various service credentials.
     |
     */
+    'mercadopago' => [
+        'token'  => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'public' => env('MERCADOPAGO_PUBLIC_KEY'),
+        'app_id' => env('MERCADOPAGO_APP_ID'),
+        'secret' => env('MERCADOPAGO_CLIENT_SECRET'),
+        'webhook_domain' => env('MERCADOPAGO_WEBHOOK_DOMAIN'), // <-- Agrega esta línea
+    ],
 
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),

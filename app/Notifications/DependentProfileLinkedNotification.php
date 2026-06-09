@@ -34,7 +34,8 @@ class DependentProfileLinkedNotification extends Notification implements ShouldQ
             'message' => "La ficha local de tu familiar {$this->student->first_name} en \"{$studio->name}\" ha sido enlazada a tu billetera titular.",
             'url' => route('global.payments.index'),
             'type' => 'family_link',
-            'studio_id' => $studio->id
+            'studio_id' => $studio->id,
+            'icon'    => 'success', // <-- ¡Esta es la llave que faltaba!
         ];
     }
 }

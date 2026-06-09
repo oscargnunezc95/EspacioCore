@@ -59,7 +59,9 @@
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </button>
                     @endif
-
+                    @php
+                        // Asignamos un icono por defecto ('info') si la notificación no trae la llave 'icon'
+                    @endphp
                     <div class="flex gap-3 pr-8">
                         {{-- Icono Dinámico --}}
                         <div class="shrink-0 mt-0.5">

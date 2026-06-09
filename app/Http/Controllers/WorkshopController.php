@@ -172,9 +172,9 @@ class WorkshopController extends Controller
                 $data['country'] = $studio->country;
             }
 
-            // Limpieza cruzada y limpieza de la base de datos
+            // Limpieza cruzada de variables
             if ($data['is_single_class']) {
-                $workshop->schedules()->delete();
+                $workshop->schedules()->delete(); // Si pasa a clase única, sí se borran los recurrentes
             } else {
                 $data['specific_date'] = null;
                 $data['start_time'] = null;
@@ -187,41 +187,64 @@ class WorkshopController extends Controller
                 $teacherChanged = true;
             }
 
-            // 1. Sincronizar Horarios Dinámicos Múltiples
+            // ====================================================================
+            // 1. SINCRONIZACIÓN INTELIGENTE DE HORARIOS (Previene el NULL en sesiones)
+            // ====================================================================
             if (!$workshop->is_single_class) {
-                $workshop->schedules()->delete(); // Limpiamos los viejos por seguridad
+                $keepScheduleIds = []; // IDs que mantendremos vivos
+                
                 if ($request->has('schedules')) {
                     foreach ($request->schedules as $schedule) {
-                        $workshop->schedules()->create([
-                            'day_of_week'  => $schedule['day'],
-                            'start_time'   => $schedule['time'],
-                            'max_students' => isset($schedule['max_students']) && $schedule['max_students'] !== '' ? $schedule['max_students'] : null,
-                        ]);
+                        // Buscamos si ya existe un horario este día y a esta hora
+                        $savedSchedule = $workshop->schedules()->updateOrCreate(
+                            [
+                                'day_of_week' => $schedule['day'],
+                                'start_time'  => $schedule['time'],
+                            ],
+                            [
+                                'max_students' => isset($schedule['max_students']) && $schedule['max_students'] !== '' ? $schedule['max_students'] : null,
+                            ]
+                        );
+                        $keepScheduleIds[] = $savedSchedule->id;
                     }
                 }
+                // Borramos SOLO los horarios que el profesor eliminó del formulario
+                $workshop->schedules()->whereNotIn('id', $keepScheduleIds)->delete();
             }
 
-            // 2. Sincronizar Planes de Precios
-            $workshop->prices()->delete();
+            // ====================================================================
+            // 2. SINCRONIZACIÓN INTELIGENTE DE PRECIOS (Previene ruptura de Promociones)
+            // ====================================================================
+            $keepPriceIds = [];
             if ($request->has('prices')) {
                 foreach ($request->prices as $priceRow) {
-                    $workshop->prices()->create([
-                        'class_count'            => $priceRow['class_count'],
-                        'price'                  => $priceRow['price'],
-                        'is_monthly'             => isset($priceRow['is_monthly']) ? true : false,
-                        'introductory_price'     => !empty($priceRow['introductory_price']) ? $priceRow['introductory_price'] : null,
-                        'is_introductory_active' => isset($priceRow['is_introductory_active']) ? true : false,
-                    ]);
+                    $savedPrice = $workshop->prices()->updateOrCreate(
+                        [
+                            'class_count' => $priceRow['class_count'], // Buscamos por la cantidad de clases (ej: Pack de 4)
+                        ],
+                        [
+                            'price'                  => $priceRow['price'],
+                            'is_monthly'             => isset($priceRow['is_monthly']) ? true : false,
+                            'introductory_price'     => !empty($priceRow['introductory_price']) ? $priceRow['introductory_price'] : null,
+                            'is_introductory_active' => isset($priceRow['is_introductory_active']) ? true : false,
+                        ]
+                    );
+                    $keepPriceIds[] = $savedPrice->id;
                 }
             }
+            // Borramos SOLO los precios eliminados del formulario
+            $workshop->prices()->whereNotIn('id', $keepPriceIds)->delete();
+
 
             // 2.5 Precio único para clase única (Masterclass)
             if ($workshop->is_single_class && $request->filled('single_class_price')) {
-                $workshop->prices()->create([
-                    'class_count' => 1,
-                    'price'       => $request->single_class_price,
-                    'is_monthly'  => false,
-                ]);
+                $workshop->prices()->updateOrCreate(
+                    ['class_count' => 1],
+                    [
+                        'price'      => $request->single_class_price,
+                        'is_monthly' => false,
+                    ]
+                );
             }
 
             // 3. Sincronizar Sesión para Clase Única

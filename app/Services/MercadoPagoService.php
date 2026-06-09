@@ -45,10 +45,23 @@ class MercadoPagoService
 
     public function createPreference($studioId, $selections, $user)
     {
-        $studio = Studio::with('user.country')->findOrFail($studioId);
-        $this->setToken($studio->mp_access_token ?? config('services.mercadopago.token'));
+        $studio = Studio::with('user.country', 'subscriptionPlan')->findOrFail($studioId);
+        
+        $studioToken = $studio->mp_access_token;
+
+        // =========================================================================
+        // BLINDAJE ABSOLUTO: Sin token del estudio, no hay transacción.
+        // =========================================================================
+        if (empty($studioToken)) {
+            \Illuminate\Support\Facades\Log::critical("Intento de pago rechazado: El estudio ID {$studioId} no tiene cuenta de Mercado Pago vinculada.");
+            throw new \Exception("Este estudio aún no está habilitado para recibir pagos online. Por favor, contacta a la administración.");
+        }
+
+        // Fijamos el token estrictamente al del estudio
+        $this->setToken($studioToken);
 
         $items = [];
+        $totalAmount = 0;
         $selectionsByStudent = collect($selections)->groupBy('student_id');
 
         foreach ($selectionsByStudent as $studentId => $selectionItems) {
@@ -56,9 +69,12 @@ class MercadoPagoService
             if (!$student) continue;
 
             $checkedSessionIds = $selectionItems->pluck('session_id')->toArray();
-            $result = $this->pricingService->calculateCart($studioId, $checkedSessionIds);
+            
+            $result = $this->pricingService->calculateCart($studioId, $checkedSessionIds, $student->id);
 
             if ($result['total'] > 0) {
+                $totalAmount += $result['total'];
+
                 $items[] = [
                     'title'       => 'Reserva Clases - ' . $student->first_name,
                     'quantity'    => 1,
@@ -69,7 +85,9 @@ class MercadoPagoService
         }
 
         $client = new PreferenceClient();
-
+        
+        // Obtenemos el dominio de webhook (Ngrok en local, App URL en producción)
+        $webhookDomain = config('services.mercadopago.webhook_domain') ?: rtrim(config('app.url'), '/');
         $baseUrl = rtrim(config('app.url'), '/');
 
         $request = [
@@ -84,9 +102,25 @@ class MercadoPagoService
                 'failure' => $baseUrl . '/pagos/error',
                 'pending' => $baseUrl . '/pagos/pendiente',
             ],
-            'auto_return' => 'approved',
+            'auto_return'      => 'approved',
+            'notification_url' => rtrim($webhookDomain, '/') . '/api/webhooks/mercadopago', 
         ];
 
+        // =========================================================================
+        // LÓGICA DE SPLIT PAYMENT (COBRO DE TU COMISIÓN)
+        // =========================================================================
+        $plan = $studio->subscriptionPlan;
+        $feePercent = $plan ? (float) $plan->platform_fee_percent : 5.00; 
+
+        if ($feePercent > 0 && $totalAmount > 0) {
+            $feeAmount = round($totalAmount * ($feePercent / 100));
+            
+            // Medida de seguridad: La comisión nunca puede ser mayor o igual al total
+            if ($feeAmount > 0 && $feeAmount < $totalAmount) {
+                $request['marketplace_fee'] = $feeAmount;
+            }
+        }
+        
         $preference = $client->create($request);
 
         if (!$preference->init_point) {
@@ -104,7 +138,18 @@ class MercadoPagoService
         $this->setToken(config('services.mercadopago.token'));
 
         $client = new PaymentClient();
-        $mpPayment = $client->get((int) $dataId);
+        try {
+            $mpPayment = $client->get((int) $dataId);
+        } catch (\MercadoPago\Exceptions\MPApiException $e) {
+            // ERROR: El pago no existe en la API o el ID es de prueba
+            Log::error("MercadoPago API Error: No se pudo obtener el pago {$dataId}. Detalles: " . $e->getMessage());
+            return; // Salimos limpiamente sin romper el webhook
+        }
+
+        if (!$mpPayment || $mpPayment->status !== 'approved') {
+            Log::info("Pago {$dataId} ignorado o no aprobado.");
+            return;
+        }
 
         if (!$mpPayment || $mpPayment->status !== 'approved') {
             Log::info("Pago {$dataId} ignorado o no aprobado. Estado: " . ($mpPayment->status ?? 'null'));
@@ -122,8 +167,24 @@ class MercadoPagoService
         }
 
         $totalAmount = (float) $mpPayment->transaction_amount;
+
+        // =========================================================================
+        // MAGIA FINANCIERA: Extraer tu comisión exacta reportada por Mercado Pago
+        // =========================================================================
+        $totalPlatformFee = 0;
+        if (isset($mpPayment->fee_details)) {
+            foreach ($mpPayment->fee_details as $fee) {
+                if ($fee->type === 'application_fee') { 
+                    $totalPlatformFee = (float) $fee->amount;
+                }
+            }
+        }
+
         $numSelections = count($selectionsPagadas);
         $amountPerSelection = $numSelections > 0 ? round($totalAmount / $numSelections, 2) : 0;
+        
+        // Prorrateamos tu comisión por cada selección para que el Ledger cuadre a 0
+        $platformFeePerSelection = $numSelections > 0 ? round($totalPlatformFee / $numSelections, 2) : 0;
 
         $selectionsByStudent = collect($selectionsPagadas)->groupBy('student_id');
 
@@ -139,13 +200,18 @@ class MercadoPagoService
                 $student = Student::withoutGlobalScopes()->find($studentId);
                 if (!$student) continue;
 
+                // Cálculos finales para la fila del pago
+                $paymentAmount = $amountPerSelection * count($sessionIds);
+                $paymentFee = $platformFeePerSelection * count($sessionIds);
+
                 $payment = Payment::create([
                     'student_id'     => $studentId,
                     'studio_id'      => $firstSession->studio_id ?? $studioId,
                     'workshop_id'    => $firstSession->workshop_id,
                     'payment_type'   => count($sessionIds) == 1 ? 'single' : 'pack',
                     'payment_method' => 'mercadopago',
-                    'amount'         => $amountPerSelection * count($sessionIds),
+                    'amount'         => $paymentAmount,
+                    'platform_fee'   => $paymentFee, // <-- REGISTRO DE TU INGRESO
                     'mp_payment_id'  => $dataId,
                     'status'         => 'approved',
                 ]);
@@ -178,6 +244,7 @@ class MercadoPagoService
 
             DB::commit();
 
+            // Lógica de llenado de cupos y notificación a alumnos pendientes (lista de espera visual)
             $affectedSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique();
             foreach ($affectedSessionIds as $sid) {
                 $session = ClassSession::withoutGlobalScopes()
@@ -282,5 +349,23 @@ class MercadoPagoService
             'init_point'    => $preference->init_point,
             'preference_id' => $preference->id,
         ];
+    }
+
+    /**
+     * Cancela una suscripción activa (Preapproval) en Mercado Pago.
+     */
+    public function cancelPreapproval(string $preapprovalId): void
+    {
+        // Usamos el token global de tu plataforma (EstadoPrisma)
+        $this->setToken(config('services.mercadopago.token'));
+        
+        $client = new \MercadoPago\Client\PreApproval\PreApprovalClient();
+        
+        // Actualizamos el estado a 'cancelled'
+        $client->update($preapprovalId, [
+            "status" => "cancelled"
+        ]);
+        
+        \Illuminate\Support\Facades\Log::info("Suscripción {$preapprovalId} cancelada exitosamente vía API.");
     }
 }

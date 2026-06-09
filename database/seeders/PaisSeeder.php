@@ -25,7 +25,7 @@ class PaisSeeder extends Seeder
                 'updated_at' => now(),
             ]
         );
-        Country::firstOrCreate(
+        /*  Country::firstOrCreate(
             [
                 'name' => 'Otro / Internacional',
                 'code' => 'OT',
@@ -36,17 +36,6 @@ class PaisSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ]
-        );
-        // 1. Usuario Administrador Principal
-        $admin = User::firstOrCreate(
-            ['email' => 'oscargnunezc18@gmail.com'],
-            [
-                'name' => 'Oscar Nuñez',
-                'password' => Hash::make('qwerqwer'),
-                'email_verified_at' => now(),
-                'national_id' => '18802107-7',
-                'country_id' => 1,
-            ]
-        );
+        ); */
     }
 }
