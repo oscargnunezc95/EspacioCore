@@ -1,3 +1,9 @@
-modificar el webhook controller para separar la logica de negocio y delegarla a un servicio que puede ser el mercadopagoservice u otro nuevo
-pregutar si los pagos de los estudios a los profes debe recibirlos el webhook controller
-asignarle el plan free a cada estudio que se crea
+
+Tratar de volver a pagar con u monto mas alto
+probar dos cuentas de mercado pago para ver si el split funciona
+probar si pagar una clase y luego 3 del mismo ems genera el descuento de pack
+probar correos asignados automáticamente al crear usuario que ya era familiar
+probar correo asignado a fichas de estudiante al emancipar familiar
+revisar página de estudio
+qué sucede en la vista explorere cuando no quedan cupos en una clase? y en el carrito cuando alguien mas yala reservó?
+agregar filtro de pais en el explorer

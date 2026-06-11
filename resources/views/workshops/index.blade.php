@@ -445,12 +445,6 @@
                         @error('prices.*.introductory_price') <p class="text-xs text-rose-500 font-bold mt-1">Revisa el precio promocional. Debe ser un número válido.</p> @enderror
                     </div>
 
-                    {{-- Info Pago --}}
-                    <div class="col-span-1 md:col-span-2 mt-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Datos de Transferencia (Opcional)</label>
-                        <textarea name="payment_info" id="w_payment" rows="2" placeholder="Ej: Banco Estado, Cuenta RUT..." 
-                                class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">{{ old('payment_info') }}</textarea>
-                    </div>
                 </div>
 
                 <div class="mt-8 flex gap-3 pt-4 border-t border-zinc-100">
@@ -809,7 +803,6 @@
             
             document.getElementById('w_name').value = w.name;
             document.getElementById('w_color').value = w.color || 'blue';
-            document.getElementById('w_payment').value = w.payment_info || '';
             document.getElementById('w_teacher_id').value = w.teacher_id || '';
             document.getElementById('w_target_audience').value = w.target_audience || 'adults';
             document.getElementById('w_description').value = w.description || '';

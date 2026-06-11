@@ -57,7 +57,7 @@ class ClassFullNotification extends Notification
         return [
             'type'    => 'class_full',
             'title'   => '🚨 ¡Clase llena!',
-            'message' => "{$workshopName} del {$date} a las {$time} ya no tiene cupos. Si no has pagado, ¡apresúrate!",
+            'message' => "{$workshopName} del {$date} a las {$time} ya no tiene cupos.",
             'session_id' => $this->session->id,
             'icon'    => 'danger',
         ];

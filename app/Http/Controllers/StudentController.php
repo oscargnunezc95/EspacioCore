@@ -7,6 +7,7 @@ use Illuminate\Validation\Rule;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Studio;
+use App\Models\UserDependent;
 use App\Models\ClassSession;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Config;
@@ -81,7 +82,13 @@ class StudentController extends Controller
                 function ($attribute, $value, $fail) use ($request) {
                     $existingUser = User::where('email', $value)->first();
                     if ($existingUser && $existingUser->national_id !== $request->national_id) {
-                        $fail('Este correo ya está registrado con otro documento. ');
+                        // Excepción: ¿el dueño del correo es apoderado de este national_id?
+                        $isGuardian = UserDependent::where('user_id', $existingUser->id)
+                            ->where('national_id', $request->national_id)
+                            ->exists();
+                        if (! $isGuardian) {
+                            $fail('Este correo ya está registrado con otro documento. ');
+                        }
                     }
                 }
             ],
@@ -107,7 +114,7 @@ class StudentController extends Controller
             // Vinculado a un usuario existente
             try {
                 Mail::to($user->email)->send(new UserLinkedToStudioMail($studio, $user->name));
-                $user->notify(new StudentAddedNotification($studio));
+                $user->notify(new StudentAddedNotification($studio, $student));
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::error('Fallo notificación vinculación alumna: ' . $e->getMessage());
             }
@@ -160,7 +167,13 @@ class StudentController extends Controller
                 function ($attribute, $value, $fail) use ($request) {
                     $existingUser = User::where('email', $value)->first();
                     if ($existingUser && $existingUser->national_id !== $request->national_id) {
-                        $fail('Este correo ya está registrado con otro documento. Si es un apoderado inscribiendo a otra persona, añade "+nombre" antes del @ (ej: correo+hijo@gmail.com).');
+                        // Excepción: ¿el dueño del correo es apoderado de este national_id?
+                        $isGuardian = UserDependent::where('user_id', $existingUser->id)
+                            ->where('national_id', $request->national_id)
+                            ->exists();
+                        if (! $isGuardian) {
+                            $fail('Este correo ya está registrado con otro documento. Si es un apoderado inscribiendo a otra persona, añade \"+nombre\" antes del @ (ej: correo+hijo@gmail.com).');
+                        }
                     }
                 }
             ],

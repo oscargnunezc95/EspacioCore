@@ -496,7 +496,7 @@ class FamilyController extends Controller
                 $q->where('user_id', $oldOwnerId)
                   ->orWhereNull('user_id');
             })
-            ->update(['user_id' => $user->id, 'country_id' => $user->country_id]);
+            ->update(['user_id' => $user->id, 'country_id' => $user->country_id, 'email' => $user->email]);
 
         // MANTENER el UserDependent — el apoderado sigue viendo al familiar
         // Solo limpiar el flag

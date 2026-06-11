@@ -37,7 +37,7 @@ class LocalProfileLinkedNotification extends Notification implements ShouldQueue
             'message' => "El estudio \"{$studio->name}\" vinculó tu cuenta a su base de datos local. Ya puedes gestionar tus deudas y asistencias online.",
             'url' => route('global.payments.index'), // Redirección directa al Portal de Pagos
             'type' => 'profile_link',
-            'studio_id' => $studio->id
+            'studio_id' => $studio->id,
             'icon'    => 'success', // <-- ¡Esta es la llave que faltaba!
         ];
     }

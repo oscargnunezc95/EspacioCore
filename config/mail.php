@@ -13,6 +13,7 @@ return [
     | "mailers" array. Examples of each type of mailer are provided.
     |
     */
+    'support_email' => env('ADMIN_NOTIFICATION_EMAIL', 'oscargnunezc95@gmail.com'),
 
     'default' => env('MAIL_MAILER', 'log'),
 

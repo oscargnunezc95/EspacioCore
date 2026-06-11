@@ -30,6 +30,9 @@ class StudioManagementController extends Controller
     /**
      * Actualiza el Plan asignado a un estudio vía AJAX.
      */
+    /**
+     * Actualiza el Plan asignado a un estudio vía AJAX y notifica al dueño.
+     */
     public function updatePlan(Request $request, Studio $studio): JsonResponse
     {
         $validated = $request->validate([
@@ -44,27 +47,53 @@ class StudioManagementController extends Controller
             
             // Determinamos el nuevo slug de estado
             $newStatus = 'free'; 
+            $planName = 'Plan Gratis (5%)'; // Valor por defecto amigable para el correo
+
             if ($newPlanId) {
                 $plan = SubscriptionPlan::find($newPlanId);
-                $newStatus = $plan->slug; // Ej: 'founder-elite', 'pro'
+                $newStatus = $plan->slug;
+                $planName = $plan->name;
             }
 
             // Actualización integral de todas las columnas SaaS vinculadas
             $studio->update([
                 'subscription_plan_id' => $newPlanId,
-                'subscription_status'  => $newStatus, // Mantenemos la Única Fuente de Verdad
-                'billing_cycles_count' => 0,          // Reinicio crítico del contador de meses
+                'subscription_status'  => $newStatus, 
+                'billing_cycles_count' => 0,          
             ]);
+
+            // =========================================================================
+            // LÓGICA DE NOTIFICACIONES (In-App y Email)
+            // =========================================================================
+            $studio->load('user'); // Aseguramos que el usuario dueño esté cargado en memoria
+
+            if ($studio->user) {
+                try {
+                    // 1. Notificación In-App (Campanita)
+                    // Reutilizamos la notificación existente de Mercado Pago pasando el nuevo estado
+                    $studio->user->notify(new \App\Notifications\SaaSSubscriptionNotification($studio, $newStatus));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Error enviando notificación in-app de cambio manual de plan: ' . $e->getMessage());
+                }
+
+                try {
+                    // 2. Correo Electrónico Informativo
+                    // Asume que crearás un Mailable llamado PlanManuallyUpdatedMail
+                    \Illuminate\Support\Facades\Mail::to($studio->user->email)
+                        ->queue(new \App\Mail\PlanManuallyUpdatedMail($studio, $planName));
+                } catch (\Exception $e) {
+                    \Illuminate\Support\Facades\Log::error('Error encolando correo de cambio manual de plan: ' . $e->getMessage());
+                }
+            }
         }
 
-        // Forzamos la recarga de la relación para evitar caché de Eloquent en el JSON
+        // Forzamos la recarga de la relación para la respuesta JSON
         $studio->load('subscriptionPlan');
-        
-        $planName = $studio->subscriptionPlan ? $studio->subscriptionPlan->name : 'Starter (5%)';
+        $finalPlanName = $studio->subscriptionPlan ? $studio->subscriptionPlan->name : 'Gratis (5%)';
 
         return response()->json([
             'ok'      => true,
-            'message' => "El estudio ahora pertenece al plan: {$planName}",
+            'message' => "El estudio ahora pertenece al plan: {$finalPlanName}",
         ]);
     }
     /**

@@ -170,7 +170,7 @@ class UserClassController extends Controller
 
     public function toggleEnrollment(Request $request)
     {
-        dd($request->all());
+
         try {
             $request->validate([
                 'class_session_id' => 'required|integer',
@@ -232,14 +232,14 @@ class UserClassController extends Controller
                 $student->studio_id   = $studioId;
                 $student->first_name  = $attendee['first_name'];
                 $student->last_name   = $attendee['last_name'];
-                $student->email       = $isSelf ? $user->email : null;
+                $student->email       = $user->email;
                 $student->national_id = $attendee['national_id'];
                 $student->is_guest    = false;
                 $student->save();
 
                 try {
                     $studio = Studio::find($studioId);
-                    $user->notify(new StudentAddedNotification($studio));
+                    $user->notify(new StudentAddedNotification($studio, $student));
                 } catch (\Exception $e) {}
             }
 
@@ -314,7 +314,6 @@ class UserClassController extends Controller
                             'country_id'  => $dependent->country_id ?? $user->country_id, 
                         ];
                     } else {
-                        // Familiar no encontrado o no pertenece a este usuario
                         continue;
                     }
                 }
@@ -331,7 +330,6 @@ class UserClassController extends Controller
 
                 if ($student) {
                     if (empty($student->user_id)) {
-                        // PRINCIPIO: user_id es quien ASISTE. Solo asignar si es el propio usuario.
                         $isSelf = ($attendee['national_id'] === $user->national_id);
                         if ($isSelf) {
                             $student->update([
@@ -342,9 +340,8 @@ class UserClassController extends Controller
                         }
                     }
                 } else {
-                    if ($action === 'remove') continue; // No crear ficha si solo queremos borrar
+                    if ($action === 'remove') continue;
 
-                    // PRINCIPIO: user_id es la persona que ASISTE, no quien gestiona
                     $isSelf = ($attendee['national_id'] === $user->national_id);
 
                     $student = new Student();
@@ -352,7 +349,9 @@ class UserClassController extends Controller
                     $student->studio_id   = $studioId;
                     $student->first_name  = $attendee['first_name'];
                     $student->last_name   = $attendee['last_name'];
-                    $student->email       = $isSelf ? $user->email : null;
+                    $student->email       = $isSelf
+                        ? $user->email
+                        : $this->subaddressEmail($user->email, $attendee['first_name']);
                     $student->country_id  = $attendee['country_id']; 
                     $student->national_id = $attendee['national_id'];
                     $student->is_guest    = false;
@@ -360,13 +359,10 @@ class UserClassController extends Controller
                     
                     try {
                         $studio = Studio::find($studioId);
-                        $user->notify(new StudentAddedNotification($studio));
+                        $user->notify(new StudentAddedNotification($studio, $student));
                     } catch (\Exception $e) {}
                 }
 
-                // ==========================================
-                // LÓGICA EXPLÍCITA DE ORDENES (ESCUDO DE PAGO)
-                // ==========================================
                 $existingStudent = $session->students()->withoutGlobalScopes()
                                            ->where('students.id', $student->id)->first();
 
@@ -398,14 +394,13 @@ class UserClassController extends Controller
 
                 if (!$session) continue;
 
-                $maxStudents = $session->max_students; // Accessor: schedule->max_students ?? 99
+                $maxStudents = $session->max_students;
                 $paidCount = DB::table('class_session_student')
                     ->where('class_session_id', $sid)
                     ->where('payment_status', 'paid')
                     ->count();
                 $availableSpots = max(0, $maxStudents - $paidCount);
 
-                // Buscar TODOS los estudiantes pendientes de esta sesión (excepto los que acaban de pagar)
                 $pendingStudentIds = DB::table('class_session_student')
                     ->where('class_session_id', $sid)
                     ->where('payment_status', 'pending')
@@ -413,25 +408,25 @@ class UserClassController extends Controller
 
                 if ($pendingStudentIds->isEmpty()) continue;
 
-                // Obtener los Users dueños de esos Students
+                // EXCEPCIÓN APLICADA AQUÍ: ->where('id', '!=', $user->id)
                 $pendingUsers = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
                     $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
-                })->get();
+                })
+                ->where('id', '!=', $user->id) 
+                ->get();
 
                 if ($availableSpots <= 0) {
-                    // CLASE LLENA: email + in-app para todos los pendientes
-                    foreach ($pendingUsers as $user) {
+                    foreach ($pendingUsers as $pendingUser) {
                         try {
-                            $user->notify(new ClassFullNotification($session));
+                            $pendingUser->notify(new ClassFullNotification($session));
                         } catch (\Exception $e) {
                             Log::error('Error enviando ClassFullNotification: ' . $e->getMessage());
                         }
                     }
                 } else {
-                    // SpotReserved: solo in-app para los pendientes
-                    foreach ($pendingUsers as $user) {
+                    foreach ($pendingUsers as $pendingUser) {
                         try {
-                            $user->notify(new SpotReservedNotification($session, $availableSpots));
+                            $pendingUser->notify(new SpotReservedNotification($session, $availableSpots));
                         } catch (\Exception $e) {
                             Log::error('Error enviando SpotReservedNotification: ' . $e->getMessage());
                         }

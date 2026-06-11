@@ -26,7 +26,6 @@ class PaymentController extends Controller
      */
     public function store(Request $request, $subdomain, Student $student)
     {
-        // 1. Validación estricta de la entrada
         $request->validate([
             'amount' => 'required|numeric|min:0',
             'payment_method' => 'required|in:efectivo,transferencia', 
@@ -39,19 +38,14 @@ class PaymentController extends Controller
             'payment_method.required' => 'Debes seleccionar el método de pago.'
         ]);
 
-        // 2. Gestión de archivo de comprobante
         $path = null;
         if ($request->hasFile('receipt')) {
             $path = $request->file('receipt')->store('receipts', 'public');
         }
 
-        // Recuperamos la primera sesión para determinar el taller asociado (contexto contable)
         $firstSession = ClassSession::findOrFail($request->session_ids[0]);
-
-        // Resolvemos el Estudio actual mediante el subdominio para el contexto de los correos
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
 
-        // 3. Ejecución de la transacción de Base de Datos (Retorna el pago creado)
         $payment = DB::transaction(function () use ($request, $student, $path, $firstSession) {
             
             $payment = Payment::create([
@@ -63,23 +57,19 @@ class PaymentController extends Controller
                 'receipt_path'   => $path
             ]);
 
-            // 4. Vinculación en tabla pivot (Historial del pago)
             $pivotData = [];
             foreach ($request->session_ids as $sessionId) {
                 $pivotData[$sessionId] = ['student_id' => $student->id];
             }
             $payment->classSessions()->attach($pivotData);
 
-            // 5. AUTOMATIZACIÓN DE FLUJO: Inscripción + Asistencia
             foreach ($request->session_ids as $sessionId) {
                 $session = ClassSession::find($sessionId);
                 
-                // Asegurar inscripción Y marcar como PAGADO (Para vaciar el carrito)
                 $session->students()->syncWithoutDetaching([
                     $student->id => ['payment_status' => 'paid']
                 ]);
                 
-                // Marcar presente automáticamente
                 $session->attendances()->firstOrCreate([
                     'student_id' => $student->id
                 ]);
@@ -88,16 +78,13 @@ class PaymentController extends Controller
             return $payment;
         });
 
-        // 6. FLUJO DE COMUNICACIÓN: Envíos de correo fuera de la transacción
         try {
-            // Notificación al Alumno (si cuenta con correo registrado)
             if ($student->email) {
                 Mail::to($student->email)->send(
                     new StudentPaymentReceiptMail($studio, $payment, $student->name)
                 );
             }
 
-            // Notificación al Administrador del Estudio
             if ($studio->user && $studio->user->email) {
                 Mail::to($studio->user->email)->send(
                     new StudioPaymentNotificationMail($studio, $payment, $student->name)
@@ -105,8 +92,6 @@ class PaymentController extends Controller
             }
         } catch (\Throwable $e) { 
             \Illuminate\Support\Facades\Log::error('Error enviando correos de pago: ' . $e->getMessage() . ' en la línea ' . $e->getLine());
-            
-            // Retornamos de vuelta a la vista (Blade) con el error para no romper la UX
             return back()->withErrors('El pago y la asistencia se registraron correctamente, pero hubo un problema al enviar los correos de confirmación.');
         }
 
@@ -119,7 +104,7 @@ class PaymentController extends Controller
 
                 if (!$session) continue;
 
-                $maxStudents = $session->max_students; // Accessor: schedule->max_students ?? 99
+                $maxStudents = $session->max_students;
                 $paidCount = DB::table('class_session_student')
                     ->where('class_session_id', $sessionId)
                     ->where('payment_status', 'paid')
@@ -133,17 +118,25 @@ class PaymentController extends Controller
 
                 if ($pendingStudentIds->isEmpty()) continue;
 
-                $pendingUsers = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
+                // Construimos la query base
+                $pendingUsersQuery = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
                     $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
-                })->get();
+                });
+
+                // EXCEPCIÓN APLICADA AQUÍ: Excluimos al usuario del alumno que acaba de pagar
+                if ($student->user_id) {
+                    $pendingUsersQuery->where('id', '!=', $student->user_id);
+                }
+
+                $pendingUsers = $pendingUsersQuery->get();
 
                 if ($availableSpots <= 0) {
-                    foreach ($pendingUsers as $user) {
-                        $user->notify(new ClassFullNotification($session));
+                    foreach ($pendingUsers as $pendingUser) {
+                        $pendingUser->notify(new ClassFullNotification($session));
                     }
                 } else {
-                    foreach ($pendingUsers as $user) {
-                        $user->notify(new SpotReservedNotification($session, $availableSpots));
+                    foreach ($pendingUsers as $pendingUser) {
+                        $pendingUser->notify(new SpotReservedNotification($session, $availableSpots));
                     }
                 }
             }

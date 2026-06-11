@@ -121,11 +121,25 @@ class DashboardService
         return Student::whereHas('classSessions', function ($query) {
             $query->where('class_session_student.payment_status', 'pending')
                   ->where('date', '<=', now()->toDateString())
-                  ->where('is_cancelled', false);
+                  ->where('is_cancelled', false)
+                  // 1. Filtrar estudiantes que SÍ asistieron a la clase
+                  ->whereExists(function ($subQuery) {
+                      $subQuery->select(DB::raw(1))
+                               ->from('attendances')
+                               ->whereColumn('attendances.class_session_id', 'class_session_student.class_session_id')
+                               ->whereColumn('attendances.student_id', 'class_session_student.student_id');
+                  });
         })->with(['classSessions' => function ($query) {
             $query->where('class_session_student.payment_status', 'pending')
                   ->where('date', '<=', now()->toDateString())
                   ->where('is_cancelled', false)
+                  // 2. Cargar SOLO las clases específicas a las que asistieron
+                  ->whereExists(function ($subQuery) {
+                      $subQuery->select(DB::raw(1))
+                               ->from('attendances')
+                               ->whereColumn('attendances.class_session_id', 'class_session_student.class_session_id')
+                               ->whereColumn('attendances.student_id', 'class_session_student.student_id');
+                  })
                   ->orderBy('date', 'desc')
                   ->with('workshop');
         }])->get();

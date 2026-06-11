@@ -167,8 +167,8 @@ Route::domain($baseDomain)->group(function () {
     Route::middleware(['auth', 'super.admin'])->prefix('admin')->group(function () {
         Route::get('/estudios', [StudioManagementController::class, 'index'])
             ->name('admin.studios.index');
-        Route::patch('/estudios/{studio}/comision', [StudioManagementController::class, 'updateFee'])
-            ->name('admin.studios.update-fee');
+        Route::patch('/estudios/{studio}/plan', [StudioManagementController::class, 'updatePlan'])
+                ->name('admin.studios.update-plan');
         // --- NUEVAS RUTAS PARA PLANES ---
         Route::get('/planes', [SubscriptionPlanController::class, 'index'])
             ->name('admin.plans.index');
@@ -176,6 +176,7 @@ Route::domain($baseDomain)->group(function () {
             ->name('admin.plans.store');
         Route::put('/planes/{plan}', [SubscriptionPlanController::class, 'update'])
             ->name('admin.plans.update');
+
         // Para activar/desactivar en lugar de borrar (Soft-disable)
         Route::patch('/planes/{plan}/toggle', [SubscriptionPlanController::class, 'toggle'])
             ->name('admin.plans.toggle');

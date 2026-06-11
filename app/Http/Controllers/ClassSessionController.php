@@ -244,7 +244,7 @@ class ClassSessionController extends Controller
                     } else {
                         Mail::to($user->email)->send(new UserLinkedToStudioMail($studio, $user->name));
                     }
-                    $user->notify(new StudentAddedNotification($studio));
+                    $user->notify(new StudentAddedNotification($studio, $student));
                 } catch (\Exception $e) {
                     \Illuminate\Support\Facades\Log::error('Fallo onboarding alumna express: ' . $e->getMessage());
                 }

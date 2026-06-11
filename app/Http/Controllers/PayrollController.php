@@ -10,7 +10,6 @@ use App\Models\Studio;
 use App\Services\PayrollService;
 use App\Services\MercadoPagoService;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
 
 class PayrollController extends Controller
 {
@@ -65,30 +64,13 @@ class PayrollController extends Controller
             'payment_method' => 'required|in:manual,mercadopago',
         ]);
 
-        $studio = Studio::findOrFail($studioId);
-
         // === RUTA MANUAL ===
         if ($request->payment_method === 'manual') {
             $request->validate([
                 'receipt' => 'required|file|mimes:jpeg,png,jpg,webp,pdf|max:10240',
             ]);
 
-            $receiptPath = null;
-            if ($request->hasFile('receipt')) {
-                $receiptPath = $request->file('receipt')->store('payroll_receipts', 'public');
-            }
-
-            $payment = TeacherPayment::create([
-                'studio_id'      => $studioId,
-                'teacher_id'     => $teacher->id,
-                'month_year'     => $request->month_year,
-                'amount'         => $request->amount,
-                'payment_method' => 'manual',
-                'receipt_path'   => $receiptPath,
-                'status'         => 'paid',
-            ]);
-
-            $this->notifyTeacherPaymentReceived($payment, $studio);
+            $this->payrollService->processManualPayment($request, $teacher, $studioId);
 
             return redirect()->route('teachers.payroll.show', [
                 'subdomain' => $subdomain,
@@ -103,6 +85,8 @@ class PayrollController extends Controller
         }
 
         try {
+            $studio = Studio::findOrFail($studioId);
+
             $successUrl = route('payroll.mp.success.global', [
                 'teacher_id' => $teacher->id,
                 'subdomain'  => $subdomain,
@@ -125,14 +109,12 @@ class PayrollController extends Controller
                 'failure_url'      => $failureUrl,
             ]);
 
-            // Crear registro pendiente
-            TeacherPayment::create([
-                'studio_id'      => $studioId,
-                'teacher_id'     => $teacher->id,
-                'month_year'     => $request->month_year,
-                'amount'         => $request->amount,
-                'payment_method' => 'mercadopago',
-                'status'         => 'pending',
+            // Crear registro pendiente (servicio)
+            $this->payrollService->createPendingPayment([
+                'studio_id'  => $studioId,
+                'teacher_id' => $teacher->id,
+                'month_year' => $request->month_year,
+                'amount'     => $request->amount,
             ]);
 
             return redirect()->away($preference['init_point']);
@@ -166,21 +148,8 @@ class PayrollController extends Controller
         }
 
         if ($monthYear) {
-            $payment = TeacherPayment::where('teacher_id', $teacher->id)
-                ->where('month_year', $monthYear)
-                ->where('payment_method', 'mercadopago')
-                ->where('status', 'pending')
-                ->latest()
-                ->first();
-
-            if ($payment) {
-                $payment->update(['status' => 'paid']);
-                
-                $studio = Studio::withoutGlobalScopes()->find($teacher->studio_id);
-                if ($studio) {
-                    $this->notifyTeacherPaymentReceived($payment, $studio);
-                }
-            }
+            // Servicio: buscar pendiente y marcar como pagado (ya incluye notificaciones)
+            $this->payrollService->markPaymentAsPaid($teacher->id, $monthYear);
         }
 
         return redirect()->route('teachers.payroll.show', [
@@ -296,31 +265,6 @@ class PayrollController extends Controller
         } catch (\Exception $e) {
             Log::error('Error retomando pago a profesor: ' . $e->getMessage());
             return back()->with('error', 'Error al generar el pago. Verifica que la cuenta del profesor esté activa.');
-        }
-    }
-
-    /**
-     * Dispara notificación in-app y correo cuando un pago se marca como pagado.
-     */
-    private function notifyTeacherPaymentReceived(TeacherPayment $payment, Studio $studio): void
-    {
-        $user = $payment->teacher?->user;
-        if (! $user) {
-            return;
-        }
-
-        // Notificación in-app (campanita)
-        try {
-            $user->notify(new \App\Notifications\TeacherPaymentReceivedNotification($payment));
-        } catch (\Exception $e) {
-            Log::error('Error enviando notificación in-app de pago a profesor: ' . $e->getMessage());
-        }
-
-        // Correo electrónico (encolado, no bloquea la respuesta)
-        try {
-            Mail::to($user->email)->queue(new \App\Mail\TeacherPaymentReceivedMail($payment, $studio));
-        } catch (\Exception $e) {
-            Log::error('Error encolando correo de pago a profesor: ' . $e->getMessage());
         }
     }
 }

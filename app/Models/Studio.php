@@ -85,4 +85,33 @@ class Studio extends Model
     {
         return $this->belongsTo(SubscriptionPlan::class);
     }
+    /**
+     * El método "booted" del modelo.
+     * Se ejecuta cuando el modelo ha terminado de cargar.
+     */
+    protected static function booted()
+    {
+        // Interceptamos la creación ANTES de que se guarde en la BD
+        static::creating(function ($studio) {
+            
+            // Si no se le ha asignado un plan explícitamente...
+            if (empty($studio->subscription_plan_id)) {
+                
+                // Buscamos el ID del plan 'free'
+                $freePlan = \App\Models\SubscriptionPlan::where('slug', 'free')->first();
+                
+                if ($freePlan) {
+                    $studio->subscription_plan_id = $freePlan->id;
+                    $studio->subscription_status = 'free'; // Aseguramos el status
+                    
+                    // Le damos 100 años de duración al plan free para que no expire nunca,
+                    // o lo dejamos en null si tu lógica maneja null como "infinito".
+                    $studio->subscription_expires_at = now()->addYears(100); 
+                } else {
+                    // Medida de seguridad: Si alguien borra el plan free por error, avisamos.
+                    \Illuminate\Support\Facades\Log::warning('Se intentó crear un estudio, pero el Plan Free no existe en la base de datos.');
+                }
+            }
+        });
+    }
 }

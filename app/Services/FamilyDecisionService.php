@@ -30,8 +30,8 @@ class FamilyDecisionService
                       ->orWhereNull('user_id');
                 })
                 ->update([
-                    'user_id' => $user->id 
-                    // No sobreescribimos el country_id del Student a menos que sea estrictamente necesario.
+                    'user_id' => $user->id,
+                    'email'   => $user->email,
                 ]);
 
             Log::info("Dependent unlink: {$transferredCount} Student profiles transferidos de user #{$oldOwnerId} a user #{$user->id}");

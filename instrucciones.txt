@@ -1,23 +1,9 @@
-Actúa como un Arquitecto Backend Senior en Laravel. Necesito refactorizar tres controladores (`WebhookController`, `SubscriptionController`, y `PayrollController`) y sus servicios asociados (`MercadoPagoService`, `PayrollService`). 
+**TAREA 1: Reversión de Subaddressing y Flexibilización de Validación**
+Decidí por motivos de UX no utilizar el truco del "+" (Email Subaddressing) para los familiares, ya que confunde a los dueños de los estudios. Quiero que los familiares compartan exactamente el mismo correo del apoderado.
+- En `UserClassController` (métodos `toggleEnrollment` y `bulkEnroll`): Reemplaza la lógica donde genero el correo derivado. Asigna simplemente `$student->email = $user->email;` sin importar si es titular o familiar.
+- En `StudentController` (métodos `store` y `update`): En la regla de validación personalizada para el `email`, añade una excepción: Si el correo ya pertenece a un `User` existente, permite que pase la validación ÚNICAMENTE si existe un registro en `UserDependent` donde ese `$existingUser->id` tenga como familiar el `national_id` que viene en el `$request`. Si no es su familiar, arroja el error original.
 
-Nuestra regla arquitectónica inquebrantable es: "Controladores delgados, Servicios robustos. La lógica de negocio, las consultas complejas a la base de datos (Eloquent) y la manipulación de archivos NUNCA deben ir en los controladores".
-
-Por favor, realiza las siguientes refactorizaciones directamente en los archivos, manteniendo el tipado estricto y sin alterar las variables que se retornan a las vistas o las respuestas HTTP:
-
-1. REFACTORIZAR `WebhookController`:
-- Extrae completamente el método `processSaaSSubscription` y muévelo como un método público a `app/Services/MercadoPagoService.php` (o a un `SubscriptionService` si lo consideras mejor). 
-- En el controlador, dentro del switch (`case 'subscription_authorized'`), simplemente llama a ese nuevo método del servicio pasándole el `$dataId`.
-
-2. REFACTORIZAR `SubscriptionController` (`subscribe` method):
-- Extrae la validación de límite de cupos (`capacity_limit`) y la actualización del plan (`billing_cycles_count = 0`). 
-- Mueve esta lógica a un método dedicado en `MercadoPagoService` (ej. `prepareStudioForSubscription`) o procésalo directamente dentro del método que ya existe `createSubscriptionLink`. El controlador solo debe validar el Request y llamar al servicio para obtener la URL de redirección.
-
-3. REFACTORIZAR `PayrollController`:
-- En el método `store`: Extrae la lógica de almacenamiento del archivo manual (`$request->file('receipt')->store(...)`) y la creación del registro `TeacherPayment`. Crea un método en `PayrollService` llamado `processManualPayment` que se encargue de esto y retorne el modelo de pago.
-- En el mismo método `store` (Ruta Mercado Pago): Mueve la creación del registro `TeacherPayment` con estado 'pending' a un método en `PayrollService` (ej. `createPendingPayment`).
-- En el método `mpSuccessGlobal`: Extrae la búsqueda del pago pendiente y su actualización a 'paid'. Crea un método en `PayrollService` (ej. `markPaymentAsPaid`) que encapsule este UPDATE en la base de datos y retorne el pago o un booleano.
-
-IMPORTANTE: 
-- No rompas las redirecciones (`redirect()->route(...)`).
-- Si mueves lógica que usa Facades (`Log`, `Mail`, `DB`, `Config`), asegúrate de importar (use) esas clases en la parte superior de los Servicios.
-- Confírmame los nombres de los nuevos métodos que creaste en los servicios una vez finalices.
+**TAREA 2: Actualización de Correo al Desvincularse (Emancipación)**
+Cuando un familiar se registra con su propia cuenta y decide desvincularse (o mantener el vínculo pero tomar control de sus clases), los perfiles `Student` asociados a su `national_id` en los distintos estudios se transfieren a su nuevo `user_id`. Necesito que, en ese mismo momento, la columna `email` de esos perfiles `Student` se actualice a su nuevo correo personal (`$user->email`).
+- En `FamilyController@shareAndKeepDependent`: Ya tengo una consulta `Student::withoutGlobalScopes()->where(...)->update(...)`. Añade `'email' => $user->email` a ese update.
+- En `FamilyDecisionService`: En el método `unlinkAndTransferClasses` (o donde ocurra el update masivo de las fichas Student hacia el nuevo user_id), asegúrate de incluir `'email' => $user->email` para que todas sus fichas en los estudios queden con su correo independiente.

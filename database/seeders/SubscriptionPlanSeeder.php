@@ -14,6 +14,21 @@ class SubscriptionPlanSeeder extends Seeder
     {
         $plans = [
             [
+                'name'                 => 'Gratis',
+                'slug'                 => 'free',
+                'price'                => 0,
+                'platform_fee_percent' => 5.00,
+                'capacity_limit'       => null,
+                'max_billing_cycles'   => null,
+                'is_active'            => true,
+                'features'             => json_encode([
+                    'Gestión básica de clases y reservas',
+                    'Portal de alumnos',
+                    'Integración de pagos con Mercado Pago',
+                    'Comisión del 5% por transacción'
+                ]),
+            ],
+            [
                 'name'                 => 'Crecimiento',
                 'slug'                 => 'crecimiento',
                 'price'                => 25000,

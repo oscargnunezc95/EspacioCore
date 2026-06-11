@@ -21,7 +21,7 @@ class Workshop extends Model
         'color',
         'start_time',
         'max_students',
-        'payment_info',
+
         'is_single_class',
         'repeat_days',
         'specific_date',

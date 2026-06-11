@@ -59,7 +59,7 @@ class User extends Authenticatable implements MustVerifyEmail
             ->pluck('id')
             ->toArray();
 
-        // 2. Fichas de mis familiares ACTIVOS (¡Aquí estaba el bug!)
+        // 2. Fichas de mis familiares ACTIVOS
         $depNationalIds = $this->activeDependents()->pluck('national_id')->toArray();
 
         $depStudentIds = [];
@@ -81,10 +81,22 @@ class User extends Authenticatable implements MustVerifyEmail
             return 0;
         }
 
-        // 4. Contamos en la tabla pivote cuántos están en estado 'pending'
-        return \Illuminate\Support\Facades\DB::table('class_session_student')
-            ->whereIn('student_id', $allStudentIds)
-            ->where('payment_status', 'pending')
+        // 4. Lógica Híbrida: Reservas Vigentes + Deudas Reales
+        return \Illuminate\Support\Facades\DB::table('class_session_student as css')
+            ->join('class_sessions as cs', 'css.class_session_id', '=', 'cs.id')
+            ->whereIn('css.student_id', $allStudentIds)
+            ->where('css.payment_status', 'pending')
+            ->where(function ($query) {
+                // A) La clase aún no ha pasado (hoy o futuro)
+                $query->where('cs.date', '>=', now()->toDateString())
+                      // B) O BIEN, la clase ya pasó pero SÍ asistió
+                      ->orWhereExists(function ($subQuery) {
+                          $subQuery->select(\Illuminate\Support\Facades\DB::raw(1))
+                                   ->from('attendances as a')
+                                   ->whereColumn('a.class_session_id', 'css.class_session_id')
+                                   ->whereColumn('a.student_id', 'css.student_id');
+                      });
+            })
             ->count();
     }
 
