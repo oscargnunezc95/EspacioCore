@@ -31,7 +31,12 @@ class StudioMercadoPagoLinkedMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.studios.mp-linked',
+            markdown: 'mail.studios.mp-linked',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

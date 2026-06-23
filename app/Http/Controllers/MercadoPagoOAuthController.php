@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Mail;
 use App\Mail\StudioMercadoPagoLinkedMail;
 
 class MercadoPagoOAuthController extends Controller
-{
+{ 
     public function redirect(Request $request)
     {
         $appId = env('MERCADOPAGO_APP_ID');
@@ -20,24 +20,35 @@ class MercadoPagoOAuthController extends Controller
 
         // Si source=teacher (por ruta o query), el OAuth es para vincular la cuenta del profesor
         $isTeacher = $request->query('source') === 'teacher' || $request->route('source') === 'teacher';
+
         if ($isTeacher) {
-            $request->session()->put('oauth_source', 'teacher');
-            $request->session()->put('oauth_user_id', Auth::id());
+            $state = 'teacher';
         } else {
-            // Flujo original: vincular cuenta del Studio
-            $studio = Studio::where('user_id', Auth::id())->firstOrFail();
-            $request->session()->put('oauth_source', 'studio');
-            $request->session()->put('oauth_studio_id', $studio->id);
+            // Flujo estudio: recibe dinámicamente el ID por query param
+            $requestedStudioId = $request->query('studio_id');
+
+            if ($requestedStudioId) {
+                // Validar que el estudio pertenece al usuario autenticado
+                $studio = Studio::where('id', $requestedStudioId)
+                    ->where('user_id', Auth::id())
+                    ->firstOrFail();
+            } else {
+                // Fallback: primer estudio del usuario (cuando no se especifica uno)
+                $studio = Studio::where('user_id', Auth::id())->firstOrFail();
+            }
+
+            $state = 'studio_' . $studio->id;
         }
 
-        $url = "https://auth.mercadopago.cl/authorization?client_id={$appId}&response_type=code&platform_id=mp&redirect_uri={$redirectUri}";
+        $url = "https://auth.mercadopago.cl/authorization?client_id={$appId}&response_type=code&platform_id=mp&redirect_uri={$redirectUri}&state={$state}";
 
         return redirect()->away($url);
     }
 
     public function callback(Request $request)
     {
-        $source = $request->session()->pull('oauth_source', 'studio');
+        // Leer el state que Mercado Pago devuelve (flujo stateless)
+        $state = $request->query('state');
 
         if (!$request->has('code')) {
             Log::error('Fallo en OAuth de MP: código ausente.', $request->all());
@@ -55,45 +66,46 @@ class MercadoPagoOAuthController extends Controller
 
             if (!$response->successful()) {
                 Log::error('MP OAuth Token Exchange Failed', $response->json());
-                return $this->redirectOnError($source, 'Hubo un error al autorizar la cuenta con Mercado Pago.');
+                return $this->redirectOnError($state, 'Hubo un error al autorizar la cuenta con Mercado Pago.');
             }
 
             $data = $response->json();
 
-            if ($source === 'teacher') {
+            if ($state === 'teacher') {
                 return $this->handleTeacherCallback($data);
             }
 
-            return $this->handleStudioCallback($data);
+            if (str_starts_with($state, 'studio_')) {
+                $studioId = (int) substr($state, strlen('studio_'));
+                return $this->handleStudioCallback($data, $studioId);
+            }
+
+            // State desconocido o corrupto — no podemos determinar el destino
+            Log::error('Fallo en OAuth de MP: state desconocido.', ['state' => $state]);
+            return redirect('/dashboard')->with('error', 'No se pudo determinar el destino de la vinculación. Por favor, intenta de nuevo.');
 
         } catch (\Exception $e) {
             Log::error('Error crítico en MP OAuth: ' . $e->getMessage());
-            return $this->redirectOnError($source, 'Error de conexión con Mercado Pago.');
+            return $this->redirectOnError($state, 'Error de conexión con Mercado Pago.');
         }
     }
 
     /**
-     * Flujo original: guarda tokens en el Studio.
+     * Flujo estudio: guarda tokens en el Studio específico.
+     * El $stateStudioId viene del parámetro OAuth state, garantizando
+     * vinculación exacta al estudio correcto (sin fallbacks peligrosos).
      */
-    private function handleStudioCallback(array $data)
+    private function handleStudioCallback(array $data, $stateStudioId = null)
     {
-        $studioId = session('oauth_studio_id'); // usamos session() helper en vez de ->session()
-        // Reintentamos obtener el ID si no está en la sesión actual
-        if (!$studioId) {
-            $studioId = request()->session()->get('oauth_studio_id');
-        }
-        // Si aún no está, lo sacamos del usuario autenticado
-        if (!$studioId) {
-            $studio = Studio::where('user_id', Auth::id())->first();
-            $studioId = $studio?->id;
+        if (!$stateStudioId) {
+            Log::error('Fallo en OAuth de MP (studio): No se recibió studio_id en el state.');
+            return redirect('/dashboard')->with('error', 'No se pudo determinar el estudio a vincular.');
         }
 
-        if (!$studioId) {
-            Log::error('Fallo en OAuth de MP (studio): No se pudo determinar el studio.');
-            return redirect('/dashboard')->with('error', 'No se pudo vincular la cuenta.');
-        }
+        // Búsqueda estricta: solo el estudio cuyo ID viene en el state.
+        // Sin fallback a ->first() que causaba vinculaciones accidentales.
+        $studio = Studio::findOrFail($stateStudioId);
 
-        $studio = Studio::findOrFail($studioId);
         $studio->update([
             'mp_access_token'  => $data['access_token'],
             'mp_refresh_token' => $data['refresh_token'],
@@ -128,19 +140,27 @@ class MercadoPagoOAuthController extends Controller
                          ->with('success', '¡Cuenta de Mercado Pago vinculada exitosamente! Ya puedes recibir pagos de los estudios.');
     }
 
-    private function redirectOnError(string $source, string $message)
+    /**
+     * Redirige al usuario en caso de error, interpretando el state
+     * para devolverlo a la sección correcta.
+     */
+    private function redirectOnError(?string $state, string $message)
     {
-        if ($source === 'teacher') {
+        if ($state === 'teacher') {
             return redirect()->route('global.classes.teacher')->with('error', $message);
         }
 
-        // studio fallback
-        $studio = Studio::where('user_id', Auth::id())->first();
-        if ($studio) {
-            return redirect()->route('account.index', ['subdomain' => $studio->subdomain])
-                             ->with('error', $message);
+        // Si el state contiene un studio_id, redirigimos a ese estudio
+        if ($state && str_starts_with($state, 'studio_')) {
+            $studioId = (int) substr($state, strlen('studio_'));
+            $studio = Studio::find($studioId);
+            if ($studio) {
+                return redirect()->route('account.index', ['subdomain' => $studio->subdomain])
+                                 ->with('error', $message);
+            }
         }
 
+        // Fallback último: si no hay state reconocible, al dashboard
         return redirect('/dashboard')->with('error', $message);
     }
 

@@ -81,6 +81,7 @@
                                 'total_price' => $promo->total_price,
                                 'class_count' => $promo->class_count,
                                 'additional_price' => $promo->additional_price,
+                                'is_monthly' => $promo->is_monthly, // <-- NUEVO CAMPO AÑADIDO
                                 'prices' => $promo->type == 'specific_combo' ? $promo->workshopPrices->pluck('id')->toArray() : []
                             ];
                         @endphp
@@ -192,6 +193,20 @@
                             </div>
                         </div>
                     </div>
+
+                    {{-- NUEVO CHECKBOX: RESTRICCIÓN MENSUAL --}}
+                    <div class="pt-4 border-t border-zinc-100">
+                        <label class="flex items-start space-x-3 cursor-pointer group">
+                            <div class="flex items-center h-5 mt-0.5">
+                                <input type="checkbox" name="is_monthly" id="promoIsMonthly" value="1" class="w-5 h-5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900 transition duration-200 cursor-pointer">
+                            </div>
+                            <div class="flex flex-col">
+                                <span class="text-sm font-bold text-zinc-700 group-hover:text-zinc-900 transition-colors">Restringir al mismo Mes Calendario</span>
+                                <span class="text-xs text-zinc-500 mt-0.5 leading-tight">Recomendado. Evita que la promoción sume clases de diferentes meses (Ej: Enero + Febrero).</span>
+                            </div>
+                        </label>
+                    </div>
+
                 </div>
 
                 <div class="mt-8 flex gap-3 pt-4 border-t border-zinc-100">
@@ -237,8 +252,11 @@
             document.getElementById('methodContainer').innerHTML = ''; // Limpiar PUT
             document.getElementById('promoForm').reset();
             
-            // Limpiar checkboxes
+            // Limpiar checkboxes de combo
             document.querySelectorAll('.promo-checkbox').forEach(cb => cb.checked = false);
+            
+            // Marcar por defecto el aislamiento mensual (Recomendado)
+            document.getElementById('promoIsMonthly').checked = true;
 
             togglePromoType();
             document.body.style.overflow = 'hidden';
@@ -258,6 +276,9 @@
 
             // Llenar campos
             document.getElementById('promoName').value = promo.name;
+            
+            // Llenar Checkbox Mensual
+            document.getElementById('promoIsMonthly').checked = promo.is_monthly;
             
             if(promo.type === 'specific_combo') {
                 document.getElementById('typeCombo').checked = true;

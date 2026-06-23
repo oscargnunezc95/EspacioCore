@@ -43,9 +43,7 @@ class PlanManuallyUpdatedMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            // Asegúrate de que este nombre coincida con la ruta de tu vista Blade
-            // ej: resources/views/emails/plan-manually-updated.blade.php
-            view: 'mail.plan-manually-updated', 
+            markdown: 'mail.plan-manually-updated',
         );
     }
 

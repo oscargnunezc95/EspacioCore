@@ -35,4 +35,9 @@ class DependentProfileLinkedMail extends Mailable implements ShouldQueue
             markdown: 'mail.dependent-profile-linked',
         );
     }
+
+    public function attachments(): array
+    {
+        return [];
+    }
 }

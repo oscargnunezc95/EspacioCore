@@ -31,7 +31,12 @@ class StudioMercadoPagoUnlinkedMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.studios.mp-unlinked',
+            markdown: 'mail.studios.mp-unlinked',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

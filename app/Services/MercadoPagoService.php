@@ -10,11 +10,13 @@ use App\Models\SubscriptionPlan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use App\Services\EnrollmentService;
 use App\Services\PricingService;
 use App\Services\PayrollService; // <-- Importante para el pago a profesores
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Preference\PreferenceClient;
 use MercadoPago\Client\Payment\PaymentClient;
+use MercadoPago\Client\Payment\PaymentRefundClient;
 use MercadoPago\Client\PreApproval\PreApprovalClient;
 use Carbon\Carbon;
 
@@ -96,6 +98,7 @@ class MercadoPagoService
 
         $request = [
             'items'              => $items,
+            'statement_descriptor' => strtoupper(substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $studio->name), 0, 20)),
             'external_reference' => json_encode([
                 'user_id'    => $user->id,
                 'selections' => $selections,
@@ -185,9 +188,25 @@ class MercadoPagoService
         $monthYear = $meta['month_year'] ?? null;
 
         if ($teacherId && $monthYear) {
-            $payrollService = app(PayrollService::class);
-            $payrollService->markPaymentAsPaid((int) $teacherId, $monthYear);
-            Log::info("Liquidación de profesor {$teacherId} para el mes {$monthYear} procesada exitosamente vía Webhook.");
+            // 🚨 GUARDIA DE CONCURRENCIA EXTREMA: Bloqueo Atómico en RAM
+            $lockKey = "teacher_payment_lock_{$teacherId}_{$monthYear}";
+            
+            // Cache::add hace la comprobación y el bloqueo en 1 solo paso indivisible.
+            // Devuelve 'false' si otro hilo milisegundos más rápido ya tomó el control.
+            if (!\Illuminate\Support\Facades\Cache::add($lockKey, true, 60)) {
+                Log::info("Idempotencia Concurrente: Liquidación del profesor {$teacherId} para {$monthYear} ya en proceso. Ignorando clon.");
+                return;
+            }
+
+            try {
+                $payrollService = app(PayrollService::class);
+                $payrollService->markPaymentAsPaid((int) $teacherId, $monthYear);
+                Log::info("Liquidación de profesor {$teacherId} para el mes {$monthYear} procesada exitosamente vía Webhook.");
+            } catch (\Exception $e) {
+                // Si falla por un error real, liberamos el candado para que MP pueda reintentar
+                \Illuminate\Support\Facades\Cache::forget($lockKey);
+                throw $e;
+            }
         }
     }
 
@@ -196,36 +215,136 @@ class MercadoPagoService
     // =========================================================================
     private function processStudentPayment($dataId, $mpPayment, array $meta)
     {
-        $selectionsPagadas = $meta['selections'] ?? [];
-        $studioId = $meta['studio_id'] ?? null;
+        // 🚨 GUARDIA DE CONCURRENCIA EXTREMA: Bloqueo Atómico en RAM
+        $lockKey = "mp_payment_lock_{$dataId}";
 
-        if (empty($selectionsPagadas)) {
-            Log::warning("Pago {$dataId} sin selections en external_reference");
+        // Cache::add solo devuelve 'true' si la llave NO existía y logra crearla.
+        // Si devuelve 'false', significa que otro webhook idéntico entró hace milisegundos.
+        if (!\Illuminate\Support\Facades\Cache::add($lockKey, true, 60)) {
+            Log::info("Idempotencia Concurrente: El pago MP {$dataId} ya está siendo procesado por otro hilo. Abortando clon.");
             return;
         }
 
-        $totalAmount = (float) $mpPayment->transaction_amount;
+        try {
+            // Guardia de Idempotencia Histórica (Por si Mercado Pago reintenta horas después)
+            $existingPayment = Payment::where('mp_payment_id', $dataId)->first();
+            
+            if ($existingPayment) {
+                Log::info("Idempotencia Histórica: El pago MP {$dataId} ya existe en el Ledger con estado [{$existingPayment->status}]. Cancelando clon.");
+                return; 
+            }
 
-        // =========================================================================
-        // MAGIA FINANCIERA: Extraer tu comisión exacta reportada por Mercado Pago
-        // =========================================================================
-        $totalPlatformFee = 0;
-        if (isset($mpPayment->fee_details)) {
-            foreach ($mpPayment->fee_details as $fee) {
-                if ($fee->type === 'application_fee') { 
-                    $totalPlatformFee = (float) $fee->amount;
+            $selectionsPagadas = $meta['selections'] ?? [];
+            $studioId = $meta['studio_id'] ?? null;
+
+            if (empty($selectionsPagadas)) {
+                Log::warning("Pago {$dataId} sin selections en external_reference");
+                return;
+            }
+
+            $totalAmount = (float) $mpPayment->transaction_amount;
+
+            // MAGIA FINANCIERA: Extraer tu comisión exacta reportada por Mercado Pago
+            $totalPlatformFee = 0;
+            if (isset($mpPayment->fee_details)) {
+                foreach ($mpPayment->fee_details as $fee) {
+                    if ($fee->type === 'application_fee') { 
+                        $totalPlatformFee = (float) $fee->amount;
+                    }
                 }
             }
-        }
 
-        $numSelections = count($selectionsPagadas);
-        $amountPerSelection = $numSelections > 0 ? round($totalAmount / $numSelections, 2) : 0;
-        $platformFeePerSelection = $numSelections > 0 ? round($totalPlatformFee / $numSelections, 2) : 0;
+            $numSelections = count($selectionsPagadas);
+            $amountPerSelection = $numSelections > 0 ? round($totalAmount / $numSelections, 2) : 0;
+            $platformFeePerSelection = $numSelections > 0 ? round($totalPlatformFee / $numSelections, 2) : 0;
 
-        $selectionsByStudent = collect($selectionsPagadas)->groupBy('student_id');
+            $selectionsByStudent = collect($selectionsPagadas)->groupBy('student_id');
 
-        DB::beginTransaction();
-        try {
+            // CAPA 4: PRE-TRANSACTION CAPACITY VALIDATION (All-or-Nothing)
+            $allSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique()->toArray();
+            $enrollmentService = app(EnrollmentService::class);
+            $capacityInfo = $enrollmentService->getCapacityInfo($allSessionIds);
+
+            $spotsRequested = [];
+            foreach ($selectionsPagadas as $sel) {
+                $sid = $sel['session_id'];
+                $spotsRequested[$sid] = ($spotsRequested[$sid] ?? 0) + 1;
+            }
+
+            $overbookedSessions = [];
+            foreach ($spotsRequested as $sid => $requested) {
+                $available = $capacityInfo[$sid]['available_spots'] ?? 0;
+                if ($requested > $available) {
+                    $overbookedSessions[] = [
+                        'session_id' => $sid,
+                        'requested'  => $requested,
+                        'available'  => $available,
+                    ];
+                }
+            }
+
+            if (!empty($overbookedSessions)) {
+                $overIds = array_column($overbookedSessions, 'session_id');
+                Log::warning("Layer 4 bloqueo: sessions " . implode(',', $overIds) . " overbooked. Reembolsando payment {$dataId} completo.");
+
+                $firstSel = $selectionsPagadas[0];
+                $firstSession = ClassSession::withoutGlobalScopes()->find($firstSel['session_id']);
+                $firstStudent = Student::withoutGlobalScopes()->find($firstSel['student_id']);
+                $studio = $studioId ? Studio::withoutGlobalScopes()->find($studioId) : ($firstSession ? $firstSession->workshop->studio : null);
+
+                $payment = Payment::create([
+                    'student_id'     => $firstStudent->id ?? 0,
+                    'studio_id'      => $firstSession->studio_id ?? $studioId,
+                    'workshop_id'    => $firstSession->workshop_id ?? null,
+                    'payment_type'   => count($selectionsPagadas) == 1 ? 'single' : 'pack',
+                    'payment_method' => 'mercadopago',
+                    'amount'         => $totalAmount,
+                    'platform_fee'   => $totalPlatformFee,
+                    'mp_payment_id'  => $dataId,
+                    'status'         => 'refunded_overbooking',
+                ]);
+
+                $allPivot = [];
+                foreach ($selectionsPagadas as $sel) {
+                    $allPivot[$sel['session_id']] = ['student_id' => $sel['student_id']];
+                }
+                $payment->classSessions()->attach($allPivot);
+
+                try {
+                    $studioToken = $studio?->mp_access_token;
+                    if ($studioToken) {
+                        $this->setToken($studioToken);
+                    } else {
+                        $this->setToken(config('services.mercadopago.token'));
+                    }
+                    $refundClient = new PaymentRefundClient();
+                    $refund = $refundClient->refundTotal((int) $dataId);
+                    Log::info("Layer 4 reembolso: payment {$dataId}, refund status {$refund->status}");
+                } catch (\Exception $e) {
+                    Log::error("Layer 4 error reembolso MP: payment {$dataId}, " . $e->getMessage());
+                }
+
+                try {
+                    if ($firstStudent && $firstStudent->user && $firstSession) {
+                        Mail::to($firstStudent->user->email)
+                            ->queue(new \App\Mail\ClassRefundedMail(
+                                $firstSession,
+                                $firstStudent,
+                                $studio,
+                                $totalAmount
+                            ));
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Layer 4 error enviando ClassRefundedMail: ' . $e->getMessage());
+                }
+
+                return;
+            }
+
+            DB::beginTransaction();
+            
+            $studio = $studioId ? Studio::withoutGlobalScopes()->find($studioId) : null;
+
             foreach ($selectionsByStudent as $studentId => $sels) {
                 $firstSel = $sels->first();
                 $sessionIds = $sels->pluck('session_id')->toArray();
@@ -236,11 +355,9 @@ class MercadoPagoService
                 $student = Student::withoutGlobalScopes()->find($studentId);
                 if (!$student) continue;
 
-                // Cálculos finales para la fila del pago
                 $paymentAmount = $amountPerSelection * count($sessionIds);
                 $paymentFee = $platformFeePerSelection * count($sessionIds);
 
-                // 1. REGISTRO FINANCIERO (Siempre se ejecuta para que cuadre el Ledger)
                 $payment = Payment::create([
                     'student_id'     => $studentId,
                     'studio_id'      => $firstSession->studio_id ?? $studioId,
@@ -248,7 +365,7 @@ class MercadoPagoService
                     'payment_type'   => count($sessionIds) == 1 ? 'single' : 'pack',
                     'payment_method' => 'mercadopago',
                     'amount'         => $paymentAmount,
-                    'platform_fee'   => $paymentFee, 
+                    'platform_fee'   => $paymentFee,
                     'mp_payment_id'  => $dataId,
                     'status'         => 'approved',
                 ]);
@@ -259,8 +376,6 @@ class MercadoPagoService
                 }
                 $payment->classSessions()->attach($pivotData);
 
-                // 2. LÓGICA DE IDEMPOTENCIA Y NOTIFICACIONES
-                // Revisamos si la primera sesión de este grupo ya estaba pagada en la BD
                 $pivotActual = DB::table('class_session_student')
                     ->where('class_session_id', $sessionIds[0] ?? 0)
                     ->where('student_id', $studentId)
@@ -268,75 +383,107 @@ class MercadoPagoService
 
                 $yaEstabaPagado = $pivotActual && $pivotActual->payment_status === 'paid';
 
-                // Solo actualizamos cupos y disparamos notificaciones si es el primer Webhook de la compra
                 if (!$yaEstabaPagado) {
-                    
+                    $overbookedGroup = false;
+
                     foreach ($sessionIds as $sid) {
                         $session = ClassSession::withoutGlobalScopes()->find($sid);
-                        if ($session) {
-                            $session->students()
-                                ->withoutGlobalScopes()
-                                ->updateExistingPivot($studentId, ['payment_status' => 'paid']);
+                        if (!$session) continue;
 
-                            $session->attendances()->firstOrCreate(['student_id' => $studentId]);
+                        $maxStudents = $session->max_students;
+
+                        $updated = DB::update("
+                            UPDATE class_session_student
+                            SET payment_status = 'paid', updated_at = ?
+                            WHERE class_session_id = ?
+                              AND student_id = ?
+                              AND payment_status = 'pending'
+                              AND (
+                                  SELECT COUNT(*) FROM (
+                                      SELECT 1 FROM class_session_student
+                                      WHERE class_session_id = ?
+                                        AND payment_status = 'paid'
+                                  ) AS _cnt
+                              ) < ?
+                        ", [now(), $sid, $studentId, $sid, $maxStudents]);
+
+                        if ($updated === 0) {
+                            $alreadyPaid = DB::table('class_session_student')
+                                ->where('class_session_id', $sid)
+                                ->where('student_id', $studentId)
+                                ->where('payment_status', 'paid')
+                                ->exists();
+
+                            if (!$alreadyPaid) {
+                                $overbookedGroup = true;
+                                Log::warning("Overbooking detectado en BD: session {$sid}, student {$studentId}, payment {$dataId}");
+                                break;
+                            }
+                        } else {
+                            $session->attendances()->firstOrCreate([
+                                'student_id' => $studentId,
+                                'studio_id'  => $session->studio_id ?? $studioId 
+                            ]);
                         }
                     }
 
-                    try {
-                        if ($student->user) {
-                            $student->user->notify(new \App\Notifications\StudentPaymentApprovedNotification($payment));
+                    if ($overbookedGroup) {
+                        $payment->update(['status' => 'refunded_overbooking']);
+
+                        try {
+                            $studioToken = $studio?->mp_access_token;
+                            if ($studioToken) {
+                                $this->setToken($studioToken);
+                            } else {
+                                $this->setToken(config('services.mercadopago.token'));
+                            }
+
+                            $refundClient = new PaymentRefundClient();
+                            $refund = $refundClient->refundTotal((int) $dataId);
+                            Log::info("Overbooking resuelto: reembolso emitido para payment {$dataId}, status {$refund->status}");
+                        } catch (\Exception $e) {
+                            Log::error("Error al emitir reembolso MP por overbooking en BD: payment {$dataId}, " . $e->getMessage());
                         }
-                    } catch (\Exception $e) {
-                        Log::error('Error notificando pago aprobado MP: ' . $e->getMessage());
+
+                        try {
+                            if ($student->user && isset($firstSession)) {
+                                $studioForMail = $studio ?? $firstSession->workshop->studio;
+                                Mail::to($student->user->email)
+                                    ->queue(new \App\Mail\ClassRefundedMail(
+                                        $firstSession,
+                                        $student,
+                                        $studioForMail,
+                                        $paymentAmount
+                                    ));
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('Error enviando ClassRefundedMail: ' . $e->getMessage());
+                        }
+
+                    } else {
+                        try {
+                            if ($student->user) {
+                                $student->user->notify(new \App\Notifications\StudentPaymentApprovedNotification($payment));
+                            }
+                        } catch (\Exception $e) {
+                            Log::error('Error notificando pago aprobado MP: ' . $e->getMessage());
+                        }
                     }
 
                 } else {
-                    // Silenciamos la notificación pero dejamos constancia en el log
-                    Log::info("Pago dividido detectado (MP ID: {$dataId}). Registro financiero guardado exitosamente. Se omitió la inscripción doble y el correo para evitar duplicados a la alumna.");
+                    Log::info("Pago {$dataId} ya estaba registrado. Evitando duplicidad cruzada.");
                 }
             }
 
             DB::commit();
 
-            // 3. LÓGICA DE LLENADO DE CUPOS Y NOTIFICACIÓN A LISTA DE ESPERA
-            $affectedSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique();
-            foreach ($affectedSessionIds as $sid) {
-                $session = ClassSession::withoutGlobalScopes()
-                    ->with(['workshop' => fn($q) => $q->withoutGlobalScopes(), 'schedule'])
-                    ->find($sid);
-
-                if (!$session) continue;
-
-                $maxStudents = $session->max_students;
-                $paidCount = DB::table('class_session_student')
-                    ->where('class_session_id', $sid)
-                    ->where('payment_status', 'paid')
-                    ->count();
-
-                if ($paidCount >= $maxStudents) {
-                    $pendingStudentIds = DB::table('class_session_student')
-                        ->where('class_session_id', $sid)
-                        ->where('payment_status', 'pending')
-                        ->pluck('student_id');
-
-                    if ($pendingStudentIds->isNotEmpty()) {
-                        $pendingUsers = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
-                            $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
-                        })->get();
-
-                        foreach ($pendingUsers as $user) {
-                            try {
-                                $user->notify(new \App\Notifications\ClassFullNotification($session));
-                            } catch (\Exception $e) {
-                                Log::error('Error enviando ClassFullNotification desde MP: ' . $e->getMessage());
-                            }
-                        }
-                    }
-                }
-            }
+            $affectedSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique()->toArray();
+            app(EnrollmentService::class)->notifyCapacityChange($affectedSessionIds, 0);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            // Si hubo un error técnico real, liberamos el candado para permitir que Mercado Pago reintente
+            \Illuminate\Support\Facades\Cache::forget($lockKey);
             Log::error("Error asignando pago {$dataId} en BD: " . $e->getMessage());
             throw $e;
         }
@@ -351,28 +498,30 @@ class MercadoPagoService
 
         if ($studioId && $studio = Studio::with('subscriptionPlan')->find($studioId)) {
             
+            // 🚨 GUARDIA DE IDEMPOTENCIA: Verificar si la suscripción se procesó en los últimos 30 segundos
+            // Esto evita sumar 'billing_cycles_count' múltiples veces por webhooks simultáneos.
+            if ($studio->updated_at && $studio->updated_at->diffInSeconds(now()) < 30) {
+                Log::info("Idempotencia Activa: Suscripción SaaS para estudio {$studioId} actualizada recientemente. Ignorando webhook clonado.");
+                return;
+            }
+
             if ($status === 'authorized') {
                 
-                // 0. Cargar el plan dinámicamente ANTES de hacer nada
                 $plan = $studio->subscriptionPlan;
                 $planName = $plan ? $plan->name : 'Pro';
                 $planSlug = $plan ? $plan->slug : 'pro';
                 $planPrice = $plan ? $plan->price : 45000;
 
-                // 1. Lógica Anti-Deslizamiento de Facturación
                 $currentExpiration = $studio->subscription_expires_at;
                 
-                // Verificamos si el estado actual es distinto a 'free' (puede ser 'pro', 'founder-elite', 'past_due', etc.)
                 if ($currentExpiration && $studio->subscription_status !== 'free') {
                     $newExpiration = Carbon::parse($currentExpiration)->addMonth();
                 } else {
                     $newExpiration = now()->addMonth();
                 }
 
-                // 2. Incrementamos el ciclo actual
                 $currentCycle = $studio->billing_cycles_count + 1;
 
-                // 3. Actualización 100% dinámica
                 $studio->update([
                     'mp_preapproval_id'       => $dataId,
                     'subscription_status'     => $planSlug,
@@ -380,27 +529,22 @@ class MercadoPagoService
                     'billing_cycles_count'    => $currentCycle,
                 ]);
 
-                // 4. Evaluación del Límite de Vida del Plan (Sunsetting)
                 if ($plan && $plan->max_billing_cycles && $currentCycle >= $plan->max_billing_cycles) {
                     
-                    // A. Cancelar cobro automático en Mercado Pago
                     try {
                         $this->cancelPreapproval($dataId);
                     } catch (\Exception $e) {
                         Log::error("Error cancelando suscripción SaaS en MP: " . $e->getMessage());
                     }
                     
-                    // B. Correo de fin de beneficio
                     Mail::to($studio->user->email)
                         ->queue(new \App\Mail\PlanLifecycleEndingMail($studio));
                         
                 } else {
-                    // Recibo normal dinámico
                     Mail::to($studio->user->email)
                         ->queue(new \App\Mail\SubscriptionReceiptMail($studio, $planName, $planPrice));
                 }
 
-                // Alerta interna para la plataforma dinámica
                 $adminEmail = env('ADMIN_NOTIFICATION_EMAIL', 'admin@estadoprisma.test');
                 Mail::to($adminEmail)
                     ->queue(new \App\Mail\NewSubscriptionAlertMail($studio, $planName));
@@ -419,14 +563,21 @@ class MercadoPagoService
         }
     }
 
-    public function createSubscriptionLink(Studio $studio, string $planSlug): string
+    public function createSubscriptionLink(Studio $studio, string $planSlug, int $countryId): string
     {
-        // Eager load para currency_code (navega user->country)
-        $studio->loadMissing('user.country');
-
         $plan = SubscriptionPlan::where('slug', $planSlug)
             ->where('is_active', true)
             ->firstOrFail();
+
+        $country = \App\Models\Country::find($countryId);
+        if (!$country) {
+            Log::error('País no encontrado al crear link de suscripción', [
+                'studio_id'  => $studio->id,
+                'country_id' => $countryId,
+            ]);
+            throw new \Exception('El país seleccionado no es válido. Por favor, elige otro.');
+        }
+        $currencyCode = $country->currency_code ?: 'CLP';
 
         // 1. Validación estricta de cupos (Capacity Limit)
         if ($plan->capacity_limit !== null) {
@@ -439,35 +590,55 @@ class MercadoPagoService
             }
         }
 
-        // 2. Auditoría: Si está cambiando a un plan distinto, reiniciamos el contador de ciclos
-        if ($studio->subscription_plan_id !== $plan->id) {
-            $studio->update([
-                'subscription_plan_id'  => $plan->id,
-                'billing_cycles_count'  => 0,
-            ]);
-        }
-
-        // 3. Generar link de pago vía suscripción (Preapproval)
+        // 2. Generar link de pago vía suscripción (Preapproval) — la API se llama PRIMERO
         $this->setToken(config('services.mercadopago.token'));
+
+        $studio->loadMissing('user');
 
         $client = new PreApprovalClient();
 
         $request = [
             'reason'             => $plan->name,
             'external_reference' => (string) $studio->id,
+            'payer_email'        => $studio->user->email,
             'auto_recurring'     => [
                 'frequency'          => 1,
                 'frequency_type'     => 'months',
                 'transaction_amount' => (float) $plan->price,
-                'currency_id'        => $studio->currency_code,
+                'currency_id'        => $currencyCode,
             ],
             'back_url' => $this->absoluteUrl(route('dashboard', ['subdomain' => $studio->subdomain])),
         ];
 
-        $preapproval = $client->create($request);
+        try {
+            $preapproval = $client->create($request);
+        } catch (\MercadoPago\Exceptions\MPApiException $e) {
+            $apiResponse = $e->getApiResponse();
+            $responseContent = $apiResponse ? $apiResponse->getContent() : null;
+
+            Log::error('MercadoPago API Error al crear preapproval', [
+                'studio_id'       => $studio->id,
+                'plan_slug'       => $planSlug,
+                'country_id'      => $countryId,
+                'currency_code'   => $currencyCode,
+                'api_http_status' => $e->getStatusCode(),
+                'api_message'     => $e->getMessage(),
+                'api_response'    => $responseContent,
+            ]);
+            throw new \Exception('El servicio de pagos no está disponible en este momento. Por favor, intenta más tarde.');
+        }
 
         if (!$preapproval->init_point) {
             throw new \Exception('No se pudo generar el link de suscripción. Intenta más tarde.');
+        }
+
+        // 3. Auditoría: SOLO después de crear exitosamente el preapproval en MP,
+        //    actualizamos el plan del estudio. Así garantizamos integridad transaccional.
+        if ($studio->subscription_plan_id !== $plan->id) {
+            $studio->update([
+                'subscription_plan_id'  => $plan->id,
+                'billing_cycles_count'  => 0,
+            ]);
         }
 
         return $preapproval->init_point;

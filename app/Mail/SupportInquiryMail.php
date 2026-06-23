@@ -29,7 +29,12 @@ class SupportInquiryMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.support.support-inquiry',
+            markdown: 'mail.support.support-inquiry',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

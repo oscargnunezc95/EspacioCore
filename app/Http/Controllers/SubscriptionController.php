@@ -9,6 +9,22 @@ use App\Services\MercadoPagoService;
 class SubscriptionController extends Controller
 {
     /**
+     * Muestra la vista de gestión de suscripción con los planes disponibles.
+     */
+    public function index(Request $request, $subdomain)
+    {
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+
+        $activePlans = \App\Models\SubscriptionPlan::where('is_active', true)
+            ->orderBy('price')
+            ->get();
+
+        $countries = \App\Models\Country::orderBy('name', 'asc')->get();
+
+        return view('subscriptions.index', compact('studio', 'activePlans', 'countries'));
+    }
+
+    /**
      * Inicia el proceso de pago redirigiendo a Mercado Pago.
      * El controlador solo valida el Request y delega toda la lógica al servicio.
      */
@@ -19,11 +35,12 @@ class SubscriptionController extends Controller
         }
 
         $request->validate([
-            'plan_slug' => 'required|string|exists:subscription_plans,slug',
+            'plan_slug'  => 'required|string|exists:subscription_plans,slug',
+            'country_id' => 'required|exists:countries,id',
         ]);
 
         try {
-            $urlDePago = $mpService->createSubscriptionLink($studio, $request->plan_slug);
+            $urlDePago = $mpService->createSubscriptionLink($studio, $request->plan_slug, $request->country_id);
             return redirect()->away($urlDePago);
             
         } catch (\Exception $e) {

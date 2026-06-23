@@ -35,4 +35,9 @@ class LocalProfileLinkedMail extends Mailable implements ShouldQueue
             markdown: 'mail.local-profile-linked',
         );
     }
+
+    public function attachments(): array
+    {
+        return [];
+    }
 }

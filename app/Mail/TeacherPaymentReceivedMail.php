@@ -31,7 +31,12 @@ class TeacherPaymentReceivedMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.payroll.teacher-payment-received',
+            markdown: 'mail.payroll.teacher-payment-received',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

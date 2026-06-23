@@ -29,7 +29,10 @@
                 <div>
                     <div class="flex items-center justify-between">
                         <label for="password" class="block text-sm font-medium text-zinc-600">Contraseña</label>
-                        <a href="#" class="text-sm font-medium text-zinc-500 hover:text-zinc-800 transition-colors duration-200">
+                        <a 
+                            href="{{ route('password.request') }}" 
+                            class="text-sm font-medium text-fuchsia-600 hover:text-fuchsia-500 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-fuchsia-500 focus:ring-offset-2 rounded-sm"
+                        >
                             ¿Olvidaste tu contraseña?
                         </a>
                     </div>

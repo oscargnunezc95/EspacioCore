@@ -67,6 +67,10 @@ Route::domain($baseDomain)->group(function () {
     Route::get('/soporte', [SupportController::class, 'create'])->name('support.create');
     Route::post('/soporte', [SupportController::class, 'store'])->name('support.store');
 
+    // Páginas legales (Ley 21.719 — Protección de Datos Chile)
+    Route::view('/terminos-y-condiciones', 'legal.terms')->name('legal.terms');
+    Route::view('/politica-de-privacidad', 'legal.privacy')->name('legal.privacy');
+
     // ---------------------------------------------------------
     // RUTAS PÚBLICAS / INVITADOS (OAuth Google y Completar)
     // ---------------------------------------------------------
@@ -246,6 +250,9 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
         Route::post('/students/{student}/payments', [PaymentController::class, 'store'])->name('payments.store');
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
         Route::get('/api/students/{student}/available-sessions', [PaymentController::class, 'getAvailableSessions']);
+
+        // Suscripción SaaS del Estudio
+        Route::get('/suscripcion', [SubscriptionController::class, 'index'])->name('subscriptions.index');
 
         // Módulo de Liquidaciones (Payroll) - Anidado por Profesor
         Route::get('/teachers/{teacher}/payroll/{month?}', [\App\Http\Controllers\PayrollController::class, 'show'])->name('teachers.payroll.show');

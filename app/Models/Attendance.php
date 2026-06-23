@@ -13,6 +13,7 @@ class Attendance extends Model
     protected $fillable = [
         'class_session_id',
         'student_id',
+        'studio_id', // 🚨 BLINDAJE: Agregado para permitir inyección desde Webhooks
     ];
 
     public function classSession()
@@ -22,8 +23,6 @@ class Attendance extends Model
 
     public function student()
     {
-        // Al igual que en pagos, agregamos withTrashed() para mantener el registro 
-        // histórico de asistencias de alumnas/os desactivadas.
         return $this->belongsTo(Student::class)->withTrashed();
     }
 }

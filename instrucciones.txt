@@ -1,9 +1,39 @@
-**TAREA 1: Reversión de Subaddressing y Flexibilización de Validación**
-Decidí por motivos de UX no utilizar el truco del "+" (Email Subaddressing) para los familiares, ya que confunde a los dueños de los estudios. Quiero que los familiares compartan exactamente el mismo correo del apoderado.
-- En `UserClassController` (métodos `toggleEnrollment` y `bulkEnroll`): Reemplaza la lógica donde genero el correo derivado. Asigna simplemente `$student->email = $user->email;` sin importar si es titular o familiar.
-- En `StudentController` (métodos `store` y `update`): En la regla de validación personalizada para el `email`, añade una excepción: Si el correo ya pertenece a un `User` existente, permite que pase la validación ÚNICAMENTE si existe un registro en `UserDependent` donde ese `$existingUser->id` tenga como familiar el `national_id` que viene en el `$request`. Si no es su familiar, arroja el error original.
+Eres un Arquitecto Backend Senior experto en Laravel 11 y UI/UX. Trabajas con plantillas Blade, Alpine.js y Tailwind CSS.
 
-**TAREA 2: Actualización de Correo al Desvincularse (Emancipación)**
-Cuando un familiar se registra con su propia cuenta y decide desvincularse (o mantener el vínculo pero tomar control de sus clases), los perfiles `Student` asociados a su `national_id` en los distintos estudios se transfieren a su nuevo `user_id`. Necesito que, en ese mismo momento, la columna `email` de esos perfiles `Student` se actualice a su nuevo correo personal (`$user->email`).
-- En `FamilyController@shareAndKeepDependent`: Ya tengo una consulta `Student::withoutGlobalScopes()->where(...)->update(...)`. Añade `'email' => $user->email` a ese update.
-- En `FamilyDecisionService`: En el método `unlinkAndTransferClasses` (o donde ocurra el update masivo de las fichas Student hacia el nuevo user_id), asegúrate de incluir `'email' => $user->email` para que todas sus fichas en los estudios queden con su correo independiente.
+Nuestra plataforma SaaS (estadoPrisma) permite a los dueños de estudios gestionar sus reservas. El cliente ha pivotado la regla de negocio para la actualización de planes. Necesitamos implementar este NUEVO FLUJO DEFINITIVO aplicando el patrón MVC estricto:
+
+REGLAS DE NEGOCIO ESTRICTAS:
+1. LIBRO MAYOR (Tabla Payments): Los pagos de la suscripción SaaS ya no se guardan en la tabla studios, sino como un registro en la tabla `payments` con `payment_type = 'saas_subscription'`.
+2. RELOJ DE GRACIA (7 DÍAS): El tiempo de gracia se calcula buscando el último pago SaaS del estudio en la tabla `payments`. Si la fecha de ese pago es menor o igual a 7 días, está en período de gracia.
+3. CAMBIO DENTRO DE LOS 7 DÍAS: Se cancela la suscripción vieja en MP (`mp_preapproval_id`), se usa el `mp_payment_id` de la tabla `payments` para emitir un REFUND total (reembolso), y se genera un LINK DE PAGO NUEVO para que inicie su nuevo plan hoy.
+4. CAMBIO DESPUÉS DE LOS 7 DÍAS (Intención Futura): NO se cobra nada hoy. NO se genera link. El sistema guarda en la tabla `studios` un `next_plan_id`. Se le avisa al usuario: "Seguirás en tu plan actual hasta fin de mes. Te enviaremos un link para activar tu nuevo plan cuando este termine."
+5. CANCELAR / PASAR A GRATIS: Se cancela la suscripción en MP en el acto, pero el `subscription_expires_at` se mantiene intacto. El `next_plan_id` pasa a ser el ID del plan gratuito.
+
+TU TAREA EN 4 PASOS:
+
+1. MIGRACIÓN Y MODELO
+- Migración para la tabla `studios`: Agrega la columna `next_plan_id` (foreignId nullable apuntando a `subscription_plans`).
+- Actualiza `$fillable` en `Studio.php` e incluye la relación `nextPlan()`.
+
+2. SERVICIO (MercadoPagoService.php)
+- Agrega el método `refundPayment(string $paymentId)` usando el `PaymentRefundClient` del SDK.
+- Agrega el método `cancelPreapproval(string $preapprovalId)` usando el `PreApprovalClient->update` para poner status 'cancelled' (si no existe ya).
+
+3. CONTROLADOR (SubscriptionController.php)
+Reescribe `subscribe(Request $request, Studio $studio, MercadoPagoService $mpService)`.
+- Extrae el último pago SaaS: `$lastPayment = Payment::where('studio_id', $studio->id)->where('payment_type', 'saas_subscription')->latest()->first();`
+- Calcula el periodo de gracia basado en `$lastPayment->created_at`.
+- Implementa la lógica descrita en las REGLAS DE NEGOCIO mediante condicionales.
+- Retorna las redirecciones a MP (si es con gracia) o los `back()->with(...)` con mensajes precisos.
+
+4. VISTA (subscriptions/index.blade.php con Alpine.js)
+Actualiza la interfaz y el Modal Dinámico:
+- En Blade, inyecta `$isGracePeriod` y `$studio->next_plan_id`.
+- En Alpine (`x-data`), el Modal debe cambiar su advertencia dinámicamente:
+  - Si es Gratis: "Tu plan actual estará activo hasta fin de mes. Luego volverás al plan gratuito y no se harán más cobros automáticos."
+  - Si es Cambio CON gracia: "Se te reembolsará el cobro de tu mes actual inmediatamente y deberás ingresar tus datos para iniciar el nuevo plan hoy."
+  - Si es Cambio SIN gracia (Intención): "Programaremos tu cambio. Disfruta tu plan actual hasta fin de mes; luego te enviaremos el link de pago para iniciar este nuevo plan."
+
+REGLAS DE UI/UX:
+- Mantén el HTML semántico, paleta Zinc, sin colores neón ni sombras excesivas.
+- Manejo correcto de errores de Laravel (`@error`).

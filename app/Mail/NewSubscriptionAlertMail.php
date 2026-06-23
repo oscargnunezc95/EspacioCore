@@ -32,4 +32,9 @@ class NewSubscriptionAlertMail extends Mailable implements ShouldQueue
             markdown: 'mail.admin.new_subscription',
         );
     }
+
+    public function attachments(): array
+    {
+        return [];
+    }
 }

@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('national_id'); // RUT del familiar — obligatorio
             $table->foreignId('country_id')->constrained('countries');
             $table->string('relationship')->nullable(); // 'Hijo/a', 'Pareja', etc.
+            $table->string('status')->default('active');
             $table->timestamps();
 
             // Mismo familiar no puede estar duplicado para el mismo usuario y país

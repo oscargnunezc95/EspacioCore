@@ -34,7 +34,12 @@ class StudentInvitationMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.onboarding.student-invitation',
+            markdown: 'mail.onboarding.student-invitation',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

@@ -74,11 +74,12 @@ class TeacherController extends Controller
         ];
 
         $messages = [
-            'required' => 'El :attribute es obligatorio.',
-            'email'    => 'El :attribute debe ser una dirección válida.',
-            'string'   => 'El :attribute debe ser texto.',
-            'max'      => 'El :attribute no debe superar los :max caracteres.',
-            'exists'   => 'El :attribute seleccionado no es válido.',
+            'required'    => 'El :attribute es obligatorio.',
+            'email.email' => 'El :attribute debe ser una dirección válida.', // ✅ REGLA ESTRICTA
+            'string'      => 'El :attribute debe ser texto.',
+            'max'         => 'El :attribute no debe superar los :max caracteres.',
+            'exists'      => 'El :attribute seleccionado no es válido.',
+            'unique'      => 'Este :attribute ya está registrado en tu estudio para este país.',
         ];
 
         $request->validate([
@@ -159,12 +160,12 @@ class TeacherController extends Controller
         ];
 
         $messages = [
-            'required' => 'El :attribute es obligatorio.',
-            'email'    => 'El :attribute debe ser una dirección válida.',
-            'string'   => 'El :attribute debe ser texto.',
-            'max'      => 'El :attribute no debe superar los :max caracteres.',
-            'exists'   => 'El :attribute seleccionado no es válido.',
-            'unique'   => 'Este :attribute ya está registrado en tu estudio para este país.',
+            'required'    => 'El :attribute es obligatorio.',
+            'email.email' => 'El :attribute debe ser una dirección válida.', // ✅ REGLA ESTRICTA
+            'string'      => 'El :attribute debe ser texto.',
+            'max'         => 'El :attribute no debe superar los :max caracteres.',
+            'exists'      => 'El :attribute seleccionado no es válido.',
+            'unique'      => 'Este :attribute ya está registrado en tu estudio para este país.',
         ];
 
         $request->validate([

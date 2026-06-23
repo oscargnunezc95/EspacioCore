@@ -106,6 +106,51 @@
                     <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1.5" />
                 </div>
 
+                {{-- Checkboxes de Consentimiento Legal — Ley 21.719 (GDPR chileno) --}}
+                {{-- Prohibido el consentimiento empaquetado: dos aceptaciones separadas con timestamp --}}
+                <fieldset class="space-y-3.5 pt-2">
+                    <legend class="sr-only">Consentimientos legales requeridos</legend>
+
+                    {{-- Términos y Condiciones --}}
+                    <div class="relative flex items-start gap-3">
+                        <div class="flex h-6 items-center">
+                            <input id="terms_accepted" name="terms_accepted" type="checkbox" value="1"
+                                class="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 cursor-pointer transition-all duration-200 @error('terms_accepted') border-rose-500 ring-2 ring-rose-200 @enderror">
+                        </div>
+                        <div class="text-sm leading-6">
+                            <label for="terms_accepted" class="font-medium text-zinc-700 cursor-pointer select-none">
+                                Acepto los
+                                <a href="{{ route('legal.terms') }}" target="_blank" rel="noopener noreferrer"
+                                   class="font-semibold text-zinc-900 hover:text-indigo-600 transition-colors duration-200 underline decoration-zinc-300 underline-offset-4">
+                                    Términos y Condiciones
+                                </a>
+                                <span aria-hidden="true" class="text-rose-500">*</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    {{-- Política de Privacidad --}}
+                    <div class="relative flex items-start gap-3">
+                        <div class="flex h-6 items-center">
+                            <input id="privacy_accepted" name="privacy_accepted" type="checkbox" value="1"
+                                class="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 cursor-pointer transition-all duration-200 @error('privacy_accepted') border-rose-500 ring-2 ring-rose-200 @enderror">
+                        </div>
+                        <div class="text-sm leading-6">
+                            <label for="privacy_accepted" class="font-medium text-zinc-700 cursor-pointer select-none">
+                                He leído y acepto la
+                                <a href="{{ route('legal.privacy') }}" target="_blank" rel="noopener noreferrer"
+                                   class="font-semibold text-zinc-900 hover:text-indigo-600 transition-colors duration-200 underline decoration-zinc-300 underline-offset-4">
+                                    Política de Privacidad
+                                </a>
+                                <span aria-hidden="true" class="text-rose-500">*</span>
+                            </label>
+                        </div>
+                    </div>
+                </fieldset>
+
+                <x-input-error :messages="$errors->get('terms_accepted')" class="mt-1.5" />
+                <x-input-error :messages="$errors->get('privacy_accepted')" class="mt-1.5" />
+
                 <div class="pt-4">
                     <button type="submit"
                         class="flex w-full justify-center px-4 py-3 text-sm font-bold text-white bg-zinc-900 rounded-xl hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 active:scale-[0.98] transition-all duration-200 shadow-sm">

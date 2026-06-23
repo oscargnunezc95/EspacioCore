@@ -8,7 +8,8 @@ use App\Models\ClassSession;
 use App\Models\Promotion;
 use App\Models\WorkshopPrice;
 use Illuminate\Support\Facades\Auth;
-use App\Services\PricingService; 
+use App\Services\PricingService;
+use App\Services\EnrollmentService;
 
 class CartController extends Controller
 {
@@ -75,11 +76,43 @@ class CartController extends Controller
                 });
 
                 [$promotions, $packs] = $this->loadPromoData($groupedSessions->keys()->toArray());
+
+                // ─── CAPA 2 ANTI-OVERBOOKING: Enriquecer con capacidad ─────────
+                $sessionIds = $dbSessions->pluck('id')->toArray();
+                $enrollmentService = app(EnrollmentService::class);
+                $capacityInfo = !empty($sessionIds)
+                    ? $enrollmentService->getCapacityInfo($sessionIds)
+                    : [];
+
+                $hasStockIssues = false;
+                $sessionCapacity = [];
+
+                foreach ($dbSessions as $session) {
+                    $sid = $session->id;
+                    $cap = $capacityInfo[$sid] ?? ['max_students' => 99, 'paid_count' => 0, 'available_spots' => 99];
+                    $pendingForUser = $session->students->count();
+
+                    $session->available_spots = $cap['available_spots'];
+                    $session->max_students = $cap['max_students'];
+                    $session->pending_user_count = $pendingForUser;
+
+                    $sessionCapacity[$sid] = [
+                        'available' => $cap['available_spots'],
+                        'max'       => $cap['max_students'],
+                        'pending'   => $pendingForUser,
+                    ];
+
+                    if ($pendingForUser > $cap['available_spots']) {
+                        $hasStockIssues = true;
+                    }
+                }
             }
         }
 
         // Enviamos $activeDependents a la vista
-        return view('cart.index', compact('groupedSessions', 'promotions', 'packs', 'activeDependents'));
+        $sessionCapacity = $sessionCapacity ?? [];
+        $hasStockIssues = $hasStockIssues ?? false;
+        return view('cart.index', compact('groupedSessions', 'promotions', 'packs', 'activeDependents', 'hasStockIssues', 'sessionCapacity'));
     }
 
     public function getGuestSessions(Request $request)

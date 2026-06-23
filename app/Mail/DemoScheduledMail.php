@@ -37,9 +37,14 @@ class DemoScheduledMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: $this->isAdminCopy
+            markdown: $this->isAdminCopy
                 ? 'mail.support.demo-scheduled-admin'
                 : 'mail.support.demo-scheduled-user',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

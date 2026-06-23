@@ -15,8 +15,8 @@ return new class extends Migration
             $table->integer('class_count'); // Ej: 4 (clases)
             $table->integer('price'); // Ej: 25000 ($)
             $table->boolean('is_monthly')->default(false); // Aplica la regla del primer mes?
-            $table->integer('introductory_price')->nullable()->after('is_monthly');
-            $table->boolean('is_introductory_active')->default(false)->after('introductory_price');
+            $table->integer('introductory_price')->nullable();
+            $table->boolean('is_introductory_active')->default(false);
 
             $table->timestamps();
         });

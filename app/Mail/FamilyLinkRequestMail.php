@@ -46,7 +46,12 @@ class FamilyLinkRequestMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.family.link-request',
+            markdown: 'mail.family.link-request',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

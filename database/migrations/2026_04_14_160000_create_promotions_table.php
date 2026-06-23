@@ -21,10 +21,11 @@ return new class extends Migration
             
             // Si es combo específico, guardamos el precio total del pack
             $table->integer('total_price')->nullable(); 
-            $table->integer('class_count')->nullable()->after('additional_price');
+            $table->integer('class_count')->nullable();
             
             // Si es descuento por taller adicional, guardamos el costo de los extras
-            $table->integer('additional_price')->nullable(); 
+            $table->integer('additional_price')->nullable();
+            $table->boolean('is_monthly')->default(false);
             
             $table->boolean('is_active')->default(true);
             $table->timestamps();

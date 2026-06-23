@@ -15,6 +15,7 @@ return new class extends Migration
             $table->string('tax_id_label');    // Ej: "RUT"
             $table->string('tax_id_regex')->nullable(); // Para validaciones futuras
             $table->string('currency_code', 3); // Ej: "CLP"
+            $table->string('currency_symbol', 5)->default('$');
             $table->timestamps();
         });
     }

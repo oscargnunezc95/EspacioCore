@@ -33,7 +33,12 @@ class UserLinkedToStudioMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.onboarding.user-linked',
+            markdown: 'mail.onboarding.user-linked',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

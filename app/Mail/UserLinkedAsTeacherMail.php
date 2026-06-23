@@ -33,7 +33,12 @@ class UserLinkedAsTeacherMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.onboarding.teacher-linked',
+            markdown: 'mail.onboarding.teacher-linked',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

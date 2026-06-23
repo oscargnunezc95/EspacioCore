@@ -16,6 +16,4 @@ Ya puedes acceder a tu panel y utilizar todas las herramientas avanzadas para ha
 Ir a mi Panel de Control
 </x-mail::button>
 
-Gracias por confiar en nosotros,<br>
-El equipo de {{ config('app.name') }}
 </x-mail::message>

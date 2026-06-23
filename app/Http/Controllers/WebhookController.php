@@ -15,12 +15,18 @@ class WebhookController extends Controller
     {
         Log::info('Webhook recibido de MP:', $request->all());
 
-        // BLINDADO: MP manda Webhooks (type/action/data.id) o IPNs (topic/id)
+        // MP manda Webhooks (type/action/data.id) o IPNs (topic/id)
         $type = $request->input('type') ?? $request->input('topic') ?? $request->input('action');
         $dataId = $request->input('data.id') ?? $request->input('id');
         
         if (!$dataId) {
             return response()->json(['status' => 'ignored', 'message' => 'No data ID'], 200);
+        }
+
+        // 🚨 BLINDAJE DE TÓPICOS: Descartar silenciosamente las merchant_orders
+        if ($type === 'merchant_order') {
+            Log::info("Webhook ignorado: Tópico {$type} no requiere procesamiento.");
+            return response()->json(['status' => 'ignored'], 200);
         }
 
         try {
@@ -39,7 +45,6 @@ class WebhookController extends Controller
                 case 'payment':
                 case 'payment.created':
                 case 'payment.updated':
-                case 'merchant_order':
                     // Enviamos el ID al Dispatcher del servicio
                     $mpService->handlePaymentWebhook($dataId);
                     break;

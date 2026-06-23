@@ -31,7 +31,12 @@ class DependentTransferRequestMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.family.transfer-request',
+            markdown: 'mail.family.transfer-request',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }

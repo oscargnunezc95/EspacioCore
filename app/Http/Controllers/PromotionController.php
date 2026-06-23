@@ -44,19 +44,25 @@ class PromotionController extends Controller
         $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:specific_combo,additional_discount',
+            'name'               => 'required|string|max:255',
+            'type'               => 'required|in:specific_combo,additional_discount',
             
-            'total_price' => 'required_if:type,specific_combo|nullable|numeric',
+            // Reglas condicionales para Combo
+            'total_price'        => 'required_if:type,specific_combo|nullable|numeric',
             'workshop_price_ids' => 'required_if:type,specific_combo|array',
             
-            'additional_price' => 'required_if:type,additional_discount|nullable|numeric',
-            'class_count' => 'required_if:type,additional_discount|nullable|integer|min:1',
+            // Reglas condicionales para Taller Adicional
+            'additional_price'   => 'required_if:type,additional_discount|nullable|numeric',
+            'class_count'        => 'required_if:type,additional_discount|nullable|integer|min:1',
+            
+            // Nuevo campo booleano
+            'is_monthly'         => 'nullable|boolean',
         ]);
 
-        // Aseguramos que la promoción quede atada al estudio actual
+        // Aseguramos que la promoción quede atada al estudio actual y capturamos el booleano
         $data = $request->only(['name', 'type', 'total_price', 'additional_price', 'class_count']);
         $data['studio_id'] = $studio->id; 
+        $data['is_monthly'] = $request->boolean('is_monthly');
 
         $promotion = Promotion::create($data);
 
@@ -74,18 +80,24 @@ class PromotionController extends Controller
     {
         // 1. Validación estricta de los datos entrantes
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'type' => 'required|in:specific_combo,additional_discount',
+            'name'                 => 'required|string|max:255',
+            'type'                 => 'required|in:specific_combo,additional_discount',
             
             // Reglas condicionales para Combo
-            'total_price' => 'nullable|required_if:type,specific_combo|numeric|min:0',
-            'workshop_price_ids' => 'nullable|required_if:type,specific_combo|array',
+            'total_price'          => 'nullable|required_if:type,specific_combo|numeric|min:0',
+            'workshop_price_ids'   => 'nullable|required_if:type,specific_combo|array',
             'workshop_price_ids.*' => 'exists:workshop_prices,id', // QA: Asegurar que el ID existe
             
             // Reglas condicionales para Taller Adicional
-            'class_count' => 'nullable|required_if:type,additional_discount|integer|min:1',
-            'additional_price' => 'nullable|required_if:type,additional_discount|numeric|min:0',
+            'class_count'          => 'nullable|required_if:type,additional_discount|integer|min:1',
+            'additional_price'     => 'nullable|required_if:type,additional_discount|numeric|min:0',
+            
+            // Nuevo campo booleano
+            'is_monthly'           => 'nullable|boolean',
         ]);
+
+        // Capturamos el booleano de forma segura
+        $validated['is_monthly'] = $request->boolean('is_monthly');
 
         // 2. Limpieza de estado (Evitamos guardar datos cruzados si el usuario cambia de tipo de regla)
         if ($validated['type'] === 'specific_combo') {
@@ -97,11 +109,12 @@ class PromotionController extends Controller
 
         // 3. Actualización de la entidad principal
         $promotion->update([
-            'name' => $validated['name'],
-            'type' => $validated['type'],
-            'total_price' => $validated['total_price'],
-            'class_count' => $validated['class_count'],
+            'name'             => $validated['name'],
+            'type'             => $validated['type'],
+            'total_price'      => $validated['total_price'],
+            'class_count'      => $validated['class_count'],
             'additional_price' => $validated['additional_price'],
+            'is_monthly'       => $validated['is_monthly'],
         ]);
 
         // 4. Sincronización inteligente de la tabla pivote

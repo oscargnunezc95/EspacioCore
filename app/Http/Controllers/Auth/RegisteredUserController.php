@@ -44,6 +44,8 @@ class RegisteredUserController extends Controller
             'country_id'        => 'país',
             'national_id'       => 'documento de identidad',
             'password'          => 'contraseña',
+            'terms_accepted'    => 'términos y condiciones',
+            'privacy_accepted'  => 'política de privacidad',
         ];
 
         $messages = [
@@ -73,6 +75,8 @@ class RegisteredUserController extends Controller
                 Rule::unique('users', 'national_id')->where('country_id', $request->country_id),
             ],
             'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'terms_accepted'   => ['required', 'accepted'],
+            'privacy_accepted' => ['required', 'accepted'],
         ], $messages, $attributes);
 
         $user = User::create([
@@ -81,6 +85,8 @@ class RegisteredUserController extends Controller
             'country_id' => $request->country_id,
             'national_id' => $request->national_id,
             'password' => Hash::make($request->password),
+            'terms_accepted_at'   => now(),
+            'privacy_accepted_at' => now(),
         ]);
 
         // ─── DETECCIÓN DE DEPENDIENTE PRE-EXISTENTE (ANTES del barrido) ─────

@@ -487,25 +487,24 @@ class FamilyController extends Controller
 
         $oldOwnerId = $user->dependent_decision_owner_id;
 
-        // Barrido: transferir Student profiles al nuevo usuario
-        // (así el hijo también puede ver sus propias clases desde su cuenta)
-        $transferred = Student::withoutGlobalScopes()
-            ->where('national_id', $user->national_id)
-            ->where('country_id', $user->country_id)
-            ->where(function ($q) use ($oldOwnerId) {
-                $q->where('user_id', $oldOwnerId)
-                  ->orWhereNull('user_id');
-            })
-            ->update(['user_id' => $user->id, 'country_id' => $user->country_id, 'email' => $user->email]);
+        $countryCode = $user->country?->code ?? 'OT';
+        $standardizedId = DocumentService::standardize($user->national_id, $countryCode);
 
-        // MANTENER el UserDependent — el apoderado sigue viendo al familiar
-        // Solo limpiar el flag
+        // Supremacía de Identidad
+        $transferred = Student::withoutGlobalScopes()
+            ->where('national_id', $standardizedId)
+            ->where('country_id', $user->country_id)
+            ->update([
+                'user_id'    => $user->id,
+                'email'      => $user->email 
+            ]);
+
         $user->update([
             'dependent_decision_pending'  => false,
             'dependent_decision_owner_id' => null,
         ]);
 
-        Log::info("Dependent share: user #{$user->id} mantiene vínculo, {$transferred} perfiles transferidos desde owner #{$oldOwnerId}.");
+        Log::info("Dependent share: user #{$user->id} mantiene vínculo, {$transferred} perfiles actualizados.");
 
         return redirect()->route('explore')->with('success',
             'Has mantenido el vínculo familiar. Ahora puedes ver tus clases desde tu cuenta y tu familiar también puede gestionarlas.'

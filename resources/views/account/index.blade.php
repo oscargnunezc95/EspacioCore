@@ -183,7 +183,7 @@
                 </button>
                 
                 {{-- Enlace real hacia tu controlador --}}
-                <a href="{{ route('mp.oauth.redirect') }}" class="flex-1 bg-[#009EE3] text-white font-bold py-3.5 rounded-xl shadow-sm hover:bg-[#008ACA] transition-all active:scale-95 text-sm flex items-center justify-center">
+                <a href="{{ route('mp.oauth.redirect', ['studio_id' => $studio->id]) }}" class="flex-1 bg-[#009EE3] text-white font-bold py-3.5 rounded-xl shadow-sm hover:bg-[#008ACA] transition-all active:scale-95 text-sm flex items-center justify-center">
                     Entendido, conectar
                 </a>
             </div>

@@ -12,6 +12,4 @@ Tu panel de control ya está activo y listo para configurar tus primeros tallere
 Ir a mi Panel de Control
 </x-mail::button>
 
-Gracias por confiar en nosotros,<br>
-El equipo de {{ config('app.name') }}
 </x-mail::message>

@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('class_session_id')->constrained()->cascadeOnDelete();
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
-            $table->string('payment_status', 20)->default('pending')->after('student_id');
+            $table->string('payment_status', 20)->default('pending');
             $table->timestamps();
 
             // Evitamos que una alumna se inscriba dos veces a la misma clase

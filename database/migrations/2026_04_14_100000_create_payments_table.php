@@ -14,11 +14,12 @@ return new class extends Migration
             $table->foreignId('student_id')->constrained()->cascadeOnDelete();
             $table->foreignId('workshop_id')->constrained()->cascadeOnDelete();
             $table->string('payment_type');
-            $table->string('payment_method')->default('transferencia')->after('payment_type');
+            $table->string('payment_method')->default('transferencia');
             $table->integer('amount');
+            $table->decimal('platform_fee', 10, 2)->default(0);
             $table->string('receipt_path')->nullable();
-            $table->string('mp_payment_id')->nullable()->after('receipt_path');
-            $table->string('status')->default('approved')->after('mp_payment_id');
+            $table->string('mp_payment_id')->nullable();
+            $table->string('status')->default('approved');
             $table->timestamps();
         });
     }

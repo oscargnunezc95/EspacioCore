@@ -16,6 +16,4 @@ Para revisar tus clases vigentes, asistencias o reservar nuevas sesiones, puedes
 Ir a mi Portal de Alumno
 </x-mail::button>
 
-Gracias por formar parte de nuestra comunidad,<br>
-El equipo de **{{ $studio->name }}** y {{ config('app.name') }}
 </x-mail::message>

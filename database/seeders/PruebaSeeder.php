@@ -17,7 +17,7 @@ class PruebaSeeder extends Seeder
     public function run(): void
     {
 
-        // 1. Usuario Administrador Principal
+/*         // 1. Usuario Administrador Principal
         $admin2 = User::firstOrCreate(
             ['email' => 'oscargnunezc18@gmail.com'],
             [
@@ -27,21 +27,21 @@ class PruebaSeeder extends Seeder
                 'national_id' => '18802106-9',
                 'country_id' => 1,
             ]
-        );
+        );*/
         // 1.5 Vincular a Luis como hermano de Oscar
         \App\Models\UserDependent::firstOrCreate(
             [
                 'user_id' => 1,
-                'national_id' => $admin2->national_id,
+                'national_id' => 188021069, // ID de Luis Nuñez
             ],
             [
                 'first_name' => 'Luis',
                 'last_name' => 'Nuñez',
-                'country_id' => $admin2->country_id,
+                'country_id' => 1,
                 'relationship' => 'Hermano/a',
                 'status' => 'active', // Lo forzamos a activo para pruebas locales
             ]
-        );
+        ); 
         // 2. Configuración de Estudios y Talleres (Adaptado a Schedules Múltiples)
         // Días: 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
         $studiosData = [

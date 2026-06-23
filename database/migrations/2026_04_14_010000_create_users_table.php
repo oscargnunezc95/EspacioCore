@@ -15,15 +15,18 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
+            $table->boolean('is_super_admin')->default(false);
             $table->timestamp('email_verified_at')->nullable();
-            
-            // Columna sin el unique() individual — ahora NOT NULL
-            $table->string('national_id')->after('email');
-            
-            $table->string('google_id')->nullable()->unique()->after('national_id');
+            $table->string('national_id');
+            $table->string('google_id')->nullable()->unique();
             $table->foreignId('country_id')->default(1)->constrained('countries');
+            $table->boolean('dependent_decision_pending')->default(false);
+            $table->unsignedBigInteger('dependent_decision_owner_id')->nullable();
             $table->string('password');
             $table->rememberToken();
+            $table->string('mp_access_token')->nullable();
+            $table->string('mp_refresh_token')->nullable();
+            $table->string('mp_user_id')->nullable();
             $table->timestamps();
 
             // Índice único compuesto para permitir el mismo documento en distintos países

@@ -82,6 +82,27 @@
                         </div>
                     </div>
 
+                    {{-- CAPA 2: Indicador de stock por sesión --}}
+                    @php
+                        $sessionAvailable = $session->available_spots ?? 99;
+                        $sessionMax = $session->max_students ?? 99;
+                        $pendingForUser = $session->pending_user_count ?? 0;
+                        $isOverbooked = $pendingForUser > $sessionAvailable;
+                        $isLowStock = $sessionAvailable <= 2 && $sessionAvailable > 0 && !$isOverbooked;
+                    @endphp
+
+                    @if($isOverbooked)
+                    <div class="flex items-center gap-1.5 ml-0">
+                        <svg class="w-3.5 h-3.5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <span class="text-[11px] font-black text-rose-600">Solo {{ $sessionAvailable }} cupo(s) disponible(s) — tienes {{ $pendingForUser }} reserva(s)</span>
+                    </div>
+                    @elseif($isLowStock)
+                    <div class="flex items-center gap-1.5 ml-0">
+                        <svg class="w-3.5 h-3.5 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <span class="text-[11px] font-black text-amber-600">Quedan {{ $sessionAvailable }} cupos</span>
+                    </div>
+                    @endif
+
                     {{-- Lista Individual de Alumnos en esta sesión --}}
                     <div class="mt-2 sm:ml-16 flex flex-col gap-2 border-l-2 border-zinc-100 pl-4">
                         @foreach($session->students as $st)

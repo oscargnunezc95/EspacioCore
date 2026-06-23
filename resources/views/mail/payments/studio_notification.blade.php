@@ -17,5 +17,4 @@ El saldo y los reportes financieros del mes ya se encuentran actualizados en tu 
 Ver Panel de Gestión
 </x-mail::button>
 
-{{ config('app.name') }} - Automatizando el crecimiento de tu negocio.
 </x-mail::message>

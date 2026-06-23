@@ -25,50 +25,6 @@
                 @endif
             </button>
         </div>
-
-        {{-- BANNER DE MERCADO PAGO (visible siempre) --}}
-        @if(!$mpLinked)
-            <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-w-2xl mx-auto">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-amber-800">Vincula Mercado Pago para recibir tus pagos</p>
-                        <p class="text-xs text-amber-600 mt-0.5">Los estudios necesitan tu cuenta vinculada para pagarte directamente.</p>
-                        <p class="text-xs text-amber-500 mt-1 italic">
-                            ⚡ Si ya iniciaste sesión en Mercado Pago en este navegador, la vinculación será instantánea (solo verás una recarga de la página).
-                        </p>
-                    </div>
-                </div>
-                <a href="{{ route('mp.oauth.teacher.redirect') }}"
-                   class="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all duration-200 shadow-sm active:scale-95">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                    Vincular Mercado Pago
-                </a>
-            </div>
-        @else
-            <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-w-2xl mx-auto">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-sm font-bold text-emerald-800">Cuenta de Mercado Pago vinculada</p>
-                        <p class="text-xs text-emerald-600 mt-0.5">Los estudios pueden pagarte directamente a tu cuenta.</p>
-                    </div>
-                </div>
-                <form method="POST" action="{{ route('global.payments.mp.disconnect') }}" class="shrink-0">
-                    @csrf @method('DELETE')
-                    <button type="submit" 
-                            onclick="return confirm('¿Desvincular tu cuenta de Mercado Pago? Los estudios ya no podrán pagarte directamente hasta que la vuelvas a vincular.')"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                        Desvincular
-                    </button>
-                </form>
-            </div>
-        @endif
         
         {{-- TAB 1: PAGOS REALIZADOS --}}
         <div x-show="activeTab === 'pagos'" x-cloak>
@@ -90,8 +46,9 @@
                                 <tr class="bg-zinc-50/80 border-b border-zinc-200 text-[11px] uppercase tracking-widest text-zinc-500 font-black">
                                     <th class="px-6 py-5">Fecha y Hora</th>
                                     <th class="px-6 py-5">Estudio y Alumno</th>
-                                    <th class="px-6 py-5">Método de Pago</th>
+                                    <th class="px-6 py-5">Método</th>
                                     <th class="px-6 py-5 text-right">Monto</th>
+                                    <th class="px-6 py-5 text-center">Estado</th> {{-- NUEVA COLUMNA --}}
                                     <th class="px-6 py-5 text-right">Acción</th>
                                 </tr>
                             </thead>
@@ -107,6 +64,30 @@
                                         
                                         $method = $payment->payment_method ?? 'transferencia';
                                         $studentName = $payment->student->first_name;
+
+                                        // LÓGICA UI: Colores dinámicos según el status del pago
+                                        $statusConfig = match($payment->status) {
+                                            'approved', 'paid' => [
+                                                'bg' => 'bg-emerald-50 text-emerald-700 border-emerald-200',
+                                                'dot' => 'bg-emerald-500',
+                                                'text' => 'Aprobado'
+                                            ],
+                                            'refunded', 'refunded_overbooking' => [
+                                                'bg' => 'bg-rose-50 text-rose-700 border-rose-200',
+                                                'dot' => 'bg-rose-500',
+                                                'text' => 'Reembolsado'
+                                            ],
+                                            'pending' => [
+                                                'bg' => 'bg-amber-50 text-amber-700 border-amber-200',
+                                                'dot' => 'bg-amber-500',
+                                                'text' => 'Pendiente'
+                                            ],
+                                            default => [
+                                                'bg' => 'bg-zinc-50 text-zinc-700 border-zinc-200',
+                                                'dot' => 'bg-zinc-500',
+                                                'text' => ucfirst($payment->status)
+                                            ]
+                                        };
                                     @endphp
                                     
                                     <tr class="flex flex-col md:table-row p-5 md:p-0 border-b border-zinc-200 last:border-0 hover:bg-zinc-50/50 transition-colors group gap-3 md:gap-0">
@@ -157,6 +138,15 @@
                                             <span class="text-lg md:text-base font-black text-zinc-900">${{ number_format($payment->amount, 0, ',', '.') }}</span>
                                         </td>
 
+                                        {{-- NUEVA COLUMNA DE ESTADO --}}
+                                        <td class="flex justify-between items-center md:table-cell md:px-6 md:py-5 md:text-center mt-1 md:mt-0">
+                                            <span class="md:hidden text-[10px] font-black text-zinc-400 uppercase tracking-widest">Estado</span>
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-bold rounded-lg border {{ $statusConfig['bg'] }}">
+                                                <span class="w-1.5 h-1.5 rounded-full {{ $statusConfig['dot'] }}"></span>
+                                                {{ $statusConfig['text'] }}
+                                            </span>
+                                        </td>
+
                                         <td class="md:table-cell md:px-6 md:py-5 md:text-right mt-1 md:mt-0">
                                             <button onclick="openPaymentDetail({{ $payment->id }})" class="w-full md:w-auto inline-flex justify-center items-center gap-2 text-xs font-black text-indigo-600 bg-indigo-50 px-4 py-3 md:py-2 rounded-xl hover:bg-indigo-600 hover:text-white transition-all active:scale-95 uppercase tracking-widest">
                                                 Ver Detalle
@@ -168,8 +158,17 @@
                                     <div id="payment-modal-{{ $payment->id }}" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
                                         <div class="relative bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden transform transition-all duration-300 scale-95 opacity-0 modal-card flex flex-col max-h-[85vh]">
                                             <div class="bg-zinc-900 p-6 md:p-8 text-white relative shrink-0">
-                                                <p class="text-teal-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Comprobante de Pago</p>
-                                                <h3 class="text-2xl font-black italic tracking-tighter">ID #{{ str_pad($payment->id, 6, '0', STR_PAD_LEFT) }}</h3>
+                                                <div class="flex justify-between items-start">
+                                                    <div>
+                                                        <p class="text-teal-400 text-[10px] font-black uppercase tracking-[0.2em] mb-2">Comprobante de Pago</p>
+                                                        <h3 class="text-2xl font-black italic tracking-tighter">ID #{{ str_pad($payment->id, 6, '0', STR_PAD_LEFT) }}</h3>
+                                                    </div>
+                                                    {{-- INYECCIÓN DEL BADGE TAMBIÉN EN EL MODAL --}}
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold rounded-lg border {{ $statusConfig['bg'] }}">
+                                                        <span class="w-1.5 h-1.5 rounded-full {{ $statusConfig['dot'] }}"></span>
+                                                        {{ $statusConfig['text'] }}
+                                                    </span>
+                                                </div>
                                                 <div class="mt-4 flex items-center gap-3">
                                                     <img src="{{ $studioAvatar }}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/20">
                                                     <div class="flex flex-col">
@@ -228,6 +227,49 @@
 
         {{-- TAB 2: INGRESOS RECIBIDOS --}}
         <div x-show="activeTab === 'ingresos'" x-cloak>
+                    {{-- BANNER DE MERCADO PAGO (visible siempre) --}}
+        @if(!$mpLinked)
+            <div class="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-w-2xl mx-auto">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-amber-600 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-amber-800">Vincula Mercado Pago para recibir tus pagos</p>
+                        <p class="text-xs text-amber-600 mt-0.5">Los estudios necesitan tu cuenta vinculada para pagarte directamente.</p>
+                        <p class="text-xs text-amber-500 mt-1 italic">
+                            ⚡ Si ya iniciaste sesión en Mercado Pago en este navegador, la vinculación será instantánea (solo verás una recarga de la página).
+                        </p>
+                    </div>
+                </div>
+                <a href="{{ route('mp.oauth.teacher.redirect') }}"
+                   class="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-bold transition-all duration-200 shadow-sm active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                    Vincular Mercado Pago
+                </a>
+            </div>
+        @else
+            <div class="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 max-w-2xl mx-auto">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-600 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </div>
+                    <div>
+                        <p class="text-sm font-bold text-emerald-800">Cuenta de Mercado Pago vinculada</p>
+                        <p class="text-xs text-emerald-600 mt-0.5">Los estudios pueden pagarte directamente a tu cuenta.</p>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('global.payments.mp.disconnect') }}" class="shrink-0">
+                    @csrf @method('DELETE')
+                    <button type="submit" 
+                            onclick="return confirm('¿Desvincular tu cuenta de Mercado Pago? Los estudios ya no podrán pagarte directamente hasta que la vuelvas a vincular.')"
+                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-100 hover:bg-rose-200 text-rose-700 rounded-xl text-sm font-bold transition-all duration-200 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                        Desvincular
+                    </button>
+                </form>
+            </div>
+        @endif
             <div class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-zinc-200 overflow-hidden">
                 
                 @if($teacherPayments->isEmpty())

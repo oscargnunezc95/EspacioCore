@@ -85,7 +85,30 @@
                 <h1 class="text-2xl md:text-3xl font-black text-white tracking-tight drop-shadow-md leading-none truncate mb-2">
                     {{ $studioName }}
                 </h1>
-                
+
+                {{-- Badge del Plan de Suscripción --}}
+                @php
+                    $isFree = !$studio || $studio->subscription_status === 'free';
+                    $planLabel = $studio && $studio->subscriptionPlan
+                        ? $studio->subscriptionPlan->name
+                        : ($isFree ? 'Plan Gratuito' : $studio->subscription_status);
+                @endphp
+                <a href="{{ route('subscriptions.index', $subdomain) }}"
+                   class="inline-flex self-start items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-all duration-200 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-black/50 mb-2
+                          @if($isFree)
+                              bg-zinc-700/60 text-zinc-200 border-zinc-500/30 hover:bg-zinc-600/80 focus:ring-zinc-400
+                          @else
+                              bg-emerald-700/60 text-emerald-100 border-emerald-400/30 hover:bg-emerald-600/80 focus:ring-emerald-400
+                          @endif">
+                    @if($isFree)
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path></svg>
+                    @else
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    @endif
+                    <span>{{ $planLabel }}</span>
+                    <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </a>
+
                 <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4">
                     {{-- Enlace Web --}}
                     <a href="{{ $studioUrl }}" target="_blank" class="flex items-center gap-1.5 text-xs md:text-sm font-medium text-zinc-300 hover:text-white transition-colors drop-shadow w-fit group">

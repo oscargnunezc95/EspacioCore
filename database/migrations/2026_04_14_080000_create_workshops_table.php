@@ -26,7 +26,7 @@ return new class extends Migration
             // Contenido y media
             $table->text('description')->nullable();
             $table->string('promo_video_url')->nullable();
-            $table->string('image_path')->nullable()->after('name');
+            $table->string('image_path')->nullable();
 
             // Logica de Calendario
             $table->boolean('is_single_class')->default(false);

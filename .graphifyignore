@@ -1,0 +1,10 @@
+public/
+storage/
+vendor/
+node_modules/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.pdf

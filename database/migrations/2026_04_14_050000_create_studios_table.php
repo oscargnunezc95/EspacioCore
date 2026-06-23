@@ -16,7 +16,7 @@ return new class extends Migration
             // Datos Basicos
             $table->string('name');
             $table->string('logo_path')->nullable();
-            $table->string('icon_path')->nullable()->after('logo_path');
+            $table->string('icon_path')->nullable();
             $table->string('subdomain')->unique();
 
             // Datos Geograficos (Sede Principal)
@@ -36,7 +36,8 @@ return new class extends Migration
             // Suscripcion SaaS
             $table->string('mp_preapproval_id')->nullable()->comment('ID de la suscripcion en Mercado Pago');
             $table->string('subscription_status')->default('free')->comment('free, pro, elite, past_due');
-            $table->timestamp('subscription_ends_at')->nullable();
+            $table->dateTime('subscription_expires_at')->nullable();
+            $table->dateTime('subscription_ends_at')->nullable();
 
             // Mercado Pago OAuth
             $table->string('mp_access_token')->nullable();

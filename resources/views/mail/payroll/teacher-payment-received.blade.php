@@ -17,6 +17,4 @@ Puedes revisar tu historial de liquidaciones y tus próximos talleres desde tu p
 Ir a mi Portal
 </x-mail::button>
 
-Gracias por tu trabajo,<br>
-El equipo de **{{ config('app.name') }}**
 </x-mail::message>

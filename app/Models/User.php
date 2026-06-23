@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use App\Services\DocumentService;
 use App\Models\Country;
 
-#[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id', 'dependent_decision_pending', 'dependent_decision_owner_id', 'mp_access_token', 'mp_refresh_token', 'mp_user_id', 'is_super_admin'])]
+#[Fillable(['name', 'email', 'password', 'google_id','national_id','country_id', 'dependent_decision_pending', 'dependent_decision_owner_id', 'mp_access_token', 'mp_refresh_token', 'mp_user_id', 'is_super_admin', 'terms_accepted_at', 'privacy_accepted_at'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements MustVerifyEmail 
 {
@@ -27,6 +27,8 @@ class User extends Authenticatable implements MustVerifyEmail
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'terms_accepted_at' => 'datetime',
+            'privacy_accepted_at' => 'datetime',
         ];
     }
 

@@ -12,7 +12,7 @@ class PricingService
     /**
      * Calcula el total y el desglose de un carrito para un estudio específico.
      * Incorpora Delta Pricing (Upgrade retroactivo), validación de Alumno Nuevo,
-     * agrupación dinámica (Mensual o Libre) y optimización absoluta de base de datos.
+     * y aislamiento temporal estricto (Mes Calendario) para Promociones.
      */
     public function calculateCart(int $studioId, array $sessionIds, int $studentId = null): array
     {
@@ -20,28 +20,42 @@ class PricingService
             return ['total' => 0, 'breakdown' => []];
         }
 
-        // 1. Cargamos las sesiones (Ordenamos precios de mayor a menor para aplicar el mejor pack primero)
+        // =========================================================================
+        // 1. CARGA BLINDADA DE SESIONES Y TALLERES
+        // =========================================================================
         $sessions = ClassSession::withoutGlobalScopes()
-            ->with(['workshop.prices' => function($q) {
-                $q->orderBy('class_count', 'desc');
-            }])
+            ->with([
+                'workshop' => function($q) { 
+                    $q->withoutGlobalScopes(); 
+                },
+                'workshop.prices' => function($q) {
+                    $q->orderBy('class_count', 'desc');
+                }
+            ])
             ->whereIn('id', $sessionIds)
             ->get();
 
         $total = 0;
         $breakdown = [];
         
-        // Registro de cuántos packs de qué tipo está llevando el usuario (Útil para combos globales)
-        $purchasedPacks = [];
+        // =========================================================================
+        // 1.5. CONSTRUCCIÓN ESTRICTA DE BOLSAS MENSUALES PARA PROMOCIONES
+        // =========================================================================
+        $promoDataByPeriod = [];
+        
+        // Contamos las clases basándonos ÚNICAMENTE en su fecha real, ignorando cómo se configuren los precios.
+        foreach ($sessions as $session) {
+            $monthKey = Carbon::parse($session->date)->format('Y-m');
+            if (!isset($promoDataByPeriod[$monthKey])) {
+                $promoDataByPeriod[$monthKey] = ['classes_count' => 0, 'packs' => []];
+            }
+            $promoDataByPeriod[$monthKey]['classes_count']++;
+        }
 
-        // =========================================================================
-        // OPTIMIZACIÓN DE RENDIMIENTO: Carga de historial en una sola consulta masiva
-        // =========================================================================
         $historicalPayments = collect();
         if ($studentId) {
             $involvedWorkshopIds = $sessions->pluck('workshop_id')->unique()->toArray();
             
-            // Traemos todos los cobros aprobados de este alumno para los talleres del carrito
             $historicalPayments = DB::table('class_session_student')
                 ->join('class_sessions', 'class_session_student.class_session_id', '=', 'class_sessions.id')
                 ->where('class_session_student.student_id', $studentId)
@@ -52,16 +66,13 @@ class PricingService
         }
 
         // =========================================================================
-        // 2. AGRUPACIÓN DINÁMICA (CORTE MENSUAL O PLAN LIBRE)
+        // 2. AGRUPACIÓN DINÁMICA Y CÁLCULO DE PRECIOS BASE
         // =========================================================================
         $groupedByWorkshop = $sessions->groupBy(function ($session) {
             $hasMonthlyPacks = $session->workshop->prices->where('is_monthly', true)->isNotEmpty();
-            
             if ($hasMonthlyPacks) {
-                // Es mensual: Agrupamos estrictamente por Año-Mes (Ej: "5-2026-06")
                 return $session->workshop_id . '-' . Carbon::parse($session->date)->format('Y-m');
             } else {
-                // Es libre/bolsa: Agrupamos todo el bloque de manera global
                 return $session->workshop_id . '-global';
             }
         });
@@ -73,10 +84,11 @@ class PricingService
             $appliedBadges = [];
 
             $hasMonthlyPacks = $workshop->prices->where('is_monthly', true)->isNotEmpty();
+            $firstDate = Carbon::parse($workshopSessions->first()->date);
+            $monthKeyOfGroup = $firstDate->format('Y-m'); // Mes de la primera clase para asignar los packs
             
             if ($hasMonthlyPacks) {
-                $firstDate = Carbon::parse($workshopSessions->first()->date);
-                $periodName = ucfirst($firstDate->translatedFormat('F'));
+                $periodName = ucfirst($firstDate->translatedFormat('F Y'));
             } else {
                 $periodName = 'Plan Libre';
             }
@@ -85,24 +97,18 @@ class PricingService
             $isEligibleForIntro = false;
             
             if ($studentId) {
-                $firstDate = Carbon::parse($workshopSessions->first()->date);
-                
-                // Filtramos la colección cargada en memoria RAM para evitar consultas N+1
                 $workshopHistory = $historicalPayments->where('workshop_id', $workshopId);
                 
                 if ($hasMonthlyPacks) {
-                    // A. Clases ya pagadas dentro de este mismo mes calendario
                     $pastCount = $workshopHistory->filter(function($payment) use ($firstDate) {
                         $paymentDate = Carbon::parse($payment->date);
                         return $paymentDate->year === $firstDate->year && $paymentDate->month === $firstDate->month;
                     })->count();
 
-                    // B. Clases pagadas históricamente antes de que iniciara este mes
                     $historicalPaid = $workshopHistory->filter(function($payment) use ($firstDate) {
                         return Carbon::parse($payment->date)->startOfDay()->lt($firstDate->copy()->startOfMonth());
                     })->count();
                 } else {
-                    // Si es plan libre, evaluamos el acumulado global de su vida útil
                     $pastCount = $workshopHistory->count();
                     $historicalPaid = $workshopHistory->count();
                 }
@@ -110,7 +116,6 @@ class PricingService
                 $isEligibleForIntro = ($historicalPaid === 0);
             }
 
-            // Función anónima optimizada para calcular el costo en bruto (Evalúa Introductory Prices)
             $calculateRawPrice = function($count) use ($workshop, $isEligibleForIntro) {
                 $price = 0;
                 $rem = $count;
@@ -129,7 +134,6 @@ class PricingService
                     }
                 }
                 
-                // Procesamiento de clases sueltas (Drop-in) remanentes
                 if ($rem > 0) {
                     $dropInTier = $workshop->prices->where('class_count', 1)->first();
                     $dropInPrice = 0;
@@ -146,21 +150,19 @@ class PricingService
             };
 
             $totalCount = $cartCount + $pastCount;
-
-            // Delta Pricing: Calculamos la diferencia exacta a cobrar
             $priceForTotal = $calculateRawPrice($totalCount);
             $priceForPast = $calculateRawPrice($pastCount);
 
             $workshopSubtotal = max(0, $priceForTotal - $priceForPast);
             $total += $workshopSubtotal;
 
-            // Registro de estructuras para Combos Globales
+            // Inyectar los packs formados a la bolsa del mes correspondiente
             $remCart = $cartCount;
             foreach ($workshop->prices as $tier) {
                 if ($tier->class_count > 1 && $remCart >= $tier->class_count) {
                     $packs = intdiv($remCart, $tier->class_count);
                     
-                    $purchasedPacks[$tier->id] = ($purchasedPacks[$tier->id] ?? 0) + $packs;
+                    $promoDataByPeriod[$monthKeyOfGroup]['packs'][$tier->id] = ($promoDataByPeriod[$monthKeyOfGroup]['packs'][$tier->id] ?? 0) + $packs;
                     $remCart %= $tier->class_count;
                     
                     if ($pastCount == 0) {
@@ -172,11 +174,10 @@ class PricingService
             if ($remCart > 0) {
                 $singlePriceId = $workshop->prices->where('class_count', 1)->first()->id ?? null;
                 if ($singlePriceId) {
-                    $purchasedPacks[$singlePriceId] = ($purchasedPacks[$singlePriceId] ?? 0) + $remCart;
+                    $promoDataByPeriod[$monthKeyOfGroup]['packs'][$singlePriceId] = ($promoDataByPeriod[$monthKeyOfGroup]['packs'][$singlePriceId] ?? 0) + $remCart;
                 }
             }
 
-            // Inyección de etiquetas informativas para la UI
             if ($isEligibleForIntro) {
                 $appliedBadges[] = "Mes Introductorio";
             }
@@ -193,68 +194,143 @@ class PricingService
         }
 
         // =========================================================================
-        // 3. CÁLCULO DE PROMOCIONES GLOBALES (COMBOS MULTI-TALLER O VOLUMEN BRUTO)
+        // 3. CÁLCULO DE PROMOCIONES (DUAL: AISLADO POR MES O GLOBAL)
         // =========================================================================
         $promotions = Promotion::where('studio_id', $studioId)->where('is_active', true)->with('workshopPrices')->get();
 
         foreach ($promotions as $promo) {
             
-            // LÓGICA A: COMBOS ESPECÍFICOS (Ej: Pack 4 Vóley + Pack 4 Funcional)
-            if ($promo->type === 'specific_combo') {
-                $requiredPrices = $promo->workshopPrices->pluck('id')->toArray();
-                
-                $hasAllRequired = true;
-                foreach ($requiredPrices as $reqId) {
-                    if (!isset($purchasedPacks[$reqId]) || $purchasedPacks[$reqId] < 1) {
-                        $hasAllRequired = false;
-                        break;
-                    }
-                }
+            if ($promo->is_monthly) {
+                // ---------------------------------------------------------
+                // MODO RESTRINGIDO: Evalúa Bolsa por Bolsa (Estricto Mes Calendario)
+                // ---------------------------------------------------------
+                foreach ($promoDataByPeriod as $periodKey => &$periodData) {
+                    $periodLabel = ucfirst(Carbon::createFromFormat('Y-m', $periodKey)->translatedFormat('F Y'));
 
-                if ($hasAllRequired && !empty($requiredPrices)) {
-                    $originalComboCost = 0;
-                    foreach ($promo->workshopPrices as $reqPrice) {
-                        $originalComboCost += $reqPrice->price;
-                    }
-
-                    $discountAmount = $originalComboCost - $promo->total_price;
-
-                    if ($discountAmount > 0) {
-                        $total -= $discountAmount; 
+                    if ($promo->type === 'specific_combo') {
+                        $requiredPrices = $promo->workshopPrices->pluck('id')->toArray();
+                        $hasAllRequired = true;
                         
-                        $breakdown[] = [
-                            'name' => "🌟 Combo: {$promo->name}",
-                            'subtotal' => -$discountAmount,
-                            'badges' => ['Promo Aplicada'],
-                            'is_discount' => true
-                        ];
-                        
-                        // Consumimos los recursos del array para evitar duplicación del combo
                         foreach ($requiredPrices as $reqId) {
-                            $purchasedPacks[$reqId]--;
+                            if (!isset($periodData['packs'][$reqId]) || $periodData['packs'][$reqId] < 1) {
+                                $hasAllRequired = false;
+                                break;
+                            }
+                        }
+
+                        if ($hasAllRequired && !empty($requiredPrices)) {
+                            $originalComboCost = $promo->workshopPrices->sum('price');
+                            $discountAmount = $originalComboCost - $promo->total_price;
+
+                            if ($discountAmount > 0) {
+                                $total -= $discountAmount; 
+                                $breakdown[] = [
+                                    'name' => "🌟 Combo Mensual: {$promo->name} ({$periodLabel})",
+                                    'subtotal' => -$discountAmount,
+                                    'badges' => ['Promo Aplicada'],
+                                    'is_discount' => true
+                                ];
+                                foreach ($requiredPrices as $reqId) {
+                                    $periodData['packs'][$reqId]--;
+                                }
+                            }
+                        }
+                    }
+
+                    if ($promo->type === 'additional_discount') {
+                        if ($periodData['classes_count'] >= $promo->class_count) {
+                            $total -= $promo->additional_price;
+                            $breakdown[] = [
+                                'name' => "🔥 Descuento Mensual: {$promo->name} ({$periodLabel})",
+                                'subtotal' => -$promo->additional_price,
+                                'badges' => ["+{$promo->class_count} clases"],
+                                'is_discount' => true
+                            ];
+                            $periodData['classes_count'] = 0; 
                         }
                     }
                 }
-            }
+                unset($periodData);
 
-            // LÓGICA B: DESCUENTOS DIRECTOS POR VOLUMEN BRUTO
-            if ($promo->type === 'additional_discount') {
-                $totalClassesInCart = count($sessionIds);
+            } else {
+                // ---------------------------------------------------------
+                // MODO GLOBAL: Agrupa todas las bolsas mensuales y evalúa el total
+                // ---------------------------------------------------------
+                $globalClasses = 0;
+                $globalPacks = [];
                 
-                if ($totalClassesInCart >= $promo->class_count) {
-                    $total -= $promo->additional_price;
+                foreach ($promoDataByPeriod as $periodData) {
+                    $globalClasses += $periodData['classes_count'];
+                    foreach ($periodData['packs'] as $id => $qty) {
+                        $globalPacks[$id] = ($globalPacks[$id] ?? 0) + $qty;
+                    }
+                }
+
+                if ($promo->type === 'specific_combo') {
+                    $requiredPrices = $promo->workshopPrices->pluck('id')->toArray();
+                    $hasAllRequired = true;
                     
-                    $breakdown[] = [
-                        'name' => "🔥 Descuento Volumen: {$promo->name}",
-                        'subtotal' => -$promo->additional_price,
-                        'badges' => ["+{$promo->class_count} clases"],
-                        'is_discount' => true
-                    ];
+                    foreach ($requiredPrices as $reqId) {
+                        if (!isset($globalPacks[$reqId]) || $globalPacks[$reqId] < 1) {
+                            $hasAllRequired = false;
+                            break;
+                        }
+                    }
+
+                    if ($hasAllRequired && !empty($requiredPrices)) {
+                        $originalComboCost = $promo->workshopPrices->sum('price');
+                        $discountAmount = $originalComboCost - $promo->total_price;
+
+                        if ($discountAmount > 0) {
+                            $total -= $discountAmount; 
+                            $breakdown[] = [
+                                'name' => "🌟 Combo Global: {$promo->name}",
+                                'subtotal' => -$discountAmount,
+                                'badges' => ['Promo Aplicada'],
+                                'is_discount' => true
+                            ];
+                            
+                            foreach ($requiredPrices as $reqId) {
+                                foreach ($promoDataByPeriod as $periodKey => &$periodData) {
+                                    if (($periodData['packs'][$reqId] ?? 0) > 0) {
+                                        $periodData['packs'][$reqId]--;
+                                        break; 
+                                    }
+                                }
+                                unset($periodData);
+                            }
+                        }
+                    }
+                }
+
+                if ($promo->type === 'additional_discount') {
+                    if ($globalClasses >= $promo->class_count) {
+                        $total -= $promo->additional_price;
+                        $breakdown[] = [
+                            'name' => "🔥 Descuento Global: {$promo->name}",
+                            'subtotal' => -$promo->additional_price,
+                            'badges' => ["+{$promo->class_count} clases"],
+                            'is_discount' => true
+                        ];
+                        
+                        $classesToConsume = $promo->class_count;
+                        foreach ($promoDataByPeriod as $periodKey => &$periodData) {
+                            if ($periodData['classes_count'] > 0) {
+                                if ($periodData['classes_count'] >= $classesToConsume) {
+                                    $periodData['classes_count'] -= $classesToConsume;
+                                    break;
+                                } else {
+                                    $classesToConsume -= $periodData['classes_count'];
+                                    $periodData['classes_count'] = 0;
+                                }
+                            }
+                        }
+                        unset($periodData);
+                    }
                 }
             }
         }
 
-        // Red de seguridad contable invariable
         $total = max(0, $total);
 
         return [

@@ -20,7 +20,16 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // 2. Limpieza de la tabla workshops (Quitamos lo que ya no sirve)
+        // 2. FK workshop_schedule_id en class_sessions (jerarquía Workshop -> Schedule -> Session)
+        Schema::table('class_sessions', function (Blueprint $table) {
+            $table->foreignId('workshop_schedule_id')
+                  ->nullable()
+                  ->after('workshop_id')
+                  ->constrained('workshop_schedules')
+                  ->nullOnDelete();
+        });
+
+        // 3. Limpieza de la tabla workshops (Quitamos lo que ya no sirve)
         Schema::table('workshops', function (Blueprint $table) {
             $table->dropColumn('repeat_days');
         });
@@ -28,6 +37,10 @@ return new class extends Migration
 
     public function down(): void
     {
+        Schema::table('class_sessions', function (Blueprint $table) {
+            $table->dropConstrainedForeignId('workshop_schedule_id');
+        });
+
         Schema::dropIfExists('workshop_schedules');
         Schema::table('workshops', function (Blueprint $table) {
             $table->time('start_time')->nullable();

@@ -8,8 +8,7 @@ use App\Models\Payment;
 use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Models\Promotion;
-use App\Notifications\ClassFullNotification;
-use App\Notifications\SpotReservedNotification;
+use App\Services\EnrollmentService;
 use App\Mail\StudentPaymentReceiptMail;
 use App\Mail\StudioPaymentNotificationMail;
 use Illuminate\Support\Facades\DB;
@@ -96,53 +95,11 @@ class PaymentController extends Controller
         }
 
         // 7. NOTIFICACIONES: Avisar a estudiantes pendientes si la clase se llenó
-        try {
-            foreach ($request->session_ids as $sessionId) {
-                $session = ClassSession::withoutGlobalScopes()
-                    ->with(['workshop' => fn($q) => $q->withoutGlobalScopes(), 'schedule'])
-                    ->find($sessionId);
-
-                if (!$session) continue;
-
-                $maxStudents = $session->max_students;
-                $paidCount = DB::table('class_session_student')
-                    ->where('class_session_id', $sessionId)
-                    ->where('payment_status', 'paid')
-                    ->count();
-                $availableSpots = max(0, $maxStudents - $paidCount);
-
-                $pendingStudentIds = DB::table('class_session_student')
-                    ->where('class_session_id', $sessionId)
-                    ->where('payment_status', 'pending')
-                    ->pluck('student_id');
-
-                if ($pendingStudentIds->isEmpty()) continue;
-
-                // Construimos la query base
-                $pendingUsersQuery = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
-                    $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
-                });
-
-                // EXCEPCIÓN APLICADA AQUÍ: Excluimos al usuario del alumno que acaba de pagar
-                if ($student->user_id) {
-                    $pendingUsersQuery->where('id', '!=', $student->user_id);
-                }
-
-                $pendingUsers = $pendingUsersQuery->get();
-
-                if ($availableSpots <= 0) {
-                    foreach ($pendingUsers as $pendingUser) {
-                        $pendingUser->notify(new ClassFullNotification($session));
-                    }
-                } else {
-                    foreach ($pendingUsers as $pendingUser) {
-                        $pendingUser->notify(new SpotReservedNotification($session, $availableSpots));
-                    }
-                }
-            }
-        } catch (\Exception $e) {
-            Log::error('Error enviando notificaciones post-pago manual: ' . $e->getMessage());
-        }
+        $enrollmentService = app(EnrollmentService::class);
+        $enrollmentService->notifyCapacityChange(
+            $request->session_ids,
+            $student->user_id ?: 0
+        );
 
         return back()->with('success', '¡Pago y asistencia registrados correctamente!');
     }

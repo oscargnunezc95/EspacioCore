@@ -13,10 +13,9 @@ use App\Models\ClassSession;
 use App\Models\Studio;
 use App\Models\UserDependent;
 use Carbon\Carbon;
-use App\Notifications\StudentAddedNotification;
-use App\Notifications\SpotReservedNotification;
-use App\Notifications\ClassFullNotification;
 use App\Services\ExploreService;
+use App\Services\StudentProfileService;
+use App\Services\EnrollmentService;
 
 class UserClassController extends Controller
 {
@@ -170,7 +169,6 @@ class UserClassController extends Controller
 
     public function toggleEnrollment(Request $request)
     {
-
         try {
             $request->validate([
                 'class_session_id' => 'required|integer',
@@ -179,10 +177,12 @@ class UserClassController extends Controller
             
             $user = Auth::user();
 
+            // ─── Determinar quién asiste ──────────────────────────────
             $attendee = [
                 'first_name'  => $user->name,
                 'last_name'   => null,
                 'national_id' => $user->national_id,
+                'country_id'  => $user->country_id,
             ];
 
             if ($request->filled('dependent_id')) {
@@ -194,74 +194,52 @@ class UserClassController extends Controller
                     'first_name'  => $dependent->first_name,
                     'last_name'   => $dependent->last_name,
                     'national_id' => $dependent->national_id,
+                    'country_id'  => $dependent->country_id ?? $user->country_id,
                 ];
             }
 
+            // ─── Cargar sesión ────────────────────────────────────────
             $session = ClassSession::withoutGlobalScopes()
                 ->with(['workshop' => fn($q) => $q->withoutGlobalScopes()])
                 ->findOrFail($request->class_session_id);
 
             $studioId = $session->studio_id ?? $session->workshop->studio_id;
 
-            $studentQuery = Student::withoutGlobalScopes()->where('studio_id', $studioId);
-                
-            if (!empty($attendee['national_id'])) {
-                $studentQuery->where('national_id', $attendee['national_id']);
-            } else {
-                $studentQuery->where('user_id', $user->id)->whereNull('national_id')->where('first_name', $attendee['first_name']);
-            }
+            // ─── Buscar o crear ficha (StudentProfileService) ─────────
+            $profileService = app(StudentProfileService::class);
+            $student = $profileService->findOrCreateAttendee($attendee, $studioId, $user);
 
-            $student = $studentQuery->first();
+            // ─── Determinar acción (toggle) ───────────────────────────
+            $existing = $session->students()
+                ->withoutGlobalScopes()
+                ->where('students.id', $student->id)
+                ->first();
 
-            if ($student) {
-                if (empty($student->user_id)) {
-                    // PRINCIPIO: user_id es quien ASISTE. Si es un dependiente sin cuenta, queda null.
-                    // Si el dependiente tiene cuenta, Scenario A del booted::saving lo vinculará.
-                    // NUNCA asignar $user->id si la persona que asiste es otra.
-                    $isSelf = ($attendee['national_id'] === $user->national_id);
-                    if ($isSelf) {
-                        $student->update(['user_id' => $user->id, 'email' => $user->email]);
-                    }
-                    // Si es familiar, el user_id queda null (o lo setea booted::saving si el User existe)
+            $action = ($existing && $existing->pivot->payment_status !== 'paid')
+                ? 'remove'
+                : 'add';
+
+            // ─── CAPA 1 ANTI-OVERBOOKING: Verificar cupos antes de agregar ─
+            $enrollmentService = app(EnrollmentService::class);
+
+            if ($action === 'add') {
+                $capacity = $enrollmentService->getCapacityInfo($session->id);
+                $available = $capacity[$session->id]['available_spots'] ?? 0;
+
+                if ($available <= 0) {
+                    return response()->json([
+                        'error'   => true,
+                        'message' => 'Lo sentimos, esta clase acaba de llenarse.',
+                        'code'    => 'CLASS_FULL'
+                    ], 422);
                 }
-            } else {
-                $student = new Student();
-                // PRINCIPIO: user_id es la persona que ASISTE, no quien gestiona
-                $isSelf = ($attendee['national_id'] === $user->national_id);
-                $student->user_id     = $isSelf ? $user->id : null;
-                $student->studio_id   = $studioId;
-                $student->first_name  = $attendee['first_name'];
-                $student->last_name   = $attendee['last_name'];
-                $student->email       = $user->email;
-                $student->national_id = $attendee['national_id'];
-                $student->is_guest    = false;
-                $student->save();
-
-                try {
-                    $studio = Studio::find($studioId);
-                    $user->notify(new StudentAddedNotification($studio, $student));
-                } catch (\Exception $e) {}
             }
 
-            $existingStudent = $session->students()->withoutGlobalScopes()
-                                       ->where('students.id', $student->id)->first();
-
-            if ($existingStudent) {
-                if ($existingStudent->pivot->payment_status !== 'paid') {
-                    $session->students()->withoutGlobalScopes()->detach($student->id);
-                    $status = 'removed';
-                } else {
-                    $status = 'enrolled'; 
-                }
-            } else {
-                $session->students()->withoutGlobalScopes()->attach(
-                    $student->id, ['payment_status' => 'pending']
-                );
-                $status = 'enrolled';
-            }
+            // ─── Ejecutar toggle (EnrollmentService) ──────────────────
+            $status = $enrollmentService->toggleSpot($session, $student, $action);
 
             return response()->json([
-                'status' => $status,
+                'status'     => $status,
                 'cart_count' => $user->pending_reservations_count
             ]);
 
@@ -282,6 +260,48 @@ class UserClassController extends Controller
 
         try {
             $user = Auth::user();
+            $profileService = app(StudentProfileService::class);
+            $enrollmentService = app(EnrollmentService::class);
+
+            // ─── CAPA 1 ANTI-OVERBOOKING: Verificar cupos antes de la transacción ────
+            $addsBySession = collect($request->enrollments)
+                ->where('action', 'add')
+                ->groupBy('session_id')
+                ->map(fn($items) => $items->count());
+
+            if ($addsBySession->isNotEmpty()) {
+                $capacityInfo = $enrollmentService->getCapacityInfo($addsBySession->keys()->toArray());
+
+                $overbooked = [];
+                foreach ($addsBySession as $sessionId => $requested) {
+                    $available = $capacityInfo[$sessionId]['available_spots'] ?? 0;
+                    if ($requested > $available) {
+                        $overbooked[] = [
+                            'session_id' => $sessionId,
+                            'requested'  => $requested,
+                            'available'  => $available,
+                        ];
+                    }
+                }
+
+                if (!empty($overbooked)) {
+                    $first = $overbooked[0];
+                    $plural = $first['requested'] > 1;
+                    $quedan = $first['available'] === 0
+                        ? 'no quedan cupos'
+                        : ($first['available'] === 1 ? 'solo queda 1 cupo' : "solo quedan {$first['available']} cupos");
+
+                    return response()->json([
+                        'error'   => true,
+                        'message' => $plural
+                            ? "Lo sentimos, estás intentando reservar {$first['requested']} cupos pero {$quedan} en esta clase."
+                            : "Lo sentimos, {$quedan} en esta clase.",
+                        'code'    => 'CLASS_FULL',
+                        'details' => $overbooked,
+                    ], 422);
+                }
+            }
+
             DB::beginTransaction();
 
             foreach ($request->enrollments as $enrollment) {
@@ -311,136 +331,40 @@ class UserClassController extends Controller
                             'first_name'  => $dependent->first_name,
                             'last_name'   => $dependent->last_name,
                             'national_id' => $dependent->national_id,
-                            'country_id'  => $dependent->country_id ?? $user->country_id, 
+                            'country_id'  => $dependent->country_id ?? $user->country_id,
                         ];
                     } else {
                         continue;
                     }
                 }
 
-                $studentQuery = Student::withoutGlobalScopes()->where('studio_id', $studioId);
+                // ─── Buscar o crear ficha (StudentProfileService) ─────
+                $student = $profileService->findOrCreateAttendee($attendee, $studioId, $user);
 
-                if (!empty($attendee['national_id'])) {
-                    $studentQuery->where('national_id', $attendee['national_id']);
-                } else {
-                    $studentQuery->where('user_id', $user->id)->whereNull('national_id')->where('first_name', $attendee['first_name']);
-                }
-
-                $student = $studentQuery->first();
-
-                if ($student) {
-                    if (empty($student->user_id)) {
-                        $isSelf = ($attendee['national_id'] === $user->national_id);
-                        if ($isSelf) {
-                            $student->update([
-                                'user_id'    => $user->id, 
-                                'email'      => $user->email,
-                                'country_id' => $attendee['country_id']
-                            ]);
-                        }
-                    }
-                } else {
-                    if ($action === 'remove') continue;
-
-                    $isSelf = ($attendee['national_id'] === $user->national_id);
-
-                    $student = new Student();
-                    $student->user_id     = $isSelf ? $user->id : null;
-                    $student->studio_id   = $studioId;
-                    $student->first_name  = $attendee['first_name'];
-                    $student->last_name   = $attendee['last_name'];
-                    $student->email       = $isSelf
-                        ? $user->email
-                        : $this->subaddressEmail($user->email, $attendee['first_name']);
-                    $student->country_id  = $attendee['country_id']; 
-                    $student->national_id = $attendee['national_id'];
-                    $student->is_guest    = false;
-                    $student->save();
-                    
-                    try {
-                        $studio = Studio::find($studioId);
-                        $user->notify(new StudentAddedNotification($studio, $student));
-                    } catch (\Exception $e) {}
-                }
-
-                $existingStudent = $session->students()->withoutGlobalScopes()
-                                           ->where('students.id', $student->id)->first();
-
-                if ($action === 'add') {
-                    if (!$existingStudent) {
-                        $session->students()->withoutGlobalScopes()->attach($student->id, ['payment_status' => 'pending']);
-                    }
-                } elseif ($action === 'remove') {
-                    if ($existingStudent && $existingStudent->pivot->payment_status !== 'paid') {
-                        $session->students()->withoutGlobalScopes()->detach($student->id);
-                    }
-                }
+                // ─── Ejecutar acción en pivote (EnrollmentService) ────
+                $enrollmentService->toggleSpot($session, $student, $action);
             }
 
             DB::commit();
 
-            // ===================================================
-            // NOTIFICACIONES: Avisar a otros interesados que los cupos bajan
-            // ===================================================
+            // ─── Notificaciones de capacidad (EnrollmentService) ──────
             $affectedSessionIds = collect($request->enrollments)
                 ->where('action', 'add')
                 ->pluck('session_id')
-                ->unique();
+                ->unique()
+                ->toArray();
 
-            foreach ($affectedSessionIds as $sid) {
-                $session = ClassSession::withoutGlobalScopes()
-                    ->with(['workshop' => fn($q) => $q->withoutGlobalScopes(), 'schedule'])
-                    ->find($sid);
-
-                if (!$session) continue;
-
-                $maxStudents = $session->max_students;
-                $paidCount = DB::table('class_session_student')
-                    ->where('class_session_id', $sid)
-                    ->where('payment_status', 'paid')
-                    ->count();
-                $availableSpots = max(0, $maxStudents - $paidCount);
-
-                $pendingStudentIds = DB::table('class_session_student')
-                    ->where('class_session_id', $sid)
-                    ->where('payment_status', 'pending')
-                    ->pluck('student_id');
-
-                if ($pendingStudentIds->isEmpty()) continue;
-
-                // EXCEPCIÓN APLICADA AQUÍ: ->where('id', '!=', $user->id)
-                $pendingUsers = \App\Models\User::whereHas('studentProfiles', function ($q) use ($pendingStudentIds) {
-                    $q->withoutGlobalScopes()->whereIn('id', $pendingStudentIds);
-                })
-                ->where('id', '!=', $user->id) 
-                ->get();
-
-                if ($availableSpots <= 0) {
-                    foreach ($pendingUsers as $pendingUser) {
-                        try {
-                            $pendingUser->notify(new ClassFullNotification($session));
-                        } catch (\Exception $e) {
-                            Log::error('Error enviando ClassFullNotification: ' . $e->getMessage());
-                        }
-                    }
-                } else {
-                    foreach ($pendingUsers as $pendingUser) {
-                        try {
-                            $pendingUser->notify(new SpotReservedNotification($session, $availableSpots));
-                        } catch (\Exception $e) {
-                            Log::error('Error enviando SpotReservedNotification: ' . $e->getMessage());
-                        }
-                    }
-                }
+            if (!empty($affectedSessionIds)) {
+                $enrollmentService->notifyCapacityChange($affectedSessionIds, $user->id);
             }
 
             return response()->json([
-                'status' => 'success', 
+                'status'     => 'success',
                 'cart_count' => $user->pending_reservations_count
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack(); 
+            DB::rollBack();
             Log::error('Error en Bulk Enroll: ' . $e->getMessage() . ' Línea: ' . $e->getLine());
             return response()->json(['error' => true, 'message' => 'Error al procesar las reservas.'], 500);
         }

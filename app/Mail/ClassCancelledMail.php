@@ -34,7 +34,7 @@ class ClassCancelledMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'mail.class-cancelled', // Apuntamos a la vista Markdown
+            markdown: 'mail.class-cancelled',
         );
     }
 

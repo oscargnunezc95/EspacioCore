@@ -26,16 +26,18 @@ class SaaSSubscriptionNotification extends Notification
 
     public function toArray(object $notifiable): array
     {
-        $isPro = ($this->status === 'authorized');
+        // Detectamos si el estado implica perder el plan de pago
+        // Mercado Pago envía 'paused' o 'cancelled'. Cubrimos 'free' por seguridad.
+        $isDowngradeToFree = in_array(strtolower($this->status), ['paused', 'cancelled', 'free']);
 
         return [
             'type' => 'saas_subscription',
-            'title' => $isPro ? 'Suscripción Renovada 💎' : 'Suscripción Cancelada o Pausada',
-            'message' => $isPro 
-                ? "Tu suscripción Pro ha sido procesada con éxito. ¡Gracias por seguir confiando en nosotros!" 
-                : "Tu plan ha cambiado al estado: {$this->status}. Revisa tus opciones de facturación.",
+            'title' => $isDowngradeToFree ? 'Suscripción Detenida ⚠️' : 'Suscripción Activa 💎',
+            'message' => $isDowngradeToFree 
+                ? "Tu suscripción ha sido pausada o cancelada. Tu estudio ahora opera bajo el plan Gratis." 
+                : "Tu suscripción ha sido procesada con éxito y tu plan está activo. ¡Gracias por confiar en nosotros!",
             'studio' => $this->studio->name,
-            'icon' => $isPro ? 'success' : 'error'
+            'icon' => $isDowngradeToFree ? 'error' : 'success'
         ];
     }
 }

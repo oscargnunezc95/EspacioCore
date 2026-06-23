@@ -20,13 +20,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'platform_fee_percent' => 5.00,
                 'capacity_limit'       => null,
                 'max_billing_cycles'   => null,
-                'is_active'            => true,
-                'features'             => json_encode([
-                    'Gestión básica de clases y reservas',
-                    'Portal de alumnos',
-                    'Integración de pagos con Mercado Pago',
-                    'Comisión del 5% por transacción'
-                ]),
+                'is_active'            => true
             ],
             [
                 'name'                 => 'Crecimiento',
@@ -35,13 +29,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'platform_fee_percent' => 2.50,
                 'capacity_limit'       => null,
                 'max_billing_cycles'   => null,
-                'is_active'            => true,
-                'features'             => json_encode([
-                    'Gestión de clases y reservas',
-                    'Portal de alumnos e instructores',
-                    'Integración de pagos con Mercado Pago',
-                    'Soporte estándar'
-                ]),
+                'is_active'            => true
             ],
             [
                 'name'                 => 'Pro',
@@ -51,12 +39,7 @@ class SubscriptionPlanSeeder extends Seeder
                 'capacity_limit'       => null,
                 'max_billing_cycles'   => null,
                 'is_active'            => true,
-                'features'             => json_encode([
-                    'Todo lo del plan Crecimiento',
-                    'Módulo avanzado de promociones y combos',
-                    'Panel de liquidaciones automáticas',
-                    'Soporte prioritario'
-                ]),
+
             ],
             [
                 'name'                 => 'Elite',
@@ -66,12 +49,6 @@ class SubscriptionPlanSeeder extends Seeder
                 'capacity_limit'       => null,
                 'max_billing_cycles'   => null,
                 'is_active'            => true,
-                'features'             => json_encode([
-                    'Todo lo del plan Pro',
-                    'Comisión 0% en transacciones (Cobro directo)',
-                    'Estadísticas avanzadas y reportes',
-                    'Asesoría de negocio'
-                ]),
             ],
             [
                 // Gatillo psicológico (FOMO) para "Early Adopters"
@@ -80,14 +57,8 @@ class SubscriptionPlanSeeder extends Seeder
                 'price'                => 15000,
                 'platform_fee_percent' => 0.00,
                 'capacity_limit'       => 7, // El sistema bloqueará nuevas suscripciones al llegar a 7
-                'max_billing_cycles'   => null,
+                'max_billing_cycles'   => 6,
                 'is_active'            => true,
-                'features'             => json_encode([
-                    'Todos los beneficios del plan Elite',
-                    'Precio vitalicio congelado',
-                    'Comisión 0% permanente',
-                    'Acceso anticipado a nuevas funcionalidades'
-                ]),
             ],
         ];
 

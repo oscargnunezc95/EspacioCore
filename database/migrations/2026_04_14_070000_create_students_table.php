@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('last_name')->nullable();
 
             // Identificacion
-            $table->string('national_id')->after('user_id');
+            $table->string('national_id');
 
             // Contacto
             $table->string('email')->nullable();

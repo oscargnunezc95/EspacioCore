@@ -24,7 +24,7 @@ return new class extends Migration
             $table->string('phone')->nullable();
 
             // Identificacion
-            $table->string('national_id')->after('user_id');
+            $table->string('national_id');
 
             $table->boolean('is_active')->default(true);
 
