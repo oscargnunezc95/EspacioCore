@@ -14,11 +14,13 @@ return [
     |
     */
     'mercadopago' => [
-        'token'  => env('MERCADOPAGO_ACCESS_TOKEN'),
-        'public' => env('MERCADOPAGO_PUBLIC_KEY'),
+        'token' => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
         'app_id' => env('MERCADOPAGO_APP_ID'),
         'secret' => env('MERCADOPAGO_CLIENT_SECRET'),
-        'webhook_domain' => env('MERCADOPAGO_WEBHOOK_DOMAIN'), // <-- Agrega esta línea
+        'redirect_uri' => env('MERCADOPAGO_REDIRECT_URI'),
+        'webhook_domain' => env('MERCADOPAGO_WEBHOOK_DOMAIN'),
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'), // <-- Agrega esta línea
     ],
 
     'postmark' => [

@@ -6,6 +6,7 @@ use App\Models\Studio;
 use App\Models\ClassSession;
 use App\Models\Student;
 use App\Models\Payment;
+use App\Models\SaasPayment;
 use App\Models\SubscriptionPlan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
@@ -168,9 +169,13 @@ class MercadoPagoService
             case 'teacher_payment':
                 $this->processTeacherPayment($meta);
                 break;
-            
+
             case 'student_payment':
                 $this->processStudentPayment($dataId, $mpPayment, $meta);
+                break;
+
+            case 'saas_subscription':
+                $this->processSaaSPayment($dataId, $mpPayment, $meta);
                 break;
 
             default:
@@ -489,57 +494,131 @@ class MercadoPagoService
         }
     }
 
-    public function processSaaSSubscription(int $dataId): void
+    // =========================================================================
+    // LÓGICA AISLADA: PAGO DE SUSCRIPCIÓN SAAS (REGISTRO EN saas_payments)
+    // =========================================================================
+    private function processSaaSPayment($dataId, $mpPayment, array $meta): void
+    {
+        // 🚨 GUARDIA DE CONCURRENCIA: Bloqueo Atómico en RAM
+        $lockKey = "saas_payment_lock_{$dataId}";
+
+        if (!\Illuminate\Support\Facades\Cache::add($lockKey, true, 60)) {
+            Log::info("Idempotencia Concurrente: El pago SaaS {$dataId} ya está siendo procesado por otro hilo. Ignorando clon.");
+            return;
+        }
+
+        try {
+            // Guardia de Idempotencia Histórica
+            $existingPayment = SaasPayment::where('mp_payment_id', $dataId)->first();
+
+            if ($existingPayment) {
+                Log::info("Idempotencia Histórica: El pago SaaS {$dataId} ya existe en saas_payments con estado [{$existingPayment->status}]. Ignorando clon.");
+                return;
+            }
+
+            $studioId = $meta['studio_id'] ?? null;
+            $status = $mpPayment->status ?? 'approved';
+
+            // Solo insertar si el pago está aprobado
+            if ($status !== 'approved') {
+                Log::info("Pago SaaS {$dataId} ignorado. Estado no aprobado: {$status}.");
+                return;
+            }
+
+            SaasPayment::create([
+                'studio_id'     => $studioId,
+                'mp_payment_id' => (string) $dataId,
+                'amount'        => (float) ($mpPayment->transaction_amount ?? 0),
+                'status'        => $status,
+            ]);
+
+            Log::info("Pago SaaS {$dataId} registrado exitosamente en saas_payments para el estudio {$studioId}.");
+
+        } catch (\Exception $e) {
+            // Si falla por error técnico, liberamos el candado para permitir reintento
+            \Illuminate\Support\Facades\Cache::forget($lockKey);
+            Log::error("Error procesando pago SaaS {$dataId} en saas_payments: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    public function processSaaSSubscription(string $dataId): void
     {
         $subscription = $this->getSubscriptionDetails($dataId);
-                
-        $studioId = $subscription['external_reference'] ?? null;
+
+        $rawRef = $subscription['external_reference'] ?? null;
         $status = $subscription['status'] ?? null;
 
+        // ─── DECODIFICAR EXTERNAL_REFERENCE (soporta JSON nuevo y string legacy) ───
+        $studioId = null;
+        $planId = null;
+        if ($rawRef) {
+            $decoded = json_decode($rawRef, true);
+            if (is_array($decoded) && isset($decoded['studio_id'])) {
+                // Nuevo formato JSON: {'type' => 'saas_subscription', 'studio_id' => X, 'plan_id' => Y}
+                $studioId = $decoded['studio_id'];
+                $planId   = $decoded['plan_id'] ?? null;
+            } else {
+                // Legacy: string plano con el ID del estudio
+                $studioId = $rawRef;
+            }
+        }
+
         if ($studioId && $studio = Studio::with('subscriptionPlan')->find($studioId)) {
-            
-            // 🚨 GUARDIA DE IDEMPOTENCIA: Verificar si la suscripción se procesó en los últimos 30 segundos
-            // Esto evita sumar 'billing_cycles_count' múltiples veces por webhooks simultáneos.
-            if ($studio->updated_at && $studio->updated_at->diffInSeconds(now()) < 30) {
-                Log::info("Idempotencia Activa: Suscripción SaaS para estudio {$studioId} actualizada recientemente. Ignorando webhook clonado.");
+
+            // 🚨 GUARDIA DE IDEMPOTENCIA ROBUSTA: Bloqueo atómico por
+            //    preapproval_id + status. Dos webhooks con la misma combinación
+            //    solo se procesan UNA vez. La llave vive 1 h (ventana de reintentos de MP).
+            $dedupeKey = "mp_sub_dedup_{$dataId}_{$status}";
+            if (!\Illuminate\Support\Facades\Cache::add($dedupeKey, true, 3600)) {
+                Log::info("Idempotencia SaaS: combinación preapproval={$dataId} status={$status} ya fue procesada. Ignorando webhook clonado.");
                 return;
             }
 
             if ($status === 'authorized') {
-                
-                $plan = $studio->subscriptionPlan;
+
+                // Resolver el plan DESDE el external_reference (no desde el studio actual,
+                // porque subscription_plan_id aún no se actualizó — y es lo correcto).
+                $plan = $planId ? SubscriptionPlan::find($planId) : $studio->subscriptionPlan;
                 $planName = $plan ? $plan->name : 'Pro';
                 $planSlug = $plan ? $plan->slug : 'pro';
                 $planPrice = $plan ? $plan->price : 45000;
 
-                $currentExpiration = $studio->subscription_expires_at;
-                
-                if ($currentExpiration && $studio->subscription_status !== 'free') {
-                    $newExpiration = Carbon::parse($currentExpiration)->addMonth();
-                } else {
-                    $newExpiration = now()->addMonth();
-                }
+                // ─── ANCLAJE DEL CICLO DE FACTURACIÓN ───
+                // Si el pago es exitoso tras un reintento por morosidad, anclamos
+                // al ciclo original para NO REGALAR DÍAS GRATIS DE SERVICIO.
+                $newExpiration = ($studio->subscription_expires_at
+                    && $studio->subscription_status !== 'free'
+                    && $studio->subscription_expires_at->isPast())
+                    ? $studio->subscription_expires_at->copy()->addDays(30)
+                    : now()->addDays(30);
 
                 $currentCycle = $studio->billing_cycles_count + 1;
 
+                // Si la suscripción estaba en morosidad, la devolvemos al slug del plan actual
+                $targetStatus = $planSlug;
+
+                // ✅ SOLO AQUÍ se confirma la suscripción: el pago fue autorizado.
                 $studio->update([
+                    'subscription_plan_id'    => $plan ? $plan->id : $studio->subscription_plan_id,
                     'mp_preapproval_id'       => $dataId,
-                    'subscription_status'     => $planSlug,
+                    'subscription_status'     => $targetStatus,
                     'subscription_expires_at' => $newExpiration,
                     'billing_cycles_count'    => $currentCycle,
+                    'next_plan_id'            => null,  // El cambio se aplica YA, no hay plan futuro pendiente
                 ]);
 
                 if ($plan && $plan->max_billing_cycles && $currentCycle >= $plan->max_billing_cycles) {
-                    
+
                     try {
                         $this->cancelPreapproval($dataId);
                     } catch (\Exception $e) {
                         Log::error("Error cancelando suscripción SaaS en MP: " . $e->getMessage());
                     }
-                    
+
                     Mail::to($studio->user->email)
                         ->queue(new \App\Mail\PlanLifecycleEndingMail($studio));
-                        
+
                 } else {
                     Mail::to($studio->user->email)
                         ->queue(new \App\Mail\SubscriptionReceiptMail($studio, $planName, $planPrice));
@@ -549,6 +628,15 @@ class MercadoPagoService
                 Mail::to($adminEmail)
                     ->queue(new \App\Mail\NewSubscriptionAlertMail($studio, $planName));
 
+            } elseif (in_array($status, ['pending', 'past_due'])) {
+                // ─── ENTRADA EN MOROSIDAD ───
+                // NO modificamos subscription_expires_at: el ciclo original se respeta.
+                // Solo marcamos el estado para que el Motor de Ciclo de Vida actúe
+                // si se superan los 5 días de gracia.
+                $studio->update(['subscription_status' => 'past_due']);
+
+                Mail::to($studio->user->email)
+                    ->queue(new \App\Mail\SubscriptionPastDueMail($studio));
             } elseif (in_array($status, ['paused', 'cancelled'])) {
                 $studio->update(['mp_preapproval_id' => null]);
             }
@@ -599,7 +687,7 @@ class MercadoPagoService
 
         $request = [
             'reason'             => $plan->name,
-            'external_reference' => (string) $studio->id,
+            'external_reference' => json_encode(['type' => 'saas_subscription', 'studio_id' => $studio->id, 'plan_id' => $plan->id]),
             'payer_email'        => $studio->user->email,
             'auto_recurring'     => [
                 'frequency'          => 1,
@@ -632,14 +720,9 @@ class MercadoPagoService
             throw new \Exception('No se pudo generar el link de suscripción. Intenta más tarde.');
         }
 
-        // 3. Auditoría: SOLO después de crear exitosamente el preapproval en MP,
-        //    actualizamos el plan del estudio. Así garantizamos integridad transaccional.
-        if ($studio->subscription_plan_id !== $plan->id) {
-            $studio->update([
-                'subscription_plan_id'  => $plan->id,
-                'billing_cycles_count'  => 0,
-            ]);
-        }
+        // 3. NO actualizamos subscription_plan_id aquí — el plan solo se confirma
+        //    cuando el webhook de MP notifica que el pago fue autorizado.
+        //    Así evitamos que cerrar la pasarela sin pagar cambie la suscripción.
 
         return $preapproval->init_point;
     }
@@ -714,13 +797,34 @@ class MercadoPagoService
     public function cancelPreapproval(string $preapprovalId): void
     {
         $this->setToken(config('services.mercadopago.token'));
-        
+
         $client = new \MercadoPago\Client\PreApproval\PreApprovalClient();
-        
+
         $client->update($preapprovalId, [
             "status" => "cancelled"
         ]);
-        
+
         \Illuminate\Support\Facades\Log::info("Suscripción {$preapprovalId} cancelada exitosamente vía API.");
+    }
+
+    /**
+     * Emite un reembolso total sobre un pago de Mercado Pago.
+     * Se usa cuando el estudio cambia de plan dentro del período de gracia (7 días)
+     * y corresponde devolver el cobro del mes actual.
+     */
+    public function refundPayment(string $paymentId): object
+    {
+        $this->setToken(config('services.mercadopago.token'));
+
+        $refundClient = new PaymentRefundClient();
+
+        try {
+            $refund = $refundClient->refundTotal((int) $paymentId);
+            \Illuminate\Support\Facades\Log::info("Reembolso emitido para payment {$paymentId}. Estado: {$refund->status}");
+            return $refund;
+        } catch (\MercadoPago\Exceptions\MPApiException $e) {
+            \Illuminate\Support\Facades\Log::error("Error al reembolsar payment {$paymentId}: " . $e->getMessage());
+            throw new \Exception('No se pudo emitir el reembolso en este momento. Intenta más tarde.');
+        }
     }
 }

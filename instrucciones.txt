@@ -1,39 +1,48 @@
-Eres un Arquitecto Backend Senior experto en Laravel 11 y UI/UX. Trabajas con plantillas Blade, Alpine.js y Tailwind CSS.
+Necesitamos automatizar por completo el "Motor de Ciclo de Vida y Morosidad" de nuestro SaaS (estadoPrisma) mediante un comando programado (Cron Job) y blindar la lógica de fechas para evitar que los pagos atrasados regalen días gratis de servicio.
 
-Nuestra plataforma SaaS (estadoPrisma) permite a los dueños de estudios gestionar sus reservas. El cliente ha pivotado la regla de negocio para la actualización de planes. Necesitamos implementar este NUEVO FLUJO DEFINITIVO aplicando el patrón MVC estricto:
+TU TAREA EN 5 PASOS (Ejecuta y sobrescribe directamente):
 
-REGLAS DE NEGOCIO ESTRICTAS:
-1. LIBRO MAYOR (Tabla Payments): Los pagos de la suscripción SaaS ya no se guardan en la tabla studios, sino como un registro en la tabla `payments` con `payment_type = 'saas_subscription'`.
-2. RELOJ DE GRACIA (7 DÍAS): El tiempo de gracia se calcula buscando el último pago SaaS del estudio en la tabla `payments`. Si la fecha de ese pago es menor o igual a 7 días, está en período de gracia.
-3. CAMBIO DENTRO DE LOS 7 DÍAS: Se cancela la suscripción vieja en MP (`mp_preapproval_id`), se usa el `mp_payment_id` de la tabla `payments` para emitir un REFUND total (reembolso), y se genera un LINK DE PAGO NUEVO para que inicie su nuevo plan hoy.
-4. CAMBIO DESPUÉS DE LOS 7 DÍAS (Intención Futura): NO se cobra nada hoy. NO se genera link. El sistema guarda en la tabla `studios` un `next_plan_id`. Se le avisa al usuario: "Seguirás en tu plan actual hasta fin de mes. Te enviaremos un link para activar tu nuevo plan cuando este termine."
-5. CANCELAR / PASAR A GRATIS: Se cancela la suscripción en MP en el acto, pero el `subscription_expires_at` se mantiene intacto. El `next_plan_id` pasa a ser el ID del plan gratuito.
+1. REFINAR EL MOTOR EN EL MODELO (`app/Models/Studio.php`)
+Asegúrate de que el método público `checkAndManageLifecycle(): void` maneje el corte de guillotina llamando a la API de Mercado Pago:
 
-TU TAREA EN 4 PASOS:
+- REGLA 1: TRANSICIÓN DE PLANES VENCIDOS (Suscripción expirada naturalmente)
+  Si `subscription_expires_at` ya pasó (`isPast()`) y el `subscription_status` NO es 'past_due' ni 'free':
+  - Si existe un `next_plan_id`:
+    - Si el plan destino es 'free': `subscription_plan_id = next_plan_id`, `next_plan_id = null`, `subscription_status = 'free'`, `subscription_expires_at = now()->addYears(100)`, `mp_preapproval_id = null`.
+    - Si el plan destino es de pago (Upgrade diferido): `subscription_plan_id = next_plan_id`, `next_plan_id = null`, `subscription_status = 'pending_payment'`.
+  - Si NO existe un `next_plan_id`, por seguridad pásalo al plan 'free' con sus flags por defecto.
 
-1. MIGRACIÓN Y MODELO
-- Migración para la tabla `studios`: Agrega la columna `next_plan_id` (foreignId nullable apuntando a `subscription_plans`).
-- Actualiza `$fillable` en `Studio.php` e incluye la relación `nextPlan()`.
+- REGLA 2: LÍMITE DE MOROSIDAD (Los 5 días de gracia)
+  Si el `subscription_status === 'past_due'`:
+  - Evalúa si pasaron más 5 días: `now()->diffInDays($this->subscription_expires_at) > 5`.
+  - Si se cumple:
+    1. CANCELACIÓN INVERSA POR API: Si tiene `mp_preapproval_id`, ejecuta:
+       `try { app(\App\Services\MercadoPagoService::class)->cancelPreapproval($this->mp_preapproval_id); } catch (\Exception $e) { Log::error("Error cancelando MP por morosidad: " . $e->getMessage()); }`
+    2. DOWNGRADE FORZADO: Busca el ID del plan 'free' y actualiza el estudio: `subscription_plan_id = $freePlanId`, `subscription_status = 'free'`, `subscription_expires_at = now()->addYears(100)`, `mp_preapproval_id = null`, `next_plan_id = null`.
+    3. Deja un `Log::info("Estudio ID {$this->id} movido a plan gratuito por superar los 5 días de morosidad.");`
 
-2. SERVICIO (MercadoPagoService.php)
-- Agrega el método `refundPayment(string $paymentId)` usando el `PaymentRefundClient` del SDK.
-- Agrega el método `cancelPreapproval(string $preapprovalId)` usando el `PreApprovalClient->update` para poner status 'cancelled' (si no existe ya).
+2. CORREGIR EL ANCLAJE DEL CICLO DE FACTURACIÓN (`app/Services/MercadoPagoService.php`)
+En el método que procesa pagos exitosos del SaaS (donde actualizas el estado tras recibir el topic `payment` y guardas en `saas_payments`):
+- Al actualizar el `subscription_expires_at` del estudio, NUNCA uses `now()->addMonth()` a ciegas.
+- Si el pago es exitoso tras un reintento por morosidad, debes mantener el ciclo original. Implementa esta lógica matemática:
+  `$newExpiration = ($studio->subscription_expires_at && $studio->subscription_status !== 'free' && $studio->subscription_expires_at->isPast()) ? $studio->subscription_expires_at->addDays(30) : now()->addDays(30);`
+- Si la suscripción estaba 'past_due', devuélvela a su estado normal (el slug del plan actual).
 
-3. CONTROLADOR (SubscriptionController.php)
-Reescribe `subscribe(Request $request, Studio $studio, MercadoPagoService $mpService)`.
-- Extrae el último pago SaaS: `$lastPayment = Payment::where('studio_id', $studio->id)->where('payment_type', 'saas_subscription')->latest()->first();`
-- Calcula el periodo de gracia basado en `$lastPayment->created_at`.
-- Implementa la lógica descrita en las REGLAS DE NEGOCIO mediante condicionales.
-- Retorna las redirecciones a MP (si es con gracia) o los `back()->with(...)` con mensajes precisos.
+3. CREAR EL COMANDO ARTISAN (`app/Console/Commands/CleanExpiredSubscriptions.php`)
+- Signature: `saas:clean-subscriptions`
+- Description: `Procesa expiraciones y bloqueos por morosidad de más de 5 días de forma masiva.`
+- En el método `handle()`: Busca los estudios evaluables:
+  `Studio::where('subscription_status', 'past_due')->orWhere(function($q) { $q->where('subscription_expires_at', '<=', now())->where('subscription_status', '!=', 'free'); })->get();`
+  Recórrelos y ejecuta: `$studio->checkAndManageLifecycle();`
 
-4. VISTA (subscriptions/index.blade.php con Alpine.js)
-Actualiza la interfaz y el Modal Dinámico:
-- En Blade, inyecta `$isGracePeriod` y `$studio->next_plan_id`.
-- En Alpine (`x-data`), el Modal debe cambiar su advertencia dinámicamente:
-  - Si es Gratis: "Tu plan actual estará activo hasta fin de mes. Luego volverás al plan gratuito y no se harán más cobros automáticos."
-  - Si es Cambio CON gracia: "Se te reembolsará el cobro de tu mes actual inmediatamente y deberás ingresar tus datos para iniciar el nuevo plan hoy."
-  - Si es Cambio SIN gracia (Intención): "Programaremos tu cambio. Disfruta tu plan actual hasta fin de mes; luego te enviaremos el link de pago para iniciar este nuevo plan."
+4. REGISTRAR EL CRON JOB EN EL PLANIFICADOR (`routes/console.php`)
+Registra el comando para que corra todos los días a la medianoche:
+`use Illuminate\Support\Facades\Schedule;`
+`Schedule::command('saas:clean-subscriptions')->daily();`
 
-REGLAS DE UI/UX:
-- Mantén el HTML semántico, paleta Zinc, sin colores neón ni sombras excesivas.
-- Manejo correcto de errores de Laravel (`@error`).
+5. REFORZAR EL WEBHOOK PARA MOROSIDAD (`app/Services/MercadoPagoService.php` y `app/Mail/SubscriptionPastDueMail.php`)
+- Genera el mailable `SubscriptionPastDueMail` con diseño Zinc.
+- En el método `processSaaSSubscription()`, si el estado enviado por Mercado Pago es 'pending' o 'past_due':
+  - Actualiza el `subscription_status` del estudio a 'past_due'. (NO modifiques su `subscription_expires_at`).
+  - Despacha el correo a la cola: `Mail::to($studio->user->email)->queue(new \App\Mail\SubscriptionPastDueMail($studio));`
+

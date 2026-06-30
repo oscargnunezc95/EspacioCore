@@ -20,20 +20,52 @@
             @php
                 $currentPlan = $studio->subscriptionPlan;
                 $isFree = $studio->subscription_status === 'free';
+                $pendingPlan = $studio->nextPlan;
             @endphp
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border
-                        @if($isFree)
-                            bg-zinc-100 text-zinc-600 border-zinc-300
-                        @else
-                            bg-emerald-50 text-emerald-700 border-emerald-300
-                        @endif">
-                <span class="text-xs uppercase tracking-wider text-zinc-400">Plan actual</span>
-                <span>{{ $currentPlan ? $currentPlan->name : 'Plan Gratuito' }}</span>
+            <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                {{-- Plan Actual --}}
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border
+                            @if($isFree)
+                                bg-zinc-100 text-zinc-600 border-zinc-300
+                            @else
+                                bg-emerald-50 text-emerald-700 border-emerald-300
+                            @endif">
+                    <span class="text-xs uppercase tracking-wider text-zinc-400">Plan actual</span>
+                    <span>{{ $currentPlan ? $currentPlan->name : 'Plan Gratuito' }}</span>
+                </div>
+
+                {{-- Próximo Plan (si hay next_plan_id) --}}
+                @if($pendingPlan)
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border bg-amber-50 text-amber-700 border-amber-300">
+                        <span class="text-xs uppercase tracking-wider text-amber-400">Próximo plan</span>
+                        <span>{{ $pendingPlan->name }}</span>
+                    </div>
+                @endif
             </div>
         </div>
-
-        {{-- Contenedor Alpine.js: Selector de País + Grid de Planes comparten el mismo scope reactivo --}}
-        <div x-data="{ selectedCountry: '{{ $studio->user->country_id ?? 1 }}' }">
+        {{-- BANNER DE ALERTA: PAGO RECHAZADO / MOROSO (past_due) --}}
+        @if($studio->subscription_status === 'past_due')
+            <div class="mt-4 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                <div class="shrink-0 text-amber-600 mt-0.5">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                </div>
+                <div class="flex-1">
+                    <h4 class="text-sm font-bold text-amber-900">Acceso Restringido o Pago Pendiente</h4>
+                    <p class="text-xs text-amber-700 mt-1 leading-relaxed">
+                        No pudimos procesar el cobro automático de tu suscripción mensual. Mercado Pago reintentará el cobro en las próximas horas. Por favor, verifica el cupo o fondos de tu tarjeta asociada.
+                    </p>
+                </div>
+            </div>
+        @endif
+        {{-- Contenedor Alpine.js: País + Grid + Modal comparten el mismo scope reactivo --}}
+        <div x-data="subscriptionPlans()"
+             x-init="init({
+                isGrace: {{ $isGracePeriod ? 'true' : 'false' }},
+                isFree: {{ $isFree ? 'true' : 'false' }},
+                currentPlanSlug: '{{ $currentPlan ? $currentPlan->slug : 'free' }}'
+             })">
 
             {{-- Selector de País/Moneda --}}
             <div class="mb-8">
@@ -48,7 +80,6 @@
                             <option value="{{ $country->id }}">{{ $country->name }}</option>
                         @endforeach
                     </select>
-                    {{-- Icono chevron personalizado --}}
                     <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -114,13 +145,28 @@
 
                     {{-- Botón de Acción --}}
                     <div class="p-6 pt-4">
+                        @php
+                            $isPendingPlan = $studio->next_plan_id === $plan->id;
+                        @endphp
+
                         @if($isCurrentPlan)
+                            {{-- BOTÓN: PLAN ACTUAL --}}
                             <button type="button" disabled
                                     class="w-full py-3 px-4 rounded-xl text-sm font-bold bg-zinc-100 text-zinc-400 cursor-not-allowed transition-all duration-200">
                                 Plan Actual
                             </button>
+
+                        @elseif($isPendingPlan)
+                            {{-- BOTÓN: PLAN PROGRAMADO (NUEVO) --}}
+                            <button type="button" disabled
+                                    class="w-full py-3 px-4 rounded-xl text-sm font-bold bg-amber-50 text-amber-600 border border-amber-200 cursor-not-allowed transition-all duration-200">
+                                Plan Programado
+                            </button>
+
                         @else
-                            <form action="{{ route('studios.subscribe', ['studio' => $studio->id]) }}" method="POST">
+                            {{-- BOTÓN: CAMBIAR A ESTE PLAN --}}
+                            <form action="{{ route('studios.subscribe', ['studio' => $studio->id]) }}" method="POST"
+                                  x-on:submit.prevent="openModal($event.target, '{{ $plan->slug }}', '{{ $plan->name }}')">
                                 @csrf
                                 <input type="hidden" name="plan_slug" value="{{ $plan->slug }}">
                                 <input type="hidden" name="country_id" x-bind:value="selectedCountry">
@@ -145,6 +191,136 @@
 
         </div>
 
+        {{-- ================================================================================= --}}
+        {{-- MODAL DE CONFIRMACIÓN DINÁMICO (Alpine.js) --}}
+        {{-- ================================================================================= --}}
+        <div x-show="showModal"
+             x-cloak
+             x-transition:enter="transition ease-out duration-200"
+             x-transition:enter-start="opacity-0"
+             x-transition:enter-end="opacity-100"
+             x-transition:leave="transition ease-in duration-150"
+             x-transition:leave-start="opacity-100"
+             x-transition:leave-end="opacity-0"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             role="dialog"
+             aria-modal="true"
+             aria-labelledby="modal-title">
+
+            {{-- Overlay --}}
+            <div class="fixed inset-0 bg-zinc-900/60 backdrop-blur-sm"
+                 x-on:click="closeModal()"
+                 aria-hidden="true"></div>
+
+            {{-- Panel del Modal --}}
+            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10 border border-zinc-200"
+                 x-on:click.outside="closeModal()">
+
+                {{-- Ícono de advertencia --}}
+                <div class="flex items-center justify-center w-12 h-12 rounded-full bg-amber-50 text-amber-600 mx-auto mb-4">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                    </svg>
+                </div>
+
+                {{-- Título del plan destino --}}
+                <h3 id="modal-title" class="text-lg font-black text-zinc-900 text-center mb-2">
+                    Cambiar a <span x-text="selectedPlanName"></span>
+                </h3>
+
+                {{-- Mensaje dinámico según el tipo de cambio --}}
+                <p class="text-sm text-zinc-600 text-center leading-relaxed mb-6"
+                   x-text="modalMessage"></p>
+
+                {{-- Acciones --}}
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button type="button"
+                            x-on:click="closeModal()"
+                            class="w-full py-3 px-4 rounded-xl text-sm font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-zinc-500">
+                        Cancelar
+                    </button>
+                    <button type="button"
+                            x-on:click="confirmChange()"
+                            class="w-full py-3 px-4 rounded-xl text-sm font-bold text-white transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2"
+                            :class="selectedPlanIsFree ? 'bg-zinc-800 hover:bg-zinc-900 focus:ring-zinc-500' : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'">
+                        Confirmar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {{-- Mensajes Flash de Laravel (éxito / error desde el backend) --}}
+        @if(session('success'))
+            <div x-data="{ show: true }"
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-init="setTimeout(() => show = false, 8000)"
+                 class="fixed bottom-6 right-6 z-50 max-w-sm bg-emerald-50 border border-emerald-200 rounded-xl shadow-lg p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-emerald-800">{{ session('success') }}</p>
+                    </div>
+                    <button type="button" x-on:click="show = false" class="text-emerald-400 hover:text-emerald-600 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        @if(session('error'))
+            <div x-data="{ show: true }"
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0 translate-y-2"
+                 x-transition:enter-end="opacity-100 translate-y-0"
+                 x-init="setTimeout(() => show = false, 8000)"
+                 class="fixed bottom-6 right-6 z-50 max-w-sm bg-red-50 border border-red-200 rounded-xl shadow-lg p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-red-800">{{ session('error') }}</p>
+                    </div>
+                    <button type="button" x-on:click="show = false" class="text-red-400 hover:text-red-600 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        @endif
+
+        @error('plan_slug')
+            <div x-data="{ show: true }"
+                 x-show="show"
+                 x-transition
+                 x-init="setTimeout(() => show = false, 6000)"
+                 class="fixed bottom-6 right-6 z-50 max-w-sm bg-red-50 border border-red-200 rounded-xl shadow-lg p-4">
+                <div class="flex items-start gap-3">
+                    <svg class="w-5 h-5 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div>
+                        <p class="text-sm font-medium text-red-800">{{ $message }}</p>
+                    </div>
+                    <button type="button" x-on:click="show = false" class="text-red-400 hover:text-red-600 shrink-0">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        @enderror
+
         </div>{{-- Fin contenedor Alpine.js --}}
 
         {{-- Mensaje cuando no hay planes --}}
@@ -160,3 +336,73 @@
     </div>
 
 </x-app-layout>
+
+{{-- ================================================================================= --}}
+{{-- SCRIPT Alpine.js: Lógica del modal de confirmación --}}
+{{-- ================================================================================= --}}
+<script>
+function subscriptionPlans() {
+    return {
+        selectedCountry: '{{ $studio->user->country_id ?? 1 }}',
+        showModal: false,
+        selectedPlanSlug: '',
+        selectedPlanName: '',
+        selectedPlanIsFree: false,
+        modalMessage: '',
+        isGrace: false,
+        isFree: false,
+        currentPlanSlug: 'free',
+        activeForm: null,
+
+        init(config) {
+            this.isGrace = config.isGrace;
+            this.isFree = config.isFree;
+            this.currentPlanSlug = config.currentPlanSlug;
+        },
+
+        openModal(form, planSlug, planName) {
+            this.activeForm = form;
+            this.selectedPlanSlug = planSlug;
+            this.selectedPlanName = planName;
+            this.selectedPlanIsFree = planSlug === 'free';
+
+            // Determinar el mensaje según las reglas de negocio
+            if (planSlug === 'free') {
+                // ── PASAR A GRATIS ──
+                if (this.isGrace) {
+                    this.modalMessage = 'Se cancelará tu suscripción, perderás los beneficios premium inmediatamente y se reembolsará tu último pago a tu tarjeta.';
+                } else {
+                    this.modalMessage = 'Tu plan actual estará activo hasta acabar tu período. Luego volverás al plan gratuito y no se harán más cobros automáticos.';
+                }
+            } else if (this.currentPlanSlug === 'free') {
+                // ── UPGRADE DESDE GRATIS (primer pago, sin gracia) ──
+                this.modalMessage = 'Estás a punto de iniciar tu suscripción a ' + planName + '. Serás redirigido a Mercado Pago para completar el pago.';
+            } else if (this.isGrace) {
+                // ── CAMBIO CON GRACIA (≤ 7 días) ──
+                this.modalMessage = 'Se te reembolsará el cobro de tu mes actual inmediatamente y deberás ingresar tus datos para iniciar el nuevo plan hoy.';
+            } else {
+                // ── CAMBIO SIN GRACIA (> 7 días) — Intención Futura ──
+                this.modalMessage = 'Programaremos tu cambio. Disfruta tu plan actual hasta fin de mes; luego te enviaremos el link de pago para iniciar este nuevo plan.';
+            }
+
+            this.showModal = true;
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.activeForm = null;
+        },
+
+        confirmChange() {
+            if (this.activeForm) {
+                this.activeForm.submit();
+            }
+            this.showModal = false;
+        }
+    };
+}
+</script>
+
+<style>
+    [x-cloak] { display: none !important; }
+</style>
