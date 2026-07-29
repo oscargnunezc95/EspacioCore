@@ -21,6 +21,14 @@ class IdentifyStudio
             return redirect()->route('studios.index')->with('error', 'El estudio solicitado no existe.');
         }
 
+        // 🔒 AUTORIZACIÓN: Solo el dueño del estudio puede acceder a la gestión interna.
+        // El escaparate público (perfil, talleres, promos, calendario) no pasa por este
+        // middleware — usa únicamente 'public.studio.status', por lo que sigue siendo
+        // accesible para cualquier visitante (logueado o no).
+        if (auth()->id() !== $studio->user_id) {
+            abort(403, 'No tienes permiso para acceder a la gestión de este estudio.');
+        }
+
         // LA CURA: Guardamos el ID en la configuración del Request, NO en la sesión web.
         // Esto muere automáticamente cuando la página termina de cargar.
         Config::set('tenant.studio_id', $studio->id);

@@ -6,7 +6,7 @@
 
 <div class="relative" id="notifications-wrapper">
     {{-- 1. EL BOTÓN DE LA CAMPANA --}}
-    <button type="button" onclick="toggleNotifications()" class="relative p-2 text-zinc-500 hover:text-zinc-900 transition-colors focus:outline-none rounded-full hover:bg-zinc-100">
+    <button type="button" onclick="toggleNotifications()" class="relative p-2 text-stone-500 hover:text-stone-900 transition-colors focus:outline-none rounded-full hover:bg-stone-100">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
         </svg>
@@ -24,16 +24,16 @@
     <div id="notifications-panel" class="hidden 
         fixed top-20 left-1/2 -translate-x-1/2 w-[calc(100vw-2rem)] max-w-sm
         sm:absolute sm:top-full sm:left-auto sm:translate-x-0 sm:right-0 sm:mt-2 sm:w-96 sm:max-w-none
-        bg-white rounded-2xl shadow-xl border border-zinc-200 z-50 overflow-hidden 
+        bg-white rounded-2xl shadow-xl border border-stone-200 z-50 overflow-hidden 
         transform transition-all duration-200 opacity-0 scale-95 origin-top sm:origin-top-right">
         
         {{-- Header del Panel --}}
-        <div class="px-4 py-3 border-b border-zinc-100 flex justify-between items-center bg-zinc-50/50">
-            <h3 class="text-sm font-black text-zinc-900 tracking-tight">Notificaciones</h3>
+        <div class="px-4 py-3 border-b border-stone-100 flex justify-between items-center bg-stone-50/50">
+            <h3 class="text-sm font-black text-stone-900 tracking-tight">Notificaciones</h3>
             @if($unreadCount > 0)
                 <form action="{{ route('notifications.read.all') }}" method="POST" class="m-0 p-0">
                     @csrf
-                    <button type="submit" class="text-[11px] font-bold text-indigo-600 hover:text-indigo-800 transition-colors uppercase tracking-widest">
+                    <button type="submit" class="text-[11px] font-bold text-red-600 hover:text-red-800 transition-colors uppercase tracking-widest">
                         Marcar todo como leído
                     </button>
                 </form>
@@ -49,13 +49,13 @@
                 
                 {{-- Contenedor de la notificación con estilos condicionales --}}
                 <div id="notification-{{ $notification->id }}" 
-                     class="px-4 py-4 border-b border-zinc-100 relative group transition-all duration-300 {{ $isRead ? 'bg-zinc-50/80 opacity-80 hover:bg-zinc-100/80' : 'bg-white hover:bg-zinc-50' }}">
+                     class="px-4 py-4 border-b border-stone-100 relative group transition-all duration-300 {{ $isRead ? 'bg-stone-50/80 opacity-80 hover:bg-stone-100/80' : 'bg-white hover:bg-stone-50' }}">
                     
                     {{-- Indicador de no leído y botón de acción (solo si es nueva) --}}
                     @if(!$isRead)
-                        <div class="unread-dot absolute top-5 right-4 w-2 h-2 bg-indigo-500 rounded-full"></div>
+                        <div class="unread-dot absolute top-5 right-4 w-2 h-2 bg-red-500 rounded-full"></div>
                         
-                        <button onclick="markAsRead('{{ $notification->id }}', this)" class="absolute top-4 right-8 text-zinc-300 hover:text-indigo-600 opacity-0 group-hover:opacity-100 transition-all mark-read-btn" title="Marcar como leída">
+                        <button onclick="markAsRead('{{ $notification->id }}', this)" class="absolute top-4 right-8 text-stone-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all mark-read-btn" title="Marcar como leída">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </button>
                     @endif
@@ -78,13 +78,13 @@
                         
                         {{-- Contenido --}}
                         <div>
-                            <p class="text-sm font-bold text-zinc-900 leading-tight">
+                            <p class="text-sm font-bold text-stone-900 leading-tight">
                                 {{ $notification->data['title'] }}
                             </p>
-                            <p class="text-xs text-zinc-500 mt-1 leading-relaxed">
+                            <p class="text-xs text-stone-500 mt-1 leading-relaxed">
                                 {{ $notification->data['message'] }}
                             </p>
-                            <p class="text-[10px] font-bold text-zinc-400 mt-2 uppercase tracking-widest">
+                            <p class="text-[10px] font-bold text-stone-400 mt-2 uppercase tracking-widest">
                                 {{ $notification->created_at->diffForHumans() }}
                             </p>
                         </div>
@@ -92,10 +92,10 @@
                 </div>
             @empty
                 <div class="px-4 py-8 text-center">
-                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-zinc-50 border border-zinc-100 mb-3">
-                        <svg class="w-6 h-6 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                    <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-red-50 border border-red-100 mb-3">
+                        <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                     </div>
-                    <p class="text-sm text-zinc-500 font-medium">No tienes notificaciones recientes.</p>
+                    <p class="text-sm text-stone-500 font-medium">No tienes notificaciones recientes.</p>
                 </div>
             @endforelse
         </div>
@@ -144,8 +144,8 @@
                 const notifDiv = document.getElementById(`notification-${id}`);
                 
                 // 1. Transformación visual: Pasar a "grisáceo"
-                notifDiv.classList.remove('bg-white', 'hover:bg-zinc-50');
-                notifDiv.classList.add('bg-zinc-50/80', 'opacity-80', 'hover:bg-zinc-100/80');
+                notifDiv.classList.remove('bg-white', 'hover:bg-stone-50');
+                notifDiv.classList.add('bg-stone-50/80', 'opacity-80', 'hover:bg-stone-100/80');
 
                 // 2. Eliminar el botón y el puntito azul de nueva notificación
                 buttonElement.remove();

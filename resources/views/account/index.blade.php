@@ -10,15 +10,15 @@
         <div class="mt-2 mb-8 p-1"> {{-- p-1 evita recortes si aplicas rounded global --}}
 
             {{-- Breadcrumbs (Coherentes con el estilo de la plataforma) --}}
-            <div class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
-                <span class="text-zinc-900">Cuenta</span>
+            <div class="flex text-xs font-bold text-stone-500 mb-3 gap-2 items-center">
+                <span class="text-amber-600">Cuenta</span>
             </div>
 
             {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
             <div class="flex flex-row items-center justify-between gap-3 sm:gap-4 w-full">
                 
                 {{-- Título (Ocupa el espacio disponible y trunca si es muy largo) --}}
-                <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                <h1 class="text-xl sm:text-2xl md:text-3xl font-black truncate flex-1 min-w-0">
                     Cuenta y pagos
                 </h1>
 
@@ -47,12 +47,12 @@
         </div>
 
         {{-- Tarjeta de Integración de Pagos --}}
-        <div class="bg-white border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
+        <div class="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
             <div class="p-6 sm:p-8">
                 
                 {{-- Cabecera: Título a la izquierda, Badge a la derecha --}}
                 <div class="flex items-center justify-between gap-4">
-                    <h3 class="text-lg font-bold text-zinc-900 flex items-center gap-2">
+                    <h3 class="text-lg font-bold text-stone-900 flex items-center gap-2">
                         <svg class="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                         </svg>
@@ -66,15 +66,15 @@
                             Conectado
                         </span>
                     @else
-                        <span class="shrink-0 inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-semibold bg-zinc-100 text-zinc-600 border border-zinc-200">
-                            <span class="w-1.5 h-1.5 rounded-full bg-zinc-400"></span>
+                        <span class="shrink-0 inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-semibold bg-stone-100 text-stone-600 border border-stone-200">
+                            <span class="w-1.5 h-1.5 rounded-full bg-stone-400"></span>
                             Desconectado
                         </span>
                     @endif
                 </div>
 
                 {{-- Descripción debajo de la cabecera --}}
-                <p class="mt-2 text-sm text-zinc-500">
+                <p class="mt-2 text-sm text-stone-500">
                     Vincula tu cuenta de Mercado Pago para que tus alumnos paguen online de manera anticipada.
                 </p>
                 
@@ -85,11 +85,11 @@
         {{-- SECCIÓN 2: HISTORIAL DE PAGOS DE ALUMNAS --}}
         {{-- ======================================================== --}}
 
-        <div class="bg-white my-4 border border-zinc-200 rounded-2xl overflow-hidden shadow-sm">
+        <div class="bg-white my-4 border border-stone-200 rounded-2xl overflow-hidden shadow-sm">
             @if(isset($payments) && $payments->count() > 0)
                 <div class="overflow-x-auto">
                     <table class="w-full text-left text-sm whitespace-nowrap">
-                        <thead class="bg-zinc-50 border-b border-zinc-100 text-zinc-500 uppercase tracking-widest text-[10px] font-black">
+                        <thead class="bg-stone-50 border-b border-stone-100 text-stone-500 uppercase tracking-widest text-[10px] font-black">
                             <tr>
                                 <th scope="col" class="px-6 py-4">Fecha</th>
                                 <th scope="col" class="px-6 py-4">Alumna/o</th>
@@ -98,12 +98,12 @@
                                 <th scope="col" class="px-6 py-4 text-right">Monto</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-zinc-100 text-zinc-700">
+                        <tbody class="divide-y divide-stone-100 text-stone-700">
                             @foreach($payments as $payment)
-                                <tr class="hover:bg-zinc-50/50 transition-colors duration-200">
-                                    <td class="px-6 py-4 font-medium text-zinc-900">
+                                <tr class="hover:bg-stone-50/50 transition-colors duration-200">
+                                    <td class="px-6 py-4 font-medium text-stone-900">
                                         {{ \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y') }}
-                                        <span class="block sm:hidden text-xs text-zinc-400 font-normal mt-0.5">{{ $payment->payment_method ?? 'General' }}</span>
+                                        <span class="block sm:hidden text-xs text-stone-400 font-normal mt-0.5">{{ $payment->payment_method ?? 'General' }}</span>
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center gap-3">
@@ -111,20 +111,20 @@
                                         </div>
                                     </td>
                                     <td class="px-6 py-4 hidden sm:table-cell">
-                                        <span class="bg-zinc-100 text-zinc-600 px-2.5 py-1 rounded-md text-xs font-bold border border-zinc-200">
+                                        <span class="bg-stone-100 text-stone-600 px-2.5 py-1 rounded-md text-xs font-bold border border-stone-200">
                                             {{ $payment->payment_type === 'pack' ? 'Pack/Mensualidad' : 'Clase Suelta' }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 hidden md:table-cell text-xs font-bold text-zinc-500 capitalize">
+                                    <td class="px-6 py-4 hidden md:table-cell text-xs font-bold text-stone-500 capitalize">
                                         @if($payment->payment_method === 'mercadopago')
                                             <span class="text-blue-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span> Mercado Pago</span>
                                         @elseif($payment->payment_method === 'transferencia')
                                             <span class="text-teal-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-teal-500"></span> Transferencia</span>
                                         @else
-                                            <span class="text-zinc-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-zinc-500"></span> Efectivo</span>
+                                            <span class="text-stone-600 flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-stone-500"></span> Efectivo</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-4 text-right font-black text-zinc-900">
+                                    <td class="px-6 py-4 text-right font-black text-stone-900">
                                         ${{ number_format($payment->amount, 0, ',', '.') }}
                                     </td>
                                 </tr>
@@ -134,17 +134,17 @@
                 </div>
                 
                 @if($payments->hasPages())
-                    <div class="px-6 py-4 border-t border-zinc-100 bg-zinc-50">
+                    <div class="px-6 py-4 border-t border-stone-100 bg-stone-50">
                         {{ $payments->links() }}
                     </div>
                 @endif
             @else
                 <div class="px-6 py-4 flex flex-col items-center justify-center text-center">
-                    <div class="w-16 h-16 bg-zinc-50 border border-zinc-100 rounded-full flex items-center justify-center mb-4">
-                        <svg class="w-8 h-8 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    <div class="w-16 h-16 bg-stone-50 border border-stone-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-8 h-8 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
-                    <h3 class="text-zinc-900 font-black text-lg">Aún no hay movimientos</h3>
-                    <p class="text-zinc-500 text-sm mt-1 max-w-sm">Cuando tus alumnas/os realicen pagos manuales o a través de Mercado Pago, aparecerán registrados aquí.</p>
+                    <h3 class="text-stone-900 font-black text-lg">Aún no hay movimientos</h3>
+                    <p class="text-stone-500 text-sm mt-1 max-w-sm">Cuando tus alumnas/os realicen pagos manuales o a través de Mercado Pago, aparecerán registrados aquí.</p>
                 </div>
             @endif
         </div>
@@ -164,9 +164,9 @@
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
             </div>
 
-            <h3 class="text-2xl font-black text-zinc-900 leading-tight mb-3">Atención antes de continuar</h3>
+            <h3 class="text-2xl font-black text-stone-900 leading-tight mb-3">Atención antes de continuar</h3>
             
-            <p class="text-zinc-600 text-sm leading-relaxed mb-4">
+            <p class="text-stone-600 text-sm leading-relaxed mb-4">
                 Serás redirigido a los servidores de Mercado Pago para autorizar la conexión con tu estudio. 
             </p>
             
@@ -178,7 +178,7 @@
             </div>
 
             <div class="flex gap-3">
-                <button type="button" onclick="closeOAuthWarningModal()" class="flex-1 bg-zinc-100 text-zinc-700 font-bold py-3.5 rounded-xl hover:bg-zinc-200 transition-colors text-sm">
+                <button type="button" onclick="closeOAuthWarningModal()" class="flex-1 bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-95 text-sm">
                     Cancelar
                 </button>
                 

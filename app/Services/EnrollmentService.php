@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\User;
 use App\Notifications\ClassFullNotification;
 use App\Notifications\SpotReservedNotification;
+use App\Notifications\SpotsDecreasedNotification;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -96,19 +97,25 @@ class EnrollmentService
     }
 
     /**
-     * Recalcula cupos disponibles y notifica a los estudiantes pendientes.
+     * Recalcula cupos y notifica a los estudiantes pendientes.
      *
-     * - Si la clase está llena  → ClassFullNotification
-     * - Si aún hay cupos       → SpotReservedNotification
-     * - EXCEPCIÓN CRÍTICA: excluye al usuario con $excludeUserId para evitar
-     *   el "eco de transmisión" (que el usuario que acaba de pagar/reservar
-     *   reciba su propia notificación).
+     * DOS CAMINOS SEGÚN EL TRIGGER:
+     * - 'interest': Alguien se interesó (add to cart).
+     *   → SpotReservedNotification: muestra cuántas personas están interesadas.
+     * - 'payment':  Alguien pagó (webhook / pago manual).
+     *   → SpotsDecreasedNotification: muestra cuántos cupos quedan.
+     *   → ClassFullNotification si ya no hay cupos (vacía carritos).
      *
-     * @param int[] $sessionIds     IDs de sesiones afectadas
-     * @param int   $excludeUserId  User a excluir de las notificaciones
+     * EXCEPCIÓN CRÍTICA: excluye al usuario con $excludeUserId para evitar
+     * el "eco de transmisión" (que el usuario que acaba de actuar
+     * reciba su propia notificación).
+     *
+     * @param int[]  $sessionIds     IDs de sesiones afectadas
+     * @param int    $excludeUserId  User a excluir de las notificaciones
+     * @param string $triggerType    'interest' (interés) | 'payment' (pago)
      * @return void
      */
-    public function notifyCapacityChange(array $sessionIds, int $excludeUserId): void
+    public function notifyCapacityChange(array $sessionIds, int $excludeUserId, string $triggerType = 'interest'): void
     {
         foreach ($sessionIds as $sessionId) {
             try {
@@ -142,29 +149,48 @@ class EnrollmentService
                     ->where('id', '!=', $excludeUserId) // EXCEPCIÓN CRÍTICA
                     ->get();
 
-                if ($availableSpots <= 0) {
-                    
-                    // =========================================================================
-                    // REGLA DE ORO: CLASE LLENA -> VACIAR CARRITOS AUTOMÁTICAMENTE
-                    // =========================================================================
-                    \Illuminate\Support\Facades\DB::table('class_session_student')
-                        ->where('class_session_id', $sessionId)
-                        ->where('payment_status', 'pending')
-                        ->delete();
+                if ($pendingUsers->isEmpty()) continue;
 
-                    // 3. Despachar notificaciones de "Clase Llena" a los afectados
-                    foreach ($pendingUsers as $pendingUser) {
-                        try {
-                            $pendingUser->notify(new \App\Notifications\ClassFullNotification($session));
-                        } catch (\Exception $e) {
-                            \Illuminate\Support\Facades\Log::error('Error enviando ClassFullNotification: ' . $e->getMessage());
+                if ($triggerType === 'payment') {
+                    // =====================================================================
+                    // TRIGGER: PAGO — Alguien pagó, los cupos reales bajaron.
+                    // =====================================================================
+
+                    if ($availableSpots <= 0) {
+                        // REGLA DE ORO: CLASE LLENA -> VACIAR CARRITOS AUTOMÁTICAMENTE
+                        \Illuminate\Support\Facades\DB::table('class_session_student')
+                            ->where('class_session_id', $sessionId)
+                            ->where('payment_status', 'pending')
+                            ->delete();
+
+                        foreach ($pendingUsers as $pendingUser) {
+                            try {
+                                $pendingUser->notify(new \App\Notifications\ClassFullNotification($session));
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('Error enviando ClassFullNotification: ' . $e->getMessage());
+                            }
+                        }
+                    } else {
+                        // Notificar que los cupos bajaron (SpotsDecreasedNotification)
+                        foreach ($pendingUsers as $pendingUser) {
+                            try {
+                                $pendingUser->notify(new \App\Notifications\SpotsDecreasedNotification($session, $availableSpots));
+                            } catch (\Exception $e) {
+                                \Illuminate\Support\Facades\Log::error('Error enviando SpotsDecreasedNotification: ' . $e->getMessage());
+                            }
                         }
                     }
                 } else {
-                    // 4. Despachar notificaciones de "Cupos Bajando" si aún hay espacio
+                    // =====================================================================
+                    // TRIGGER: INTERÉS — Alguien se interesó (add to cart).
+                    // Enviamos SpotReservedNotification con el número de interesados.
+                    // =====================================================================
+
+                    $interestedCount = $pendingStudentIds->count();
+
                     foreach ($pendingUsers as $pendingUser) {
                         try {
-                            $pendingUser->notify(new \App\Notifications\SpotReservedNotification($session, $availableSpots));
+                            $pendingUser->notify(new \App\Notifications\SpotReservedNotification($session, $interestedCount));
                         } catch (\Exception $e) {
                             \Illuminate\Support\Facades\Log::error('Error enviando SpotReservedNotification: ' . $e->getMessage());
                         }

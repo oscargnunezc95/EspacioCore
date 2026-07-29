@@ -10,23 +10,23 @@
         <div class="mt-2 mb-8 p-1">
 
             {{-- Breadcrumbs con navegación funcional --}}
-            <nav class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
-                <a href="{{ route('trainingmonth.index', ['subdomain' => request()->route('subdomain')]) }}" class="hover:text-zinc-900 transition-colors">Planificación</a>
+            <nav class="flex text-xs font-bold text-amber-600 mb-3 gap-2 items-center">
+                <a href="{{ route('trainingmonth.index', ['subdomain' => request()->route('subdomain')]) }}" class="hover:text-stone-900 transition-colors">Planificación</a>
                 <span>/</span>
-                <span class="text-zinc-900 capitalize">{{ $monthDate->translatedFormat('F Y') }}</span>
+                <span class="text-amber-600 capitalize">{{ $monthDate->translatedFormat('F Y') }}</span>
             </nav>
 
             {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
             <div class="flex flex-row items-center justify-between gap-4 w-full">
                 
                 {{-- Título --}}
-                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                <h1 class="text-2xl md:text-3xl font-black  truncate flex-1 min-w-0">
                     Calendario Planificado
                 </h1>
 
                 {{-- Botón Responsivo (Estilo Secundario para "Volver") --}}
                 <a href="{{ route('trainingmonth.index', ['subdomain' => request()->route('subdomain')]) }}" 
-                   class="shrink-0 ml-auto bg-zinc-100 text-zinc-700 border border-zinc-200 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-200 hover:text-zinc-900 focus:ring-2 focus:ring-zinc-200 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
+                   class="shrink-0 ml-auto bg-stone-100 text-stone-700 border border-stone-200 px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-stone-200 hover:text-stone-900 focus:ring-2 focus:ring-stone-200 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
                     
                     {{-- Icono de Flecha hacia atrás --}}
                     <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,19 +49,19 @@
         @endif
 
         <div class="text-center mb-10">
-            <h2 class="text-3xl md:text-4xl font-black text-zinc-900 capitalize tracking-tight">{{ $monthDate->translatedFormat('F Y') }}</h2>
-            <p class="mt-2 text-zinc-500 font-medium">Revisa las clases generadas para este ciclo.</p>
+            <h2 class="text-3xl md:text-4xl font-black text-amber-600 capitalize tracking-tight">{{ $monthDate->translatedFormat('F Y') }}</h2>
+            <p class="mt-2 text-amber-600 font-medium">Revisa las clases generadas para este ciclo.</p>
         </div>
 
         {{-- Calendario Maestro --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
-            <div class="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+            <div class="grid grid-cols-7 border-b border-stone-200 bg-stone-50">
                 @foreach(['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] as $d)
-                    <div class="py-3 text-center text-[10px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider border-r border-zinc-200 last:border-0">{{ $d }}</div>
+                    <div class="py-3 text-center text-[10px] md:text-xs font-bold text-stone-500 uppercase tracking-wider border-r border-stone-200 last:border-0">{{ $d }}</div>
                 @endforeach
             </div>
 
-            <div class="grid grid-cols-7 gap-px bg-zinc-200">
+            <div class="grid grid-cols-7 gap-px bg-stone-200">
                 @php
                     $start = $monthDate->copy()->startOfMonth();
                     $empty = $start->dayOfWeekIso - 1;
@@ -69,7 +69,7 @@
                     $subdomain = request()->route('subdomain');
                 @endphp
 
-                @for ($i = 0; $i < $empty; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+                @for ($i = 0; $i < $empty; $i++) <div class="bg-stone-50/50 min-h-[140px]"></div> @endfor
 
                 @for ($day = 1; $day <= $days; $day++)
                     @php
@@ -79,10 +79,10 @@
                         $classCount = $sessionsInDay->count();
                     @endphp
                     
-                    <div class="bg-white min-h-[140px] p-1.5 md:p-2 flex flex-col relative transition-all {{ $isToday ? 'ring-2 ring-inset ring-zinc-900 bg-zinc-50/30' : '' }}">
+                    <div class="bg-white min-h-[140px] p-1.5 md:p-2 flex flex-col relative transition-all {{ $isToday ? 'ring-2 ring-inset ring-red-600 bg-stone-50/30' : '' }}">
                         
                         <div class="flex justify-between items-start mb-1.5">
-                            <span class="text-sm font-bold flex items-center justify-center h-6 w-6 md:h-7 md:w-7 rounded-full {{ $isToday ? 'bg-zinc-900 text-white' : 'text-zinc-500' }}">{{ $day }}</span>
+                            <span class="text-sm font-bold flex items-center justify-center h-6 w-6 md:h-7 md:w-7 rounded-full {{ $isToday ? 'bg-zinc-900 text-white' : 'text-stone-500' }}">{{ $day }}</span>
                         </div>
                         
                         @if($classCount > 0)
@@ -126,22 +126,22 @@
                                                 : 'https://ui-avatars.com/api/?name='.urlencode($s->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
                                         @endphp
 
-                                        <a href="{{ $sessionUrl }}" class="relative block p-1.5 md:p-2 pl-2.5 bg-zinc-50 border border-zinc-100 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all duration-200 group {{ $isCancelled ? 'opacity-60 grayscale' : '' }}">
-                                            <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
+                                        <a href="{{ $sessionUrl }}" class="relative block p-1.5 md:p-2 pl-2.5 bg-stone-50 border border-stone-100 rounded-lg hover:border-red-300 hover:shadow-sm transition-all duration-200 group {{ $isCancelled ? 'opacity-60 grayscale' : '' }}">
+                                            <div class="absolute left-0 top-0 bottom-0 w-1 rounded-l-lg {{ $isCancelled ? 'bg-stone-400' : $bgClass }}"></div>
                                             
                                             <div class="flex items-center gap-2">
-                                                <img src="{{ $imageUrl }}" class="w-6 h-6 md:w-7 md:h-7 rounded-md object-cover border border-zinc-200 shrink-0">
+                                                <img src="{{ $imageUrl }}" class="w-6 h-6 md:w-7 md:h-7 rounded-md object-cover border border-stone-200 shrink-0">
                                                 
                                                 <div class="flex flex-col min-w-0 flex-1">
                                                     <div class="flex items-center justify-between">
-                                                        <span class="text-[10px] font-black leading-none {{ $isCancelled ? 'text-zinc-500 line-through' : 'text-zinc-900' }}">
+                                                        <span class="text-[10px] font-black leading-none {{ $isCancelled ? 'text-stone-500 line-through' : 'text-stone-900' }}">
                                                             {{ \Carbon\Carbon::parse($s->start_time)->format('H:i') }}
                                                         </span>
                                                         @if($isCancelled)
                                                             <span class="text-[7px] font-black uppercase tracking-widest text-rose-600 bg-rose-100 px-1 rounded shrink-0 ml-1">Anulada</span>
                                                         @endif
                                                     </div>
-                                                    <span class="text-[9px] md:text-[10px] font-bold text-zinc-500 truncate mt-0.5 group-hover:text-indigo-600 transition-colors">
+                                                    <span class="text-[9px] md:text-[10px] font-bold text-stone-500 truncate mt-0.5 group-hover:text-red-600 transition-colors">
                                                         {{ $s->workshop->name }}
                                                     </span>
                                                 </div>
@@ -154,9 +154,9 @@
                             {{-- LÓGICA MÓVIL (Y ESCRITORIO > 3): Botón agrupador --}}
                             {{-- En móviles (sm) siempre se ve. En Desktop (md) solo se ve si hay >3 clases --}}
                             <button onclick="openDayClasses('{{ $formattedDate }}', {{ $dayData }})" 
-                                    class="mt-auto mb-auto mx-1 py-2 md:py-3 px-2 bg-indigo-50 hover:bg-indigo-100 border border-indigo-100 rounded-xl flex flex-col items-center justify-center gap-1 group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 {{ $classCount <= 3 ? 'md:hidden' : '' }}">
-                                <span class="text-lg md:text-xl font-black text-indigo-600 leading-none group-hover:scale-110 transition-transform">{{ $classCount }}</span>
-                                <span class="text-[9px] md:text-[10px] font-bold text-indigo-700 uppercase tracking-widest">Clases</span>
+                                    class="mt-auto mb-auto mx-1 py-2 md:py-3 px-2 bg-red-50 hover:bg-red-100 border border-red-100 rounded-xl flex flex-col items-center justify-center gap-1 group transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 {{ $classCount <= 3 ? 'md:hidden' : '' }}">
+                                <span class="text-lg md:text-xl font-black text-red-600 leading-none group-hover:scale-110 transition-transform">{{ $classCount }}</span>
+                                <span class="text-[9px] md:text-[10px] font-bold text-red-700 uppercase tracking-widest">Clases</span>
                             </button>
 
                         @endif
@@ -167,7 +167,7 @@
                     $remainingCells = 7 - (($empty + $days) % 7);
                     if ($remainingCells == 7) $remainingCells = 0;
                 @endphp
-                @for ($i = 0; $i < $remainingCells; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+                @for ($i = 0; $i < $remainingCells; $i++) <div class="bg-stone-50/50 min-h-[140px]"></div> @endfor
             </div>
         </div>
     </div>
@@ -178,12 +178,12 @@
         
         <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh]" id="dayModalCard">
             
-            <div class="px-6 py-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50">
+            <div class="px-6 py-5 border-b border-stone-100 flex justify-between items-center bg-stone-50">
                 <div>
-                    <h3 class="text-xl font-black text-zinc-900 tracking-tight">Clases del Día</h3>
-                    <p id="modalDayDate" class="text-xs font-bold text-zinc-500 capitalize mt-0.5">Fecha</p>
+                    <h3 class="text-xl font-black text-stone-900 tracking-tight">Clases del Día</h3>
+                    <p id="modalDayDate" class="text-xs font-bold text-stone-500 capitalize mt-0.5">Fecha</p>
                 </div>
-                <button onclick="closeDayClasses()" class="p-2 text-zinc-400 hover:text-zinc-700 hover:bg-zinc-200 rounded-full transition-colors focus:outline-none">
+                <button onclick="closeDayClasses()" class="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-200 rounded-full transition-colors focus:outline-none">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -208,10 +208,10 @@
                 
                 // Estilos para canceladas vs normales
                 link.className = cls.is_cancelled 
-                    ? "block bg-zinc-50 border border-zinc-200 rounded-2xl p-3 opacity-70 grayscale transition-all group"
-                    : "block bg-white border border-zinc-200 hover:border-indigo-300 hover:shadow-md rounded-2xl p-3 transition-all duration-200 group";
+                    ? "block bg-stone-50 border border-stone-200 rounded-2xl p-3 opacity-70 grayscale transition-all group"
+                    : "block bg-white border border-stone-200 hover:border-red-300 hover:shadow-md rounded-2xl p-3 transition-all duration-200 group";
                 
-                const titleClass = cls.is_cancelled ? "text-zinc-500 line-through" : "text-zinc-900 group-hover:text-indigo-600 transition-colors";
+                const titleClass = cls.is_cancelled ? "text-stone-500 line-through" : "text-stone-900 group-hover:text-red-600 transition-colors";
                 const badgeHtml = cls.is_cancelled 
                     ? `<span class="bg-rose-100 text-rose-700 text-[9px] font-black px-2 py-0.5 rounded border border-rose-200 uppercase tracking-widest mt-1.5 inline-block">Anulada</span>` 
                     : '';
@@ -219,17 +219,17 @@
                 link.innerHTML = `
                     <div class="flex justify-between items-center">
                         <div class="flex items-center gap-3 min-w-0">
-                            <img src="${cls.image}" class="w-10 h-10 rounded-xl object-cover border border-zinc-100 shadow-sm shrink-0">
+                            <img src="${cls.image}" class="w-10 h-10 rounded-xl object-cover border border-stone-100 shadow-sm shrink-0">
                             <div class="min-w-0">
                                 <h4 class="text-sm font-bold leading-tight truncate ${titleClass}">${cls.name}</h4>
                                 ${badgeHtml}
                             </div>
                         </div>
                         <div class="flex items-center gap-3 shrink-0 ml-2">
-                            <div class="bg-zinc-100 text-zinc-700 font-black text-xs px-2.5 py-1.5 rounded-lg border border-zinc-200">
+                            <div class="bg-stone-100 text-stone-700 font-black text-xs px-2.5 py-1.5 rounded-lg border border-stone-200">
                                 ${cls.time}
                             </div>
-                            <svg class="w-5 h-5 text-zinc-300 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                            <svg class="w-5 h-5 text-stone-300 group-hover:text-red-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                         </div>
                     </div>
                 `;

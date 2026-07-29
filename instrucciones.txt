@@ -1,48 +1,52 @@
-Necesitamos automatizar por completo el "Motor de Ciclo de Vida y Morosidad" de nuestro SaaS (estadoPrisma) mediante un comando programado (Cron Job) y blindar la lógica de fechas para evitar que los pagos atrasados regalen días gratis de servicio.
+# Misión: Refactorización Temporal de Promociones y Eliminación de Deuda Técnica (`is_monthly` / Scopes)
 
-TU TAREA EN 5 PASOS (Ejecuta y sobrescribe directamente):
+Tu misión es refactorizar el esquema de la tabla `promotions`, el modelo `Promotion`, su controlador, la vista de configuración y el motor de cálculo `App\Services\PricingService`.
 
-1. REFINAR EL MOTOR EN EL MODELO (`app/Models/Studio.php`)
-Asegúrate de que el método público `checkAndManageLifecycle(): void` maneje el corte de guillotina llamando a la API de Mercado Pago:
+En nuestra última sesión completamos la transición a "Bolsas de Tiempo con Ventana Deslizante" en los Packs (`workshop_prices`). Ahora necesitamos otorgarle a la tabla `promotions` su propia autonomía temporal (vigencia, tipo de cálculo y retroactividad), mientras eliminamos por completo la columna legacy `is_monthly` (y cualquier concepto de alcance/scope), ya que es un antipatrón redundante en nuestra arquitectura comercial actual.
 
-- REGLA 1: TRANSICIÓN DE PLANES VENCIDOS (Suscripción expirada naturalmente)
-  Si `subscription_expires_at` ya pasó (`isPast()`) y el `subscription_status` NO es 'past_due' ni 'free':
-  - Si existe un `next_plan_id`:
-    - Si el plan destino es 'free': `subscription_plan_id = next_plan_id`, `next_plan_id = null`, `subscription_status = 'free'`, `subscription_expires_at = now()->addYears(100)`, `mp_preapproval_id = null`.
-    - Si el plan destino es de pago (Upgrade diferido): `subscription_plan_id = next_plan_id`, `next_plan_id = null`, `subscription_status = 'pending_payment'`.
-  - Si NO existe un `next_plan_id`, por seguridad pásalo al plan 'free' con sus flags por defecto.
 
-- REGLA 2: LÍMITE DE MOROSIDAD (Los 5 días de gracia)
-  Si el `subscription_status === 'past_due'`:
-  - Evalúa si pasaron más 5 días: `now()->diffInDays($this->subscription_expires_at) > 5`.
-  - Si se cumple:
-    1. CANCELACIÓN INVERSA POR API: Si tiene `mp_preapproval_id`, ejecuta:
-       `try { app(\App\Services\MercadoPagoService::class)->cancelPreapproval($this->mp_preapproval_id); } catch (\Exception $e) { Log::error("Error cancelando MP por morosidad: " . $e->getMessage()); }`
-    2. DOWNGRADE FORZADO: Busca el ID del plan 'free' y actualiza el estudio: `subscription_plan_id = $freePlanId`, `subscription_status = 'free'`, `subscription_expires_at = now()->addYears(100)`, `mp_preapproval_id = null`, `next_plan_id = null`.
-    3. Deja un `Log::info("Estudio ID {$this->id} movido a plan gratuito por superar los 5 días de morosidad.");`
+## 📋 ESPECIFICACIÓN TÉCNICA Y ENTREGABLES
 
-2. CORREGIR EL ANCLAJE DEL CICLO DE FACTURACIÓN (`app/Services/MercadoPagoService.php`)
-En el método que procesa pagos exitosos del SaaS (donde actualizas el estado tras recibir el topic `payment` y guardas en `saas_payments`):
-- Al actualizar el `subscription_expires_at` del estudio, NUNCA uses `now()->addMonth()` a ciegas.
-- Si el pago es exitoso tras un reintento por morosidad, debes mantener el ciclo original. Implementa esta lógica matemática:
-  `$newExpiration = ($studio->subscription_expires_at && $studio->subscription_status !== 'free' && $studio->subscription_expires_at->isPast()) ? $studio->subscription_expires_at->addDays(30) : now()->addDays(30);`
-- Si la suscripción estaba 'past_due', devuélvela a su estado normal (el slug del plan actual).
+Debes generar el código completo y sin abreviaciones (`// ... código existente`) resolviendo los siguientes 5 puntos estructurales:
 
-3. CREAR EL COMANDO ARTISAN (`app/Console/Commands/CleanExpiredSubscriptions.php`)
-- Signature: `saas:clean-subscriptions`
-- Description: `Procesa expiraciones y bloqueos por morosidad de más de 5 días de forma masiva.`
-- En el método `handle()`: Busca los estudios evaluables:
-  `Studio::where('subscription_status', 'past_due')->orWhere(function($q) { $q->where('subscription_expires_at', '<=', now())->where('subscription_status', '!=', 'free'); })->get();`
-  Recórrelos y ejecuta: `$studio->checkAndManageLifecycle();`
+### 1. Migración MySQL para `promotions` (Limpieza y Reglas Temporales)
+La columna `is_monthly` de la tabla `promotions` es un antipatrón redundante, ya que los combos se definen a sí mismos por sus IDs de relación y los descuentos por volumen en promociones son inherentemente globales (los volúmenes por taller individual se gestionan directamente en `workshop_prices`).
+* Crea una migración `refactor_temporal_rules_and_remove_is_monthly_in_promotions_table`.
+* En esta migración, **elimina la columna `is_monthly`** (o `scope`, si existiera).
+* En la misma tabla `promotions`, agrega las siguientes tres columnas de control temporal:
+  - **`validity_months`** (unsignedSmallInteger, default: 1, after: `additional_price`). Comentario: `0 = sin límite / vitalicio`.
+  - **`validity_type`** (string/enum: `'calendar'` o `'rolling'`, default: `'calendar'`, after: `validity_months`). Comentario: `'calendar'` = estricto por mes calendario; `'rolling'` = ventana continua por días/meses.
+  - **`allows_retroactive`** (boolean, default: true, after: `validity_type`). Comentario: `Permite usar clases pagadas en el pasado para completar y activar este combo`.
 
-4. REGISTRAR EL CRON JOB EN EL PLANIFICADOR (`routes/console.php`)
-Registra el comando para que corra todos los días a la medianoche:
-`use Illuminate\Support\Facades\Schedule;`
-`Schedule::command('saas:clean-subscriptions')->daily();`
+### 2. Modelo Eloquent (`App\Models\Promotion`) y `PromotionController`
+* **Modelo `Promotion`:** Elimina `is_monthly` / `scope` del array `$fillable` y de los `$casts`. Agrega `'validity_months' => 'integer'`, `'validity_type' => 'string'` y `'allows_retroactive' => 'boolean'`.
+* **`PromotionController`:** En los métodos de validación (`store` y `update`), elimina cualquier regla referida a `is_monthly` o `scope`. Agrega las validaciones estrictas para los nuevos campos:
+  - `'validity_months' => ['required', 'integer', 'min:0', 'max:24']`
+  - `'validity_type' => ['required', 'in:calendar,rolling']`
+  - `'allows_retroactive' => ['sometimes', 'boolean']` (asegurando convertir con `$request->has()` o preparar para validación si viene de un checkbox).
 
-5. REFORZAR EL WEBHOOK PARA MOROSIDAD (`app/Services/MercadoPagoService.php` y `app/Mail/SubscriptionPastDueMail.php`)
-- Genera el mailable `SubscriptionPastDueMail` con diseño Zinc.
-- En el método `processSaaSSubscription()`, si el estado enviado por Mercado Pago es 'pending' o 'past_due':
-  - Actualiza el `subscription_status` del estudio a 'past_due'. (NO modifiques su `subscription_expires_at`).
-  - Despacha el correo a la cola: `Mail::to($studio->user->email)->queue(new \App\Mail\SubscriptionPastDueMail($studio));`
+### 3. Refactorización Algorítmica en `PricingService::calculateCart()` (Paso 3: Promociones)
+Al haber eliminado el concepto de `is_monthly` / `scope`, **borra por completo cualquier bifurcación condicional (`if ($promo->is_monthly)`)**. El algoritmo debe evaluar las promociones (`specific_combo` y `additional_discount`) directamente sobre el pool global de packs y clases acumuladas en el carrito (`$globalPacks` y `$globalClasses`).
+
+Para evitar que un alumno combine sesiones separadas por muchos meses (ej. una clase de enero con una de abril) y abuse de un Combo Global, inyecta un **Filtro de Intersección Temporal** antes de aplicar el descuento de cualquier promoción:
+
+* **A. Intersección de Vigencia (`validity_months` y `validity_type`):**
+  Al evaluar un combo (`specific_combo`), identifica las sesiones reales (o paquetes involucrados) que conformarían esa promoción. Toma la fecha cronológicamente más reciente (`$maxDate`) y la más antigua (`$minDate`) entre las sesiones candidatas del combo:
+  - Si `$promo->validity_months === 0`: La promoción es atemporal y siempre es válida.
+  - Si `$promo->validity_type === 'calendar'`: Todas las clases del combo deben caer dentro de la misma ventana de mes calendario. Si `$minDate` es anterior a `$maxDate->copy()->subMonthsNoOverflow($promo->validity_months - 1)->startOfMonth()`, el combo **se rechaza** (no se descuenta y las bolsas no se consumen).
+  - Si `$promo->validity_type === 'rolling'`: La distancia continua entre `$minDate` y `$maxDate` no puede superar el plazo. Si `$minDate` es anterior a `$maxDate->copy()->subMonthsNoOverflow($promo->validity_months)`, el combo **se rechaza**.
+
+* **B. Control de Retroactividad (`allows_retroactive`):**
+  Si para conformar el combo el sistema necesita recurrir a sesiones que provienen del historial de pagos pasados (`$historicalPayments`) en lugar del carrito activo:
+  - Si `$promo->allows_retroactive === false`: La promoción **se rechaza instantáneamente**, obligando a que todas las sesiones que activan el combo sean nuevas reservas del carrito actual.
+  - Si es `true`, se permite la combinación siempre y cuando supere con éxito el filtro de intersección temporal del punto A.
+
+### 4. Interfaz UI/UX en Blade (Formulario y Vista de Promociones)
+Actualiza las vistas de gestión de promociones (`resources/views/promotions/form.blade.php` o modales de creación/edición, y la tabla principal `index.blade.php`):
+* **Elimina** cualquier radio button, checkbox o columna en tabla que haga referencia a "Por Taller vs Global" (`is_monthly` / `scope`).
+* Agrega un selector claro para **`validity_months`**: opciones de 1 Mes, 2 Meses, 3 Meses, 6 Meses, 1 Año y "0 - Sin Límite (Vitalicio)".
+* Agrega un selector de tarjetas estilo Radio Buttons interactivos con Tailwind CSS para **`validity_type`**:
+  - *Opción 1:* "Estricto por Mes Calendario (calendar)" - Helper text: *"Las clases del combo deben tomarse dentro del mismo mes calendario (ej. del 1 al 31)."*
+  - *Opción 2:* "Libre / Ventana Continua (rolling)" - Helper text: *"El plazo corre por días continuos entre la primera y la última clase combinada."*
+* Agrega un checkbox estilizado para **`allows_retroactive`** con una etiqueta clara y helper text: *"Permitir Upgrade Retroactivo del Combo: Autoriza al alumno a utilizar clases pagadas en meses o reservas anteriores para completar y activar el descuento de este combo"*.
 

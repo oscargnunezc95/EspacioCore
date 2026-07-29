@@ -3,72 +3,36 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\SubscriptionPlan;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
+/**
+ * @deprecated El sistema de planes de suscripción fue reemplazado por Facturación
+ *             por Uso (Floor-Capped Usage Pricing) en julio 2026.
+ *             La tabla subscription_plans fue eliminada.
+ *             Este controlador se mantiene como stub para evitar errores 404 en el admin.
+ */
 class SubscriptionPlanController extends Controller
 {
     public function index()
     {
-        // Traemos los planes y contamos cuántos estudios activos hay en cada uno
-        $plans = SubscriptionPlan::withCount(['studios' => function ($query) {
-            $query->whereIn('subscription_status', ['pro', 'elite', 'past_due']);
-        }])->orderBy('price', 'asc')->get();
-
-        return view('admin.plans.index', compact('plans'));
+        return view('admin.plans.index', ['plans' => collect()]);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|integer|min:0',
-            'platform_fee_percent' => 'required|numeric|min:0|max:100',
-            'capacity_limit' => 'nullable|integer|min:1',
-            'max_billing_cycles' => 'nullable|integer|min:1',
-        ]);
-
-        $validated['slug'] = Str::slug($validated['name']);
-        
-        // Asegurar que el slug sea único
-        if (SubscriptionPlan::where('slug', $validated['slug'])->exists()) {
-            $validated['slug'] .= '-' . time();
-        }
-
-        SubscriptionPlan::create($validated);
-
-        return back()->with('success', 'Plan de suscripción creado exitosamente.');
+        return back()->with('info', 'El sistema de planes de suscripción ya no está operativo. Se migró a Facturación por Uso (5% de comisión).');
     }
 
-    public function update(Request $request, SubscriptionPlan $plan)
+    public function update(Request $request, $plan)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'price' => 'required|integer|min:0',
-            'platform_fee_percent' => 'required|numeric|min:0|max:100',
-            'capacity_limit' => 'nullable|integer|min:1',
-            'max_billing_cycles' => 'nullable|integer|min:1',
-        ]);
-
-        // Solo actualizamos el slug si cambió el nombre
-        if ($plan->name !== $validated['name']) {
-            $validated['slug'] = Str::slug($validated['name']);
-        }
-
-        $plan->update($validated);
-
-        return back()->with('success', 'Plan actualizado exitosamente.');
+        return back()->with('info', 'El sistema de planes de suscripción ya no está operativo. Se migró a Facturación por Uso (5% de comisión).');
     }
 
-    public function toggle(SubscriptionPlan $plan)
+    public function toggle($plan)
     {
-        $plan->update(['is_active' => !$plan->is_active]);
-
         return response()->json([
-            'ok' => true,
-            'is_active' => $plan->is_active,
-            'message' => $plan->is_active ? 'Plan activado.' : 'Plan desactivado.'
+            'ok'       => false,
+            'message'  => 'Sistema deprecado.',
         ]);
     }
 }

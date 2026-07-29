@@ -13,6 +13,7 @@ use App\Models\Area;
 use App\Models\Discipline;
 use App\Models\Studio;
 use App\Notifications\WorkshopAssignedNotification;
+use App\Rules\PriceMinOrZero;
 use Illuminate\Support\Facades\Log;
 
 class WorkshopController extends Controller
@@ -65,9 +66,25 @@ class WorkshopController extends Controller
             $data['is_single_class'] = $request->is_single_class == '1';
             $data['use_main_location'] = $request->boolean('use_main_location');
 
-            // Subida de la imagen
+            // =========================================================
+            // 🚀 OPTIMIZACIÓN DE IMAGEN: Redimensión y WebP (STORE)
+            // =========================================================
             if ($request->hasFile('image')) {
-                $data['image_path'] = $request->file('image')->store('workshops/images', 'public');
+                $file = $request->file('image');
+                $baseFilename = uniqid();
+                $filename = 'workshops/images/' . $baseFilename . '.webp';
+                
+                $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
+                
+                $image = $manager->make($file->getRealPath())
+                    ->resize(1024, null, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize(); // Evita pixelar si suben algo pequeño
+                    })
+                    ->encode('webp', 80);
+                    
+                Storage::disk('public')->put($filename, (string) $image);
+                $data['image_path'] = $filename;
             }
 
             // Ubicación
@@ -100,13 +117,15 @@ class WorkshopController extends Controller
                 }
             }
 
-            // 2. Guardar Planes de Precios
+            // 2. Guardar Planes de Precios (Time-Bound Packs)
             if ($request->has('prices')) {
                 foreach ($request->prices as $priceRow) {
                     $workshop->prices()->create([
                         'class_count'            => $priceRow['class_count'],
                         'price'                  => $priceRow['price'],
-                        'is_monthly'             => isset($priceRow['is_monthly']) ? true : false,
+                        'validity_months'        => $priceRow['validity_months'] ?? 1,
+                        'validity_type'          => $priceRow['validity_type'] ?? 'calendar',
+                        'allows_retroactive'     => isset($priceRow['allows_retroactive']) ? true : false,
                         'introductory_price'     => !empty($priceRow['introductory_price']) ? $priceRow['introductory_price'] : null,
                         'is_introductory_active' => isset($priceRow['is_introductory_active']) ? true : false,
                     ]);
@@ -116,15 +135,13 @@ class WorkshopController extends Controller
             // 2.5 Precio único para clase única (Masterclass)
             if ($workshop->is_single_class && $request->filled('single_class_price')) {
                 $workshop->prices()->create([
-                    'class_count' => 1,
-                    'price'       => $request->single_class_price,
-                    'is_monthly'  => false,
+                    'class_count'        => 1,
+                    'price'              => $request->single_class_price,
+                    'validity_months'    => 1,
+                    'validity_type'      => 'calendar',
+                    'allows_retroactive' => false,
                 ]);
             }
-
-            // NOTA: La sesión de clase única se genera desde TrainingMonthController
-            // cuando el estudio incluye el workshop en la grilla mensual.
-            // Así se evitan duplicados y se respeta la decisión del estudio.
         });
 
         // Notificar al profesor si se asignó uno
@@ -154,12 +171,30 @@ class WorkshopController extends Controller
             $data['is_single_class'] = $request->is_single_class == '1';
             $data['use_main_location'] = $request->boolean('use_main_location');
 
-            // Reemplazo de Imagen
+            // =========================================================
+            // 🚀 OPTIMIZACIÓN DE IMAGEN: Redimensión y WebP (UPDATE)
+            // =========================================================
             if ($request->hasFile('image')) {
+                $file = $request->file('image');
+                $baseFilename = uniqid();
+                $filename = 'workshops/images/' . $baseFilename . '.webp';
+                
+                $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
+                
+                $image = $manager->make($file->getRealPath())
+                    ->resize(1024, null, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode('webp', 80);
+                    
+                // Borrar la imagen anterior para no llenar el servidor de basura
                 if ($workshop->image_path) {
                     Storage::disk('public')->delete($workshop->image_path);
                 }
-                $data['image_path'] = $request->file('image')->store('workshops/images', 'public');
+
+                Storage::disk('public')->put($filename, (string) $image);
+                $data['image_path'] = $filename;
             }
 
             // Ubicación
@@ -187,15 +222,12 @@ class WorkshopController extends Controller
                 $teacherChanged = true;
             }
 
-            // ====================================================================
-            // 1. SINCRONIZACIÓN INTELIGENTE DE HORARIOS (Previene el NULL en sesiones)
-            // ====================================================================
+            // (Aquí continúa tu lógica intacta de sincronización inteligente de horarios y precios...)
             if (!$workshop->is_single_class) {
-                $keepScheduleIds = []; // IDs que mantendremos vivos
+                $keepScheduleIds = [];
                 
                 if ($request->has('schedules')) {
                     foreach ($request->schedules as $schedule) {
-                        // Buscamos si ya existe un horario este día y a esta hora
                         $savedSchedule = $workshop->schedules()->updateOrCreate(
                             [
                                 'day_of_week' => $schedule['day'],
@@ -208,23 +240,21 @@ class WorkshopController extends Controller
                         $keepScheduleIds[] = $savedSchedule->id;
                     }
                 }
-                // Borramos SOLO los horarios que el profesor eliminó del formulario
                 $workshop->schedules()->whereNotIn('id', $keepScheduleIds)->delete();
             }
 
-            // ====================================================================
-            // 2. SINCRONIZACIÓN INTELIGENTE DE PRECIOS (Previene ruptura de Promociones)
-            // ====================================================================
             $keepPriceIds = [];
             if ($request->has('prices')) {
                 foreach ($request->prices as $priceRow) {
                     $savedPrice = $workshop->prices()->updateOrCreate(
                         [
-                            'class_count' => $priceRow['class_count'], // Buscamos por la cantidad de clases (ej: Pack de 4)
+                            'class_count' => $priceRow['class_count'],
                         ],
                         [
                             'price'                  => $priceRow['price'],
-                            'is_monthly'             => isset($priceRow['is_monthly']) ? true : false,
+                            'validity_months'        => $priceRow['validity_months'] ?? 1,
+                            'validity_type'          => $priceRow['validity_type'] ?? 'calendar',
+                            'allows_retroactive'     => isset($priceRow['allows_retroactive']) ? true : false,
                             'introductory_price'     => !empty($priceRow['introductory_price']) ? $priceRow['introductory_price'] : null,
                             'is_introductory_active' => isset($priceRow['is_introductory_active']) ? true : false,
                         ]
@@ -232,24 +262,23 @@ class WorkshopController extends Controller
                     $keepPriceIds[] = $savedPrice->id;
                 }
             }
-            // Borramos SOLO los precios eliminados del formulario
             $workshop->prices()->whereNotIn('id', $keepPriceIds)->delete();
 
-
-            // 2.5 Precio único para clase única (Masterclass)
             if ($workshop->is_single_class && $request->filled('single_class_price')) {
                 $workshop->prices()->updateOrCreate(
                     ['class_count' => 1],
                     [
-                        'price'      => $request->single_class_price,
-                        'is_monthly' => false,
+                        'price'              => $request->single_class_price,
+                        'validity_months'    => 1,
+                        'validity_type'      => 'calendar',
+                        'allows_retroactive' => false,
                     ]
                 );
             }
 
             // 3. Sincronizar Sesión para Clase Única
             if ($workshop->is_single_class) {
-                ClassSession::updateOrCreate(
+                \App\Models\ClassSession::updateOrCreate(
                     ['workshop_id' => $workshop->id],
                     [
                         'studio_id'  => $workshop->studio_id,
@@ -260,7 +289,6 @@ class WorkshopController extends Controller
             }
         });
 
-        // Notificar al profesor si se cambió la asignación y hay un teacher_id nuevo
         if ($teacherChanged && $workshop->teacher_id) {
             $this->notifyTeacherWorkshopAssigned($workshop, $studio);
         }
@@ -310,15 +338,17 @@ class WorkshopController extends Controller
             'schedules.*.max_students'   => 'nullable|integer|min:1',
 
             'max_students'      => 'nullable|integer|min:1',
-            
+
             // Precio para clase única (Masterclass)
-            'single_class_price' => 'required_if:is_single_class,1|nullable|numeric|min:0',
-            
-            // VALIDACIÓN DEL ARREGLO DE PRECIOS (solo talleres recurrentes)
-            'prices'                       => 'nullable|array',
-            'prices.*.class_count'         => 'required|integer|min:1',
-            'prices.*.price'               => 'required|numeric|min:0',
-            'prices.*.introductory_price'  => 'nullable|numeric|min:0',
+            'single_class_price' => ['required_if:is_single_class,1', 'nullable', 'numeric', 'min:0', new \App\Rules\PriceMinOrZero],
+
+            // VALIDACIÓN DEL ARREGLO DE PRECIOS (Time-Bound Packs)
+            'prices'                          => 'nullable|array',
+            'prices.*.class_count'            => 'required|integer|min:1',
+            'prices.*.price'                  => ['required', 'numeric', 'min:0', new \App\Rules\PriceMinOrZero],
+            'prices.*.validity_months'        => 'required|integer|min:0',
+            'prices.*.validity_type'          => ['required', 'in:calendar,rolling'],
+            'prices.*.introductory_price'     => ['nullable', 'numeric', 'min:0', new \App\Rules\PriceMinOrZero],
         ];
 
         $messages = [
@@ -327,10 +357,10 @@ class WorkshopController extends Controller
             'discipline.required' => 'Debes especificar la disciplina de la clase.',
             'target_audience.required' => 'Selecciona a qué público va dirigido.',
             'color.required' => 'Elige un color para identificar este taller.',
-            
+
             'start_time.required_if' => 'Debes asignar una hora para tu Masterclass.',
             'specific_date.required_if' => 'Debes indicar la fecha exacta en el calendario para tu Masterclass.',
-            
+
             'schedules.required_if' => 'Debes agregar al menos un horario en la semana para este taller.',
             'schedules.*.day.required_with' => 'Asegúrate de seleccionar el día en todos los horarios.',
             'schedules.*.time.required_with' => 'Asegúrate de indicar la hora en todos los horarios.',
@@ -339,7 +369,13 @@ class WorkshopController extends Controller
             'prices.*.price.required' => 'Debes asignarle un precio base a tu paquete.',
         ];
 
-        $request->validate($rules, $messages);
+        $attributes = [
+            'single_class_price'            => 'precio de la clase única',
+            'prices.*.price'                => 'precio del paquete',
+            'prices.*.introductory_price'   => 'precio introductorio',
+        ];
+
+        $request->validate($rules, $messages, $attributes);
     }
 
     public function students($subdomain, Workshop $workshop)

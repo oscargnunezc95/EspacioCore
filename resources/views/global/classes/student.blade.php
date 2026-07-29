@@ -2,8 +2,8 @@
     <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
         
         <div class="text-center mb-10 md:mb-14">
-            <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Mi Horario</h1>
-            <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">Tu calendario unificado de clases en todos los estudios.</p>
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight">Mi Horario</h1>
+            <p class="mt-3 text-stone-500 font-medium text-base md:text-lg">Tu calendario unificado de clases en todos los estudios.</p>
         </div>
 
         @if (session('success'))
@@ -19,23 +19,20 @@
             $nextMonth = $monthDate->copy()->addMonth()->format('Y-m');
         @endphp
 
-        <div class="flex justify-between items-center mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-zinc-200">
+        <div class="flex justify-between items-center mb-6 bg-white p-3 sm:p-4 rounded-2xl shadow-sm border border-stone-200">
             
-            {{-- Botón Anterior --}}
             <a href="{{ route('global.classes.student', ['month' => $prevMonth]) }}" 
-               class="px-3 sm:px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl font-bold text-zinc-600 transition text-sm flex items-center gap-1.5 sm:gap-2 active:scale-95">
+               class="px-3 sm:px-4 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 rounded-xl font-bold transition-all duration-200 text-sm flex items-center gap-1.5 sm:gap-2 active:scale-95">
                 <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"></path></svg>
                 <span class="hidden sm:inline">Anterior</span>
             </a>
             
-            {{-- Título del Mes --}}
-            <h2 class="text-lg sm:text-xl md:text-2xl font-black text-zinc-800 capitalize truncate px-2 text-center">
+            <h2 class="text-lg sm:text-xl md:text-2xl font-black text-stone-800 capitalize truncate px-2 text-center">
                 {{ $monthDate->translatedFormat('F Y') }}
             </h2>
             
-            {{-- Botón Siguiente --}}
             <a href="{{ route('global.classes.student', ['month' => $nextMonth]) }}" 
-               class="px-3 sm:px-4 py-2 bg-zinc-100 hover:bg-zinc-200 rounded-xl font-bold text-zinc-600 transition text-sm flex items-center gap-1.5 sm:gap-2 active:scale-95">
+               class="px-3 sm:px-4 py-2.5 bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 rounded-xl font-bold transition-all duration-200 text-sm flex items-center gap-1.5 sm:gap-2 active:scale-95">
                 <span class="hidden sm:inline">Siguiente</span>
                 <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7"></path></svg>
             </a>
@@ -43,47 +40,44 @@
         </div>
 
         @if($sessionsByDate->isEmpty())
-            <div class="bg-white rounded-3xl border border-zinc-200 py-24 px-6 text-center shadow-sm mb-12">
-                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-zinc-50 border border-zinc-100 mb-6">
-                    <svg class="w-10 h-10 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div class="bg-white rounded-3xl border border-stone-200 py-24 px-6 text-center shadow-sm mb-12">
+                <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-red-50 border border-red-100 mb-6">
+                    <svg class="w-10 h-10 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
                     </svg>
                 </div>
-                <h3 class="text-xl font-bold text-zinc-900 mb-2">Tu Horario está vacío</h3>
-                <p class="text-zinc-500 max-w-md mx-auto text-sm leading-relaxed mb-8">
+                <h3 class="text-xl font-bold text-stone-900 mb-2">Tu Horario está vacío</h3>
+                <p class="text-stone-500 max-w-md mx-auto text-sm leading-relaxed mb-8">
                     Aún no estás inscrita/o en ninguna clase para este mes. Explora el catálogo para añadir nuevas sesiones.
                 </p>
-                <a href="{{ route('explore') }}" class="inline-flex items-center justify-center px-6 py-3 font-bold rounded-xl text-white bg-zinc-900 hover:bg-zinc-800 transition-all duration-200 shadow-sm active:scale-95">
+                <a href="{{ route('explore') }}" class="inline-flex items-center justify-center bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95">
                     Explorar Catálogo
                 </a>
             </div>
         @else
             {{-- Calendario Maestro --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden relative">
+            <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden relative">
                 
-                {{-- Sombra lateral para indicar al usuario que puede hacer scroll en móviles --}}
+                {{-- Sombra lateral responsiva --}}
                 <div class="absolute top-0 right-0 bottom-0 w-8 bg-gradient-to-l from-white/90 to-transparent pointer-events-none md:hidden z-10"></div>
 
-                {{-- Contenedor con Scroll Horizontal (La magia ocurre aquí) --}}
                 <div class="overflow-x-auto custom-scrollbar">
-                    
-                    {{-- Forzamos un ancho mínimo. En PC ocupará el 100%, en móvil medirá 1300px y generará scroll --}}
                     <div class="min-w-[1300px] w-full">
                         
-                        <div class="grid grid-cols-7 border-b border-zinc-200 bg-zinc-50">
+                        <div class="grid grid-cols-7 border-b border-stone-200 bg-stone-50">
                             @foreach(['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] as $d)
-                                <div class="py-3 text-center text-[11px] md:text-xs font-bold text-zinc-500 uppercase tracking-wider border-r border-zinc-200 last:border-0">{{ $d }}</div>
+                                <div class="py-3 text-center text-[11px] md:text-xs font-bold text-stone-500 uppercase tracking-wider border-r border-stone-200 last:border-0">{{ $d }}</div>
                             @endforeach
                         </div>
 
-                        <div class="grid grid-cols-7 gap-px bg-zinc-200">
+                        <div class="grid grid-cols-7 gap-px bg-stone-200">
                             @php
                                 $start = $monthDate->copy()->startOfMonth();
                                 $empty = $start->dayOfWeekIso - 1;
                                 $days = $monthDate->daysInMonth;
                             @endphp
 
-                            @for ($i = 0; $i < $empty; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+                            @for ($i = 0; $i < $empty; $i++) <div class="bg-stone-50/50 min-h-[140px]"></div> @endfor
 
                             @for ($day = 1; $day <= $days; $day++)
                                 @php
@@ -92,8 +86,8 @@
                                     $isToday = \Carbon\Carbon::parse($cur)->isToday();
                                 @endphp
                                 
-                                <div class="bg-white min-h-[140px] p-2 transition {{ $isToday ? 'ring-2 ring-inset ring-zinc-900 bg-zinc-50/30' : '' }}">
-                                    <span class="text-sm font-bold flex items-center justify-center h-7 w-7 rounded-full mb-2 {{ $isToday ? 'bg-zinc-900 text-white' : 'text-zinc-500' }}">{{ $day }}</span>
+                                <div class="bg-white min-h-[140px] p-2 transition {{ $isToday ? 'ring-2 ring-inset ring-red-600 bg-stone-50/30' : '' }}">
+                                    <span class="text-sm font-bold flex items-center justify-center h-7 w-7 rounded-full mb-2 {{ $isToday ? 'bg-red-600 text-white' : 'text-stone-500' }}">{{ $day }}</span>
                                     
                                     <div class="space-y-2">
                                         @foreach($sessionsInDay as $session)
@@ -108,21 +102,22 @@
                                                 
                                                 $imageUrl = $session->workshop->image_path 
                                                     ? asset('storage/' . $session->workshop->image_path) 
-                                                    : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
+                                                    : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->name).'&color=dc2626&background=fef2f2&size=128';
 
                                                 $studioLogo = $session->workshop->studio->icon_path ?? $session->workshop->studio->logo_path ?? null;
                                                 $studioImageUrl = $studioLogo 
                                                     ? asset('storage/' . $studioLogo) 
                                                     : 'https://ui-avatars.com/api/?name='.urlencode($session->workshop->studio->name).'&color=ffffff&background=18181b&size=128';
 
+                                                // 🚀 Extraído de la lógica pre-calculada en el controlador
                                                 $isPaid = $session->is_paid ?? false;
-                                                $isCancelled = $session->is_cancelled ?? ($session->status === 'cancelled') ?? false;
+                                                $isCancelled = $session->is_cancelled ?? ($session->status === 'cancelled');
                                                 $hasFamily = !empty($session->family_student_ids);
                                                 
                                                 if ($isCancelled) {
-                                                    $cardClasses = 'border-zinc-200 bg-zinc-50 opacity-75 grayscale';
+                                                    $cardClasses = 'border-stone-200 bg-stone-50 opacity-75 grayscale';
                                                 } else {
-                                                    $cardClasses = $isPaid ? 'border-zinc-200 hover:border-zinc-400' : 'border-rose-200 bg-rose-50/30 hover:border-rose-400';
+                                                    $cardClasses = $isPaid ? 'border-emerald-200 bg-emerald-50/30 hover:border-emerald-400' : 'border-amber-200 bg-amber-50/30 hover:border-amber-400';
                                                 }
                                             @endphp
                                             
@@ -133,7 +128,6 @@
                                                     data-teacher="{{ $session->workshop->teacher ? $session->workshop->teacher->first_name . ' ' . $session->workshop->teacher->last_name : 'Por asignar' }}"
                                                     data-time="{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}"
                                                     data-date="{{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }}"
-                                                    data-subdomain="{{ $session->workshop->studio->subdomain }}"
                                                     data-image="{{ $imageUrl }}" 
                                                     data-address="{{ $session->workshop->studio->address ?? 'Dirección no especificada' }}"
                                                     data-status="{{ $isPaid ? 'paid' : 'unpaid' }}"
@@ -141,37 +135,36 @@
                                                     data-available="{{ $session->available_spots ?? $session->workshop->max_students ?? '?' }}"
                                                     data-max="{{ $session->max_spots ?? $session->workshop->max_students ?? '?' }}"
                                                     data-pending="{{ $session->pending_count ?? 0 }}"
-                                                    class="relative w-full text-left p-2 pl-3 bg-white border {{ $cardClasses }} rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-zinc-900 active:scale-95 flex items-center gap-2.5">
+                                                    class="relative w-full text-left p-2 pl-3 bg-white border {{ $cardClasses }} rounded-xl shadow-sm overflow-hidden hover:shadow-md transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-stone-900 active:scale-95 flex items-center gap-2.5">
                                                 
-                                                <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-zinc-400' : $bgClass }}"></div>
+                                                <div class="absolute left-0 top-0 bottom-0 w-1 {{ $isCancelled ? 'bg-stone-400' : $bgClass }}"></div>
 
-                                                {{-- Le quité el "hidden sm:block" a la imagen para que siempre se vea bien, total ahora tenemos espacio --}}
-                                                <img src="{{ $imageUrl }}" class="w-8 h-8 rounded-lg object-cover shadow-sm border border-zinc-100 shrink-0">
+                                                <img src="{{ $imageUrl }}" class="w-8 h-8 rounded-lg object-cover shadow-sm border border-stone-100 shrink-0">
 
                                                 <div class="flex-1 min-w-0">
                                                     <div class="flex justify-between items-start">
-                                                        <div class="text-[10px] font-extrabold leading-none {{ $isCancelled ? 'text-zinc-500 line-through' : 'text-zinc-900' }}">
+                                                        <div class="text-[10px] font-extrabold leading-none {{ $isCancelled ? 'text-stone-500 line-through' : 'text-stone-900' }}">
                                                             {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}
                                                         </div>
                                                         
                                                         @if($isCancelled)
-                                                            <span class="bg-rose-100 text-rose-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">Anulada</span>
+                                                            <span class="bg-stone-200 text-stone-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-widest shrink-0">Anulada</span>
                                                         @elseif($isPaid)
                                                             <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" title="Pagada"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
                                                         @else
                                                             <span class="flex h-2 w-2 relative shrink-0" title="Pendiente de pago">
-                                                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                                                                <span class="relative inline-flex rounded-full h-2 w-2 bg-rose-500"></span>
+                                                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                                <span class="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
                                                             </span>
                                                         @endif
                                                     </div>
-                                                    <div class="text-[10px] font-bold mt-0.5 truncate {{ $isCancelled ? 'text-zinc-500' : 'text-zinc-600' }}">
+                                                    <div class="text-[10px] font-bold mt-0.5 truncate {{ $isCancelled ? 'text-stone-500' : 'text-stone-600' }}">
                                                         {{ $session->workshop->name }}
                                                     </div>
-                                                    <div class="text-[8px] font-black uppercase tracking-wider text-zinc-400 mt-0.5 truncate group-hover:text-zinc-600 transition-colors flex items-center gap-1">
+                                                    <div class="text-[8px] font-black uppercase tracking-wider text-stone-400 mt-0.5 truncate group-hover:text-stone-600 transition-colors flex items-center gap-1">
                                                         {{ $session->workshop->studio->name }}
                                                         @if($hasFamily)
-                                                            <span class="text-[7px] bg-violet-100 text-violet-600 px-1 py-0 rounded font-black tracking-wider shrink-0">FAMILIAR</span>
+                                                            <span class="text-[7px] bg-red-50 text-red-600 px-1 py-0 rounded font-black tracking-wider shrink-0 border border-red-100">FAMILIAR</span>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -185,100 +178,100 @@
                                 $remainingCells = 7 - (($empty + $days) % 7);
                                 if ($remainingCells == 7) $remainingCells = 0;
                             @endphp
-                            @for ($i = 0; $i < $remainingCells; $i++) <div class="bg-zinc-50/50 min-h-[140px]"></div> @endfor
+                            @for ($i = 0; $i < $remainingCells; $i++) <div class="bg-stone-50/50 min-h-[140px]"></div> @endfor
                         </div>
                     </div>
                 </div>
             </div>
         @endif
-
-        
     </div>
 
-    {{-- MODAL DETALLES DE CLASE --}}
+    {{-- MODAL DETALLES DE CLASE (Se mantiene igual) --}}
     <div id="classDetailsModal" class="fixed inset-0 z-[60] hidden flex items-center justify-center p-4 sm:p-6">
-        <div class="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity" onclick="closeClassDetails()"></div>
+        <div class="absolute inset-0 bg-stone-900/60 backdrop-blur-sm transition-opacity" onclick="closeClassDetails()"></div>
         
         <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh]" id="modalCard">
             
-            <div class="h-32 sm:h-48 w-full bg-zinc-200 relative">
+            <div class="h-32 sm:h-48 w-full bg-stone-200 relative shrink-0">
                 <img id="modalImage" src="" alt="Cover" class="w-full h-full object-cover">
-                <div class="absolute inset-0 bg-gradient-to-t from-zinc-900/60 to-transparent"></div>
-                <button onclick="closeClassDetails()" class="absolute top-4 right-4 p-2 text-zinc-700 bg-white/90 hover:bg-white backdrop-blur-sm rounded-full transition-colors focus:outline-none shadow-sm">
+                <div class="absolute inset-0 bg-gradient-to-t from-stone-900/60 to-transparent"></div>
+                <button onclick="closeClassDetails()" class="absolute top-4 right-4 p-2 text-stone-500 bg-white/90 hover:bg-white hover:text-red-600 backdrop-blur-sm rounded-full transition-colors focus:outline-none shadow-sm z-10">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
                 
                 <div class="absolute bottom-4 left-6 flex items-center gap-3">
-                    <img id="modalStudioImage" src="" alt="Studio Icon" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/30 shadow-sm bg-zinc-900">
+                    <img id="modalStudioImage" src="" alt="Studio Icon" class="w-8 h-8 rounded-lg object-cover ring-2 ring-white/30 shadow-sm bg-stone-900">
                     <span id="modalStudio" class="px-2.5 py-1 bg-white/20 backdrop-blur-md text-white border border-white/30 text-[10px] font-black rounded-lg tracking-widest uppercase shadow-sm">Estudio</span>
                 </div>
             </div>
 
-            {{-- BANNER DE ESTADO (Pago o Cancelación) --}}
-            <div id="modalStatusBanner" class="px-6 py-3 border-b flex items-center gap-2 font-bold text-sm">
-                </div>
+            <div id="modalStatusBanner" class="px-6 py-3 border-b border-stone-100 hidden flex items-center gap-2 font-bold text-sm">
+            </div>
 
-            <div class="p-6 md:p-8 overflow-y-auto flex-1">
+            <div class="p-6 md:p-8 overflow-y-auto flex-1 custom-scrollbar">
                 <div class="mb-6">
-                    <h3 id="modalTitle" class="text-2xl font-black text-zinc-900 leading-tight">Clase</h3>
+                    <h3 id="modalTitle" class="text-2xl font-black text-stone-900 leading-tight">Clase</h3>
                 </div>
 
-                <div class="space-y-3 mb-8">
-                    {{-- CUPOS DISPONIBLES --}}
-                    <div class="flex items-center gap-3 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
-                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-violet-500">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                <div class="space-y-3 mb-2">
+                    <div class="flex items-center gap-3 bg-stone-50 p-3 rounded-2xl border border-stone-100">
+                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-stone-100 text-emerald-500 shrink-0">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                         </div>
-                        <div class="flex-1">
-                            <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Cupos</p>
-                            <p id="modalCupos" class="text-sm font-bold text-zinc-900">—</p>
+                        <div class="flex-1 min-w-0 flex items-center justify-between">
+                            <div>
+                                <p class="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Disponibilidad</p>
+                                <p id="modalCuposDisponibles" class="text-sm font-bold text-stone-900 leading-tight">—</p>
+                            </div>
+                            <div id="modalInteresadosBadge" class="hidden shrink-0 ml-2">
+                                <span id="modalInteresadosTexto" class="font-bold text-amber-600 bg-amber-50 px-2.5 py-1.5 rounded-xl border border-amber-100 text-[11px] flex items-center gap-1.5 shadow-sm">
+                                    —
+                                </span>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
-                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-indigo-500">
+                    <div class="flex items-center gap-3 text-stone-600 bg-stone-50 p-3 rounded-2xl border border-stone-100">
+                        <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 text-red-500 shrink-0">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                         </div>
-                        <div>
-                            <p id="modalDate" class="text-sm font-bold text-zinc-900 capitalize">Fecha</p>
-                            <p id="modalTime" class="text-xs font-medium text-zinc-500">Hora</p>
+                        <div class="flex-1 min-w-0">
+                            <p id="modalDate" class="text-sm font-bold text-stone-900 capitalize leading-tight">Fecha</p>
+                            <p id="modalTime" class="text-xs font-medium text-stone-500 mt-0.5">Hora</p>
                         </div>
                     </div>
                     
-                    <div class="flex items-center gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
-                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-emerald-500">
+                    <div class="flex items-center gap-3 text-stone-600 bg-stone-50 p-3 rounded-2xl border border-stone-100">
+                        <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 text-red-500 shrink-0">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         </div>
-                        <div>
-                            <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Profesor/a</p>
-                            <p id="modalTeacher" class="text-sm font-bold text-zinc-900">Nombre</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Profesor/a</p>
+                            <p id="modalTeacher" class="text-sm font-bold text-stone-900 leading-tight truncate">Nombre</p>
                         </div>
                     </div>
 
-                    <div class="flex items-start gap-3 text-zinc-600 bg-zinc-50 p-3 rounded-2xl border border-zinc-100">
-                        <div class="bg-white p-2.5 rounded-xl shadow-sm border border-zinc-100 text-rose-500 mt-1">
+                    <div class="flex items-start gap-3 text-stone-600 bg-stone-50 p-3 rounded-2xl border border-stone-100">
+                        <div class="bg-red-50 p-2.5 rounded-xl border border-red-100 text-red-500 shrink-0 mt-1">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         </div>
-                        <div class="flex-1">
-                            <p class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-0.5">Ubicación</p>
-                            <p id="modalAddress" class="text-sm font-bold text-zinc-900 mb-2 leading-tight">Dirección del Estudio</p>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] font-bold text-stone-400 uppercase tracking-wider mb-0.5">Ubicación</p>
+                            <p id="modalAddress" class="text-sm font-bold text-stone-900 mb-1.5 leading-tight">Dirección del Estudio</p>
                             
-                            <a href="#" id="modalMapLink" target="_blank" class="inline-flex items-center text-xs font-bold text-indigo-600 hover:text-indigo-800 transition-colors">
-                                Cómo llegar en Google Maps
+                            <a href="#" id="modalMapLink" target="_blank" class="inline-flex items-center text-xs font-bold text-red-600 hover:text-rose-600 transition-colors">
+                                Cómo llegar en Maps
                                 <svg class="w-3.5 h-3.5 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                             </a>
                         </div>
                     </div>
                 </div>
-
-                <a href="#" id="modalLink" class="block w-full bg-zinc-900 text-white font-bold py-3.5 rounded-xl text-center shadow-md shadow-zinc-900/20 hover:bg-zinc-800 transition-all duration-200 active:scale-95 text-sm">
-                    Ir al Dashboard del Estudio
-                </a>
             </div>
         </div>
     </div>
+    
     <style>
-        .custom-scrollbar::-webkit-scrollbar { height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #d4d4d8; border-radius: 20px; }
     </style>
@@ -300,37 +293,38 @@
             const address = button.getAttribute('data-address');
             document.getElementById('modalAddress').innerText = address;
             document.getElementById('modalMapLink').href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
-            
-            const subdomain = button.getAttribute('data-subdomain');
-            const baseDomain = window.location.hostname.replace('www.', '');
-            document.getElementById('modalLink').href = `${window.location.protocol}//${subdomain}.${baseDomain}/dashboard`;
 
-            // LÓGICA DEL ESTADO DE PAGO / CANCELACIÓN EN EL MODAL
             const statusBanner = document.getElementById('modalStatusBanner');
             const isPaid = button.getAttribute('data-status') === 'paid';
             const isCancelled = button.getAttribute('data-cancelled') === 'true';
 
-            // --- CUPOS DISPONIBLES ---
             const available = parseInt(button.getAttribute('data-available')) || 0;
-            const maxSpots = parseInt(button.getAttribute('data-max')) || 0;
+            const maxSpots = button.getAttribute('data-max');
             const pending = parseInt(button.getAttribute('data-pending')) || 0;
-            const cuposEl = document.getElementById('modalCupos');
-            if (maxSpots > 0) {
-                const percentFilled = maxSpots > 0 ? Math.round(( (maxSpots - available) / maxSpots) * 100) : 0;
-                let cuposHTML = `<span class="font-black ${available <= 0 ? 'text-rose-600' : available <= 3 ? 'text-amber-600' : 'text-emerald-600'}">${available} de ${maxSpots} cupos disponibles</span>`;
-                if (pending > 0) {
-                    cuposHTML += ` <span class="text-zinc-400 font-medium">· ${pending} ${pending === 1 ? 'interesado' : 'interesados'} sin pagar</span>`;
-                }
-                cuposEl.innerHTML = cuposHTML;
+            const cuposDisponiblesEl = document.getElementById('modalCuposDisponibles');
+            
+            if (maxSpots === '?') {
+                cuposDisponiblesEl.innerText = 'Sin límite de cupos';
             } else {
-                cuposEl.innerText = 'Sin límite de cupos';
+                cuposDisponiblesEl.innerText = available <= 0 ? 'Lleno' : `${available} ${available === 1 ? 'cupo' : 'cupos'}`;
+            }
+
+            const badgeInteresados = document.getElementById('modalInteresadosBadge');
+            const textoInteresados = document.getElementById('modalInteresadosTexto');
+
+            if (pending > 0) {
+                const corazon = pending === 1 ? '❤️' : '❤️❤️';
+                textoInteresados.innerText = `${pending} en espera ${corazon}`;
+                badgeInteresados.classList.remove('hidden');
+            } else {
+                badgeInteresados.classList.add('hidden');
             }
 
             if (isCancelled) {
-                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-100 border-rose-200 text-rose-800';
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-stone-100 border-stone-200 text-stone-600';
                 statusBanner.innerHTML = `
-                    <svg class="w-5 h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    Esta clase ha sido cancelada por el estudio.
+                    <svg class="w-5 h-5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Esta clase ha sido cancelada.
                 `;
             } else if (isPaid) {
                 statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-emerald-50 border-emerald-100 text-emerald-700';
@@ -339,11 +333,11 @@
                     Reserva confirmada y pagada
                 `;
             } else {
-                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-rose-50 border-rose-100 text-rose-700';
+                statusBanner.className = 'px-6 py-3 border-b flex items-center gap-2 font-bold text-sm bg-amber-50 border-amber-100 text-amber-700';
                 statusBanner.innerHTML = `
                     <span class="flex h-3 w-3 relative shrink-0">
-                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
                     </span>
                     Pago pendiente
                 `;

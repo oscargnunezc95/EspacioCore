@@ -18,6 +18,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'check.profile'          => \App\Http\Middleware\CheckProfileCompletion::class,
             'dependent.decision'     => \App\Http\Middleware\EnsureDependentDecisionResolved::class,
             'super.admin'            => \App\Http\Middleware\IsSuperAdmin::class,
+            'check.studio.debt'      => \App\Http\Middleware\CheckStudioDebt::class,
+            'public.studio.status'   => \App\Http\Middleware\CheckPublicStudioStatus::class,
         ]);
 
         // Redirección dinámica basada en el nombre de la ruta (Best Practice)

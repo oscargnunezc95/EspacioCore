@@ -2,6 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\Area;
+use App\Models\Studio;
+use App\Models\Workshop;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -88,5 +91,73 @@ class ExploreService
         });
 
         return $sessions;
+    }
+
+    /**
+     * Obtiene las disciplinas pertenecientes a un área específica.
+     * Usado para carga asíncrona de dropdowns dependientes en el explorer.
+     */
+    public function getDisciplinesByArea(string $areaName): Collection
+    {
+        $area = Area::withoutGlobalScopes()
+            ->where('name', $areaName)
+            ->first();
+
+        if (!$area) {
+            return collect();
+        }
+
+        return $area->disciplines()
+            ->withoutGlobalScopes()
+            ->orderBy('name', 'asc')
+            ->get(['id', 'name']);
+    }
+
+    /**
+     * Obtiene regiones distintas para un país dado.
+     * Combina valores de workshops y studios (strings planos).
+     */
+    public function getRegionsByCountry(string $country): Collection
+    {
+        $workshopRegions = Workshop::withoutGlobalScopes()
+            ->where('country', $country)
+            ->whereNotNull('region')
+            ->where('region', '!=', '')
+            ->distinct()
+            ->orderBy('region', 'asc')
+            ->pluck('region');
+
+        $studioRegions = Studio::where('country', $country)
+            ->whereNotNull('region')
+            ->where('region', '!=', '')
+            ->distinct()
+            ->orderBy('region', 'asc')
+            ->pluck('region');
+
+        return $workshopRegions->merge($studioRegions)->unique()->sort()->values();
+    }
+
+    /**
+     * Obtiene ciudades distintas para una región dada.
+     * Combina valores de workshops y studios (strings planos).
+     */
+    public function getCitiesByRegion(string $region): Collection
+    {
+        $workshopCities = Workshop::withoutGlobalScopes()
+            ->where('region', $region)
+            ->whereNotNull('city')
+            ->where('city', '!=', '')
+            ->distinct()
+            ->orderBy('city', 'asc')
+            ->pluck('city');
+
+        $studioCities = Studio::where('region', $region)
+            ->whereNotNull('city')
+            ->where('city', '!=', '')
+            ->distinct()
+            ->orderBy('city', 'asc')
+            ->pluck('city');
+
+        return $workshopCities->merge($studioCities)->unique()->sort()->values();
     }
 }

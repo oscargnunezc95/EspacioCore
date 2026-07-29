@@ -13,7 +13,8 @@ module.exports = {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                // Aquí reemplazamos Figtree por Poppins
+                sans: ['Poppins', ...defaultTheme.fontFamily.sans],
             },
             animation: {
                 'bounce-slow': 'bounce 3s infinite',

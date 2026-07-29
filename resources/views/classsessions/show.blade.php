@@ -5,19 +5,19 @@
         {{-- 2. TÍTULO, BREADCRUMBS Y BOTÓN (Alineación forzada en 1 sola línea) --}}
         <div class="mt-2 mb-8">
             {{-- Breadcrumbs --}}
-            <nav class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
-                <a href="{{ route('trainingmonth.index', ['subdomain' => request()->route('subdomain')]) }}" class="hover:text-zinc-900 transition-colors">Planificación</a>
+            <nav class="flex text-xs font-bold text-amber-600 mb-3 gap-2 items-center">
+                <a href="{{ route('trainingmonth.index', ['subdomain' => request()->route('subdomain')]) }}" class="hover:text-stone-900 transition-colors">Planificación</a>
                 <span>/</span>
-                <a href="{{ route('trainingmonth.show', ['subdomain' => request()->route('subdomain'), 'month' => $monthId]) }}" class="hover:text-zinc-900 transition-colors">{{ ucfirst(\Carbon\Carbon::parse($session->date)->translatedFormat('F')) }}</a>
+                <a href="{{ route('trainingmonth.show', ['subdomain' => request()->route('subdomain'), 'month' => $monthId]) }}" class="hover:text-stone-900 transition-colors">{{ ucfirst(\Carbon\Carbon::parse($session->date)->translatedFormat('F')) }}</a>
                 <span>/</span>
-                <span class="text-zinc-900">Lista de Clase</span>
+                <span class="text-amber-600">Lista de Clase</span>
             </nav>
 
             {{-- Título y Botón --}}
             <div class="flex flex-row items-center justify-between gap-4">
-                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1">{{ $session->workshop->name }}</h1>
+                <h1 class="text-2xl md:text-3xl font-black truncate flex-1">{{ $session->workshop->name }}</h1>
                 
-                <button onclick="document.getElementById('enrollModal').classList.remove('hidden')" class="shrink-0 bg-zinc-900 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
+                <button onclick="document.getElementById('enrollModal').classList.remove('hidden')" class="shrink-0 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-sm">
                     <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg>
                     <span class="hidden sm:inline">Inscribir Alumna</span>
                 </button>
@@ -39,7 +39,7 @@
         @endif
 
         {{-- CONTENEDOR MAESTRO UNIFICADO (Rounded 2xl aplicado) --}}
-        <div class="bg-white rounded-2xl shadow-lg border border-zinc-200 overflow-hidden mb-12">
+        <div class="bg-white rounded-2xl shadow-lg border border-stone-200 overflow-hidden mb-12">
             
             {{-- A. BANNER SUPERIOR DE LA CLASE --}}
             @php
@@ -61,35 +61,35 @@
 
                 <div class="relative z-10 p-6 md:p-8 h-full flex flex-col justify-end">
                     <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
-                        <div class="flex items-center gap-2 text-zinc-800 bg-white/95 px-4 py-2.5 rounded-xl border border-zinc-100/70 inline-flex shadow-xl backdrop-blur-md">
-                            <svg class="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <div class="flex items-center gap-2 text-stone-800 bg-white/95 px-4 py-2.5 rounded-xl border border-stone-100/70 inline-flex shadow-xl backdrop-blur-md">
+                            <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
                             <span class="capitalize text-sm font-bold">{{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d \d\e F') }}</span>
-                            <span class="text-zinc-300 mx-1">|</span>
-                            <span class="font-black text-zinc-900 text-sm">{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs</span>
+                            <span class="text-stone-300 mx-1">|</span>
+                            <span class="font-black text-stone-900 text-sm">{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs</span>
                         </div>
 
                         @php
                             $activeTeacher = $session->teacher ?? $session->workshop->teacher;
                         @endphp
-                        <div class="flex items-center gap-2 bg-indigo-50/95 px-4 py-2.5 rounded-xl border border-indigo-100/70 inline-flex shadow-xl backdrop-blur-md text-indigo-800">
-                            <svg class="w-5 h-5 text-indigo-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
-                            <span class="font-black text-indigo-900 text-sm truncate">{{ $activeTeacher ? $activeTeacher->first_name . ' ' . $activeTeacher->last_name : 'Staff' }}</span>
+                        <div class="flex items-center gap-2 bg-red-50/95 px-4 py-2.5 rounded-xl border border-red-100/70 inline-flex shadow-xl backdrop-blur-md text-red-800">
+                            <svg class="w-5 h-5 text-red-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <span class="font-black text-red-900 text-sm truncate">{{ $activeTeacher ? $activeTeacher->first_name . ' ' . $activeTeacher->last_name : 'Staff' }}</span>
                         </div>
                     </div>
                 </div>
             </div>
             
             {{-- B. BARRA DE HERRAMIENTAS DE LA LISTA (Alineación Horizontal Estricta) --}}
-            <div class="p-4 md:p-6 bg-zinc-50 border-b border-zinc-200">
+            <div class="p-4 md:p-6 bg-stone-50 border-b border-stone-200">
                 <div class="flex flex-row items-center justify-between gap-3 md:gap-4 w-full">
                     
                     {{-- Buscador (flex-1 le permite expandirse y empujar al badge) --}}
                     <div class="flex-1 relative min-w-0">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                            <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                         </div>
                         <input type="text" id="searchStudent" onkeyup="filterStudents()" placeholder="Buscar..." 
-                               class="w-full pl-9 pr-3 py-2 md:py-2.5 rounded-xl border border-zinc-300 bg-white text-zinc-900 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none shadow-sm">
+                               class="w-full pl-9 pr-3 py-2 md:py-2.5 rounded-xl border border-stone-300 bg-white text-stone-900 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 transition-all outline-none shadow-sm">
                     </div>
 
                     {{-- Indicadores (shrink-0 evita que se aplasten si la pantalla es muy chica) --}}
@@ -110,16 +110,16 @@
             </div>
 
             {{-- C. LISTA DE ALUMNAS --}}
-            <ul class="divide-y divide-zinc-100" id="studentsList">
+            <ul class="divide-y divide-stone-100" id="studentsList">
                 @forelse($students as $student)
                     @php
                         $isPresent = $session->attendances->contains('student_id', $student->id);
                         $hasPaidThisClass = in_array($student->id, $paidStudentIds);
                     @endphp
-                    <li class="student-item p-4 md:p-6 flex items-center gap-4 md:gap-5 transition-colors hover:bg-zinc-50/80">
+                    <li class="student-item p-4 md:p-6 flex items-center gap-4 md:gap-5 transition-colors hover:bg-stone-50/80">
     
                         <button onclick="toggleAttendance({{ $session->id }}, {{ $student->id }}, this)" 
-                                class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 {{ $isPresent ? 'bg-emerald-500' : 'bg-zinc-200' }}" 
+                                class="relative inline-flex h-7 w-12 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2 {{ $isPresent ? 'bg-emerald-500' : 'bg-stone-200' }}" 
                                 role="switch" aria-checked="{{ $isPresent ? 'true' : 'false' }}">
                             <span class="pointer-events-none inline-block h-6 w-6 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out {{ $isPresent ? 'translate-x-5' : 'translate-x-0' }}"></span>
                         </button>
@@ -127,8 +127,8 @@
                         {{-- Estructura modificada para pegar badges a la derecha en móviles --}}
                         <div class="flex-1 flex items-center justify-between gap-3 min-w-0">
                             <div class="min-w-0 flex-1">
-                                <p class="student-name font-bold text-zinc-900 text-sm md:text-base leading-tight truncate">{{ $student->name }}</p>
-                                <p class="student-rut text-[10px] md:text-[11px] font-bold text-zinc-400 mt-1 uppercase tracking-wider truncate">
+                                <p class="student-name font-bold text-stone-900 text-sm md:text-base leading-tight truncate">{{ $student->name }}</p>
+                                <p class="student-rut text-[10px] md:text-[11px] font-bold text-stone-400 mt-1 uppercase tracking-wider truncate">
                                     {{ $student->formatted_national_id ? 'DoC: ' . $student->formatted_national_id : 'Sin Documento' }}
                                 </p>
                             </div>
@@ -144,9 +144,9 @@
                     </li>
                 @empty
                     <li class="p-12 text-center flex flex-col items-center justify-center">
-                        <svg class="w-12 h-12 text-zinc-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
-                        <p class="text-base font-bold text-zinc-500">Nadie se ha inscrito a esta clase todavía.</p>
-                        <p class="text-sm text-zinc-400 mt-1">Usa el botón superior para inscribir alumnas manualmente.</p>
+                        <svg class="w-12 h-12 text-stone-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                        <p class="text-base font-bold text-stone-500">Nadie se ha inscrito a esta clase todavía.</p>
+                        <p class="text-sm text-stone-400 mt-1">Usa el botón superior para inscribir alumnas manualmente.</p>
                     </li>
                 @endforelse
             </ul>
@@ -155,14 +155,14 @@
 
     {{-- MODAL 1: EDITAR SESIÓN --}}
     <div id="editSessionModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all overflow-y-auto">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-stone-100 transform transition-all overflow-y-auto">
             
             <div class="flex justify-between items-start mb-6 shrink-0">
                 <div>
-                    <h3 class="text-xl font-bold text-zinc-900">Editar Sesión</h3>
-                    <p class="text-xs text-zinc-500 mt-1 leading-tight">Modifica la hora, asigna un reemplazo o suspende.</p>
+                    <h3 class="text-xl font-bold text-stone-900">Editar Sesión</h3>
+                    <p class="text-xs text-stone-500 mt-1 leading-tight">Modifica la hora, asigna un reemplazo o suspende.</p>
                 </div>
-                <button type="button" onclick="document.getElementById('editSessionModal').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <button type="button" onclick="document.getElementById('editSessionModal').classList.add('hidden')" class="text-stone-400 hover:text-stone-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -174,21 +174,21 @@
                 <div class="space-y-5 mb-6">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="col-span-2 sm:col-span-1">
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Día de la Clase</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Día de la Clase</label>
                             <input type="date" name="date" value="{{ \Carbon\Carbon::parse($session->date)->format('Y-m-d') }}" 
-                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all" required>
+                                   class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all" required>
                         </div>
 
                         <div class="col-span-2 sm:col-span-1">
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Hora de Inicio</label>
                             <input type="time" name="start_time" value="{{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }}" 
-                                   class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all" required>
+                                   class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all" required>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Profesor (Opcional)</label>
-                        <select name="teacher_id" class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all cursor-pointer">
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Profesor (Opcional)</label>
+                        <select name="teacher_id" class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all cursor-pointer">
                             <option value="">Mantener original ({{ $session->workshop->teacher->first_name ?? 'Sin asignar' }})</option>
                             @if(isset($teachers))
                                 @foreach($teachers as $teacher)
@@ -211,9 +211,9 @@
                     </label>
                 </div>
 
-                <div class="flex gap-3 pt-2 border-t border-zinc-100 shrink-0">
-                    <button type="button" onclick="document.getElementById('editSessionModal').classList.add('hidden')" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors duration-200 text-sm">Cancelar</button>
-                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all duration-200 active:scale-95 text-sm">Guardar Cambios</button>
+                <div class="flex gap-3 pt-2 border-t border-stone-100 shrink-0">
+                    <button type="button" onclick="document.getElementById('editSessionModal').classList.add('hidden')" class="w-full bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-95 text-sm">Cancelar</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm">Guardar Cambios</button>
                 </div>
             </form>
         </div>
@@ -221,14 +221,14 @@
 
     {{-- MODAL 2: INSCRIBIR ALUMNAS MANUALMENTE --}}
     <div id="enrollModal" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity overflow-y-auto">
-        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-xl border border-zinc-100 transform transition-all my-8">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-xl border border-stone-100 transform transition-all my-8">
             
             <div class="flex justify-between items-start mb-6 shrink-0">
                 <div>
-                    <h3 class="text-xl font-bold text-zinc-900">Inscribir a la Clase</h3>
-                    <p class="text-xs text-zinc-500 mt-1 leading-tight">Agrega alumnas manualmente a esta sesión.</p>
+                    <h3 class="text-xl font-bold text-stone-900">Inscribir a la Clase</h3>
+                    <p class="text-xs text-stone-500 mt-1 leading-tight">Agrega alumnas manualmente a esta sesión.</p>
                 </div>
-                <button type="button" onclick="document.getElementById('enrollModal').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <button type="button" onclick="document.getElementById('enrollModal').classList.add('hidden')" class="text-stone-400 hover:text-stone-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -237,38 +237,38 @@
                 @csrf
                 
                 {{-- Selector de Modalidad --}}
-                <div class="mb-5 bg-zinc-100 p-1.5 rounded-xl flex gap-1">
+                <div class="mb-5 bg-stone-100 p-1.5 rounded-xl flex gap-1">
                     <label class="flex-1 cursor-pointer">
                         <input type="radio" name="enroll_mode" value="existing" checked onchange="toggleEnrollMode()" class="peer sr-only">
-                        <div class="text-center font-bold text-xs py-2 px-3 rounded-lg text-zinc-500 transition-all peer-checked:bg-white peer-checked:text-zinc-900 peer-checked:shadow-sm">Buscar en Estudio</div>
+                        <div class="text-center font-bold text-xs py-2 px-3 rounded-lg text-stone-500 transition-all peer-checked:bg-white peer-checked:text-stone-900 peer-checked:shadow-sm">Buscar en Estudio</div>
                     </label>
                     <label class="flex-1 cursor-pointer">
                         <input type="radio" name="enroll_mode" value="new" onchange="toggleEnrollMode()" class="peer sr-only">
-                        <div class="text-center font-bold text-xs py-2 px-3 rounded-lg text-zinc-500 transition-all peer-checked:bg-white peer-checked:text-zinc-900 peer-checked:shadow-sm">Nueva Alumna</div>
+                        <div class="text-center font-bold text-xs py-2 px-3 rounded-lg text-stone-500 transition-all peer-checked:bg-white peer-checked:text-stone-900 peer-checked:shadow-sm">Nueva Alumna</div>
                     </label>
                 </div>
 
                 {{-- ZONA 1: BUSCAR EXISTENTES (MÚLTIPLE SELECCIÓN) --}}
                 <div id="mode_existing" class="mb-6">
                     <input type="text" id="searchOtherStudent" onkeyup="filterOther()" placeholder="Buscar por nombre o correo..." 
-                        class="w-full rounded-xl border border-zinc-300 p-3 text-sm mb-3 focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all">
+                        class="w-full rounded-xl border border-stone-300 p-3 text-sm mb-3 focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all">
                     
-                    <div class="max-h-48 overflow-y-auto border border-zinc-200 rounded-xl bg-zinc-50 p-2 space-y-1 custom-scrollbar">
+                    <div class="max-h-48 overflow-y-auto border border-stone-200 rounded-xl bg-stone-50 p-2 space-y-1 custom-scrollbar">
                         @forelse($otherStudents as $other)
-                            <label class="other-item flex items-center gap-3 p-3 bg-white border border-zinc-200 rounded-lg cursor-pointer hover:border-zinc-400 transition-all shadow-sm">
-                                <input type="checkbox" name="student_ids[]" value="{{ $other->id }}" class="w-4 h-4 text-zinc-900 rounded focus:ring-zinc-900 border-zinc-300">
+                            <label class="other-item flex items-center gap-3 p-3 bg-white border border-stone-200 rounded-lg cursor-pointer hover:border-stone-400 transition-all shadow-sm">
+                                <input type="checkbox" name="student_ids[]" value="{{ $other->id }}" class="w-4 h-4 text-stone-900 rounded focus:ring-red-600 border-stone-300">
                                 <div class="flex flex-col">
-                                    <span class="other-name font-bold text-zinc-900 text-sm leading-none">{{ $other->name }}</span>
-                                    <span class="text-xs font-medium text-zinc-500 mt-1 flex items-center gap-1.5">
-                                        <span class="font-bold text-zinc-700">{{ $other->national_id ? 'RUT: ' . $other->national_id : 'Sin RUT' }}</span>
+                                    <span class="other-name font-bold text-stone-900 text-sm leading-none">{{ $other->name }}</span>
+                                    <span class="text-xs font-medium text-stone-500 mt-1 flex items-center gap-1.5">
+                                        <span class="font-bold text-stone-700">{{ $other->national_id ? 'RUT: ' . $other->national_id : 'Sin RUT' }}</span>
                                         @if($other->email) 
-                                            <span class="text-zinc-300">|</span> {{ $other->email }} 
+                                            <span class="text-stone-300">|</span> {{ $other->email }} 
                                         @endif
                                     </span>
                                 </div>
                             </label>
                         @empty
-                            <div class="text-sm text-zinc-400 italic text-center py-4">No hay más alumnas en el estudio.</div>
+                            <div class="text-sm text-stone-400 italic text-center py-4">No hay más alumnas en el estudio.</div>
                         @endforelse
                     </div>
                     @error('student_ids') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
@@ -278,22 +278,22 @@
                 <div id="mode_new" class="mb-6 hidden space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre *</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Nombre *</label>
                             <input type="text" name="first_name" value="{{ old('first_name') }}" placeholder="Ej: Camila" 
-                                class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('first_name') ? 'border-red-500 ring-1 ring-red-500' : '' }}">
+                                class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all {{ $errors->has('first_name') ? 'border-red-500 ring-1 ring-red-500' : '' }}">
                             @error('first_name') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Apellido <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Apellido <span class="text-stone-400 font-normal">(Opc.)</span></label>
                             <input type="text" name="last_name" value="{{ old('last_name') }}" placeholder="Ej: Rojas" 
-                                class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all">
+                                class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all">
                         </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">País del Doc. *</label>
-                            <select name="country_id" class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none cursor-pointer {{ $errors->has('country_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">País del Doc. *</label>
+                            <select name="country_id" class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none cursor-pointer {{ $errors->has('country_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                                 @if(isset($countries))
                                     @foreach($countries as $country)
                                         <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>
@@ -305,31 +305,31 @@
                             @error('country_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">N° Documento *</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">N° Documento *</label>
                             <input type="text" name="national_id" value="{{ old('national_id') }}" placeholder="Ej: 19.123.456-7" 
-                                class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none {{ $errors->has('national_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
+                                class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none {{ $errors->has('national_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                             @error('national_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Correo Electrónico *</label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Correo Electrónico *</label>
                         <input type="email" name="email" value="{{ old('email') }}" placeholder="camila@ejemplo.com" 
-                            class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('email') ? 'border-red-500 ring-1 ring-red-500' : '' }}">
+                            class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all {{ $errors->has('email') ? 'border-red-500 ring-1 ring-red-500' : '' }}">
                         @error('email') <p class="text-xs text-red-600 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Teléfono <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Teléfono <span class="text-stone-400 font-normal">(Opc.)</span></label>
                         <input type="text" name="phone" value="{{ old('phone') }}" placeholder="+56 9..." 
-                            class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none {{ $errors->has('phone') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
+                            class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none {{ $errors->has('phone') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                         @error('phone') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 
-                <div class="flex gap-3 pt-4 border-t border-zinc-100 shrink-0">
-                    <button type="button" onclick="document.getElementById('enrollModal').classList.add('hidden')" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors duration-200 text-sm">Cancelar</button>
-                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all duration-200 active:scale-95 text-sm">Inscribir y Asistir</button>
+                <div class="flex gap-3 pt-4 border-t border-stone-100 shrink-0">
+                    <button type="button" onclick="document.getElementById('enrollModal').classList.add('hidden')" class="w-full bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-95 text-sm">Cancelar</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm">Inscribir y Asistir</button>
                 </div>
             </form>
         </div>
@@ -380,7 +380,7 @@
             const token = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
             const present = btn.getAttribute('aria-checked') === 'true';
             
-            btn.classList.replace(present ? 'bg-emerald-500' : 'bg-zinc-200', present ? 'bg-zinc-200' : 'bg-emerald-500');
+            btn.classList.replace(present ? 'bg-emerald-500' : 'bg-stone-200', present ? 'bg-stone-200' : 'bg-emerald-500');
             btn.querySelector('span').classList.replace(present ? 'translate-x-5' : 'translate-x-0', present ? 'translate-x-0' : 'translate-x-5');
             btn.setAttribute('aria-checked', !present);
 

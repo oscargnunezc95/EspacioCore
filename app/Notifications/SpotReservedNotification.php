@@ -11,16 +11,20 @@ class SpotReservedNotification extends Notification
     use Queueable;
 
     public $session;
-    public $availableSpots;
+    public $interestedCount;
 
     /**
-     * @param ClassSession $session  La sesión donde alguien reservó
-     * @param int          $availableSpots  Cuántos cupos quedan ahora
+     * Se envía ÚNICAMENTE cuando alguien nuevo se interesa en una clase (add to cart).
+     * Se notifica a las otras personas interesadas que aún no han pagado,
+     * mostrando cuántas personas están interesadas en total.
+     *
+     * @param ClassSession $session         La sesión donde alguien se interesó
+     * @param int          $interestedCount  Cuántas personas están interesadas (pending) en total
      */
-    public function __construct(ClassSession $session, int $availableSpots)
+    public function __construct(ClassSession $session, int $interestedCount)
     {
         $this->session = $session;
-        $this->availableSpots = $availableSpots;
+        $this->interestedCount = $interestedCount;
     }
 
     /**
@@ -37,16 +41,16 @@ class SpotReservedNotification extends Notification
         $date = \Carbon\Carbon::parse($this->session->date)->format('d/m');
         $time = \Carbon\Carbon::parse($this->session->start_time)->format('H:i');
 
-        $spotsText = $this->availableSpots === 1 
-            ? '¡Solo queda 1 cupo!' 
-            : "Quedan {$this->availableSpots} cupos";
+        $peopleText = $this->interestedCount === 1
+            ? '1 persona está interesada'
+            : "{$this->interestedCount} personas están interesadas";
 
         return [
             'type'    => 'spot_reserved',
-            'title'   => "⚠️ {$spotsText}",
-            'message' => "Alguien más se interesó en {$workshopName} del {$date} a las {$time}. Si no has pagado, asegura tu cupo cuanto antes.",
+            'title'   => "👀 {$peopleText}",
+            'message' => "Alguien más se interesó en {$workshopName} del {$date} a las {$time}. ¡{$peopleText} en total! Si no has pagado, asegura tu cupo cuanto antes.",
             'session_id' => $this->session->id,
-            'icon'    => 'warning',
+            'icon'    => 'info',
         ];
     }
 }

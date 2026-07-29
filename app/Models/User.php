@@ -165,4 +165,12 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->hasMany(UserDependent::class)->where('status', 'active');
     }
+    /**
+     * Sobreescribe el método nativo de Laravel para enviar
+     * el correo de verificación en segundo plano (Colas).
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new \App\Notifications\QueuedVerifyEmail);
+    }
 }

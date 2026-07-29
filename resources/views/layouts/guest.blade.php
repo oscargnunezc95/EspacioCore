@@ -6,11 +6,11 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     {{-- SEO — via atributos del componente o defaults --}}
-    <title>{{ $metaTitle ?? 'EstadoPrisma — Software de Gestion para Estudios y Academias' }}</title>
-    <meta name="description" content="{{ $metaDescription ?? 'Centraliza reservas, automatiza la cobranza y ofrece una experiencia impecable a tus alumnos. El sistema operativo para tu estudio de danza, circo o acrobacia.' }}">
+    <title>{{ $metaTitle ?? 'EstadoPrisma' }}</title>
+    <meta name="description" content="{{ $metaDescription ?? 'Encuentra y reserva clases de circo, danza, acrobacia y mas.' }}">
 
-    <meta property="og:title" content="{{ $metaTitle ?? 'EstadoPrisma — Software de Gestion para Estudios' }}">
-    <meta property="og:description" content="{{ $metaDescription ?? 'Centraliza reservas, automatiza la cobranza.' }}">
+    <meta property="og:title" content="{{ $metaTitle ?? 'EstadoPrisma' }}">
+    <meta property="og:description" content="{{ $metaDescription ?? 'Encuentra y reserva clases.' }}">
     <meta property="og:type" content="{{ $ogType ?? 'website' }}">
     <meta property="og:url" content="{{ $canonicalUrl ?? url()->current() }}">
     <meta property="og:site_name" content="EstadoPrisma">
@@ -26,15 +26,25 @@
     {{-- Structured Data via named slot --}}
     {!! $structuredData ?? '' !!}
 
+    <link rel="icon" type="image/png" href="{{ asset('isotipo-estadoprisma.png') }}">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="font-sans text-zinc-800 antialiased bg-zinc-50 selection:bg-zinc-200 selection:text-zinc-900 flex flex-col min-h-screen">
+<body class="font-sans text-stone-800 antialiased bg-stone-50 selection:bg-stone-200 selection:text-stone-900 flex flex-col min-h-screen">
 
     @include('layouts.navigation')
 
-    <main class="flex-1 w-full block">
+    @isset($header)
+        <header class="bg-white border-b border-stone-100">
+            <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+                {{ $header }}
+            </div>
+        </header>
+    @endisset
+    <x-side-rays />
+    <main class="flex-1 w-full">
         {{ $slot }}
     </main>
-
+    <x-footer />
 </body>
 </html>

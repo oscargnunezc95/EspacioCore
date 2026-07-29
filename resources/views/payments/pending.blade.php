@@ -1,7 +1,7 @@
 <x-app-layout>
     <div class="min-h-[75vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8">
-        <div class="max-w-md w-full bg-white border border-zinc-200 rounded-3xl p-6 sm:p-8 text-center">
-            
+        <div class="max-w-md w-full bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 text-center">
+
             {{-- Icono de Espera Semántico --}}
             <div class="w-16 h-16 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center mx-auto mb-6">
                 <svg class="w-8 h-8 text-amber-600 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -10,8 +10,8 @@
             </div>
 
             {{-- Titulares --}}
-            <h1 class="text-3xl font-black text-zinc-900 tracking-tight">Pago en Procesamiento</h1>
-            <p class="mt-3 text-sm text-zinc-500 leading-relaxed">
+            <h1 class="text-3xl font-black text-stone-900 tracking-tight">Pago en Procesamiento</h1>
+            <p class="mt-3 text-sm text-stone-500 leading-relaxed">
                 Mercado Pago está verificando la transacción con tu institución financiera. No te preocupes, tu reserva se mantendrá retenida temporalmente mientras se confirma el flujo bancario.
             </p>
 
@@ -23,8 +23,8 @@
 
             {{-- Botones de Acción --}}
             <div class="mt-8 space-y-3">
-                <a href="{{ route('cart.index') }}" 
-                   class="block w-full bg-zinc-900 text-white font-bold py-3.5 px-4 rounded-xl shadow-sm hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all duration-200 text-sm active:scale-[0.98]">
+                <a href="{{ route('cart.index') }}"
+                   class="block w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95">
                     Volver a Mis Reservas
                 </a>
             </div>

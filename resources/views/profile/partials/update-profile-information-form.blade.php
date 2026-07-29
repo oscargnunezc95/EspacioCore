@@ -1,9 +1,9 @@
 <section>
     <header>
-        <h2 class="text-xl sm:text-2xl font-black text-zinc-900">
+        <h2 class="text-xl sm:text-2xl font-black text-stone-900">
             Información del Perfil
         </h2>
-        <p class="mt-1 text-sm font-medium text-zinc-500">
+        <p class="mt-1 text-sm font-medium text-stone-500">
             Actualiza la información de tu cuenta y dirección de correo electrónico.
         </p>
     </header>
@@ -18,25 +18,25 @@
 
         {{-- RUT (Solo lectura) --}}
         <div>
-            <label class="block text-sm font-bold text-zinc-700 mb-1.5">RUT / Documento de Identidad</label>
-            <input type="text" value="{{ $user->formatted_national_id ?: 'No registrado' }}" disabled 
-                   class="w-full rounded-xl border border-zinc-200 bg-zinc-100 px-4 py-3 text-sm text-zinc-500 cursor-not-allowed shadow-inner font-medium">
-            <p class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mt-1.5">El documento de identidad no puede modificarse por seguridad.</p>
+            <label class="block text-sm font-bold text-stone-700 mb-1.5">RUT / Documento de Identidad</label>
+            <input type="text" value="{{ $user->formatted_national_id ?: 'No registrado' }}" disabled
+                   class="w-full rounded-xl border border-stone-200 bg-stone-100 px-4 py-3 text-sm text-stone-500 cursor-not-allowed shadow-inner font-medium">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-stone-400 mt-1.5">El documento de identidad no puede modificarse por seguridad.</p>
         </div>
 
         {{-- Nombre --}}
         <div>
-            <label for="name" class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre Completo</label>
+            <label for="name" class="block text-sm font-bold text-stone-700 mb-1.5">Nombre Completo</label>
             <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name"
-                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                   class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none">
             @error('name') <p class="text-xs text-rose-500 font-bold mt-1.5">{{ $message }}</p> @enderror
         </div>
 
         {{-- Email --}}
         <div>
-            <label for="email" class="block text-sm font-bold text-zinc-700 mb-1.5">Correo Electrónico</label>
+            <label for="email" class="block text-sm font-bold text-stone-700 mb-1.5">Correo Electrónico</label>
             <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required autocomplete="username"
-                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                   class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none">
             @error('email') <p class="text-xs text-rose-500 font-bold mt-1.5">{{ $message }}</p> @enderror
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
@@ -56,8 +56,8 @@
             @endif
         </div>
 
-        <div class="flex items-center gap-4 pt-6 border-t border-zinc-100">
-            <button type="submit" class="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3 px-6 rounded-xl shadow-sm hover:bg-zinc-800 transition-all duration-200 active:scale-95 text-sm">
+        <div class="flex items-center gap-4 pt-6 border-t border-stone-100">
+            <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm">
                 Guardar Cambios
             </button>
 

@@ -1,622 +1,1592 @@
 {
-  "Console/Commands/BackfillWorkshopScheduleId.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.claude\\settings.local.json": {
+    "mtime": 1784163619.90326,
+    "ast_hash": "8da2b4b12203029b24e996b6fbc3b434",
+    "semantic_hash": "8da2b4b12203029b24e996b6fbc3b434"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.mcp.json": {
+    "mtime": 1781591008.5034602,
+    "ast_hash": "39fcaa6fd7f6d4d670500978ca977562",
+    "semantic_hash": "39fcaa6fd7f6d4d670500978ca977562"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Console\\Commands\\BackfillWorkshopScheduleId.php": {
     "mtime": 1779846228.57976,
     "ast_hash": "5d8175463d3a6893867e3f5dc252a5cc",
     "semantic_hash": "5d8175463d3a6893867e3f5dc252a5cc"
   },
-  "Http/Controllers/AccountController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Console\\Commands\\CleanExpiredSubscriptions.php": {
+    "mtime": 1782605332.1647599,
+    "ast_hash": "905d46c3477cb6f3fa6487e48ba11cf9",
+    "semantic_hash": "905d46c3477cb6f3fa6487e48ba11cf9"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\AccountController.php": {
     "mtime": 1779238422.775969,
     "ast_hash": "eddbf4d851a53519148473b81d78dd46",
     "semantic_hash": "eddbf4d851a53519148473b81d78dd46"
   },
-  "Http/Controllers/Admin/StudioManagementController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Admin\\StudioManagementController.php": {
     "mtime": 1781030829.7168841,
     "ast_hash": "bbac9856b85c3e5f5b6232567dbf7f8f",
     "semantic_hash": "bbac9856b85c3e5f5b6232567dbf7f8f"
   },
-  "Http/Controllers/Admin/SubscriptionPlanController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Admin\\SubscriptionPlanController.php": {
     "mtime": 1780584972.0195696,
     "ast_hash": "2dc5286e0034bca8b5b3aae84b2dc0e5",
     "semantic_hash": "2dc5286e0034bca8b5b3aae84b2dc0e5"
   },
-  "Http/Controllers/AttendanceController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\AttendanceController.php": {
     "mtime": 1777591377.1982188,
     "ast_hash": "e04ee3ae738af3586a8b361542f5697b",
     "semantic_hash": "e04ee3ae738af3586a8b361542f5697b"
   },
-  "Http/Controllers/Auth/AuthenticatedSessionController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\AuthenticatedSessionController.php": {
     "mtime": 1779342671.94044,
     "ast_hash": "059ed50b6d800b59944ef3ea35f8682f",
     "semantic_hash": "059ed50b6d800b59944ef3ea35f8682f"
   },
-  "Http/Controllers/Auth/ConfirmablePasswordController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\ConfirmablePasswordController.php": {
     "mtime": 1777603830.9664903,
     "ast_hash": "f7653706affa82ab53063d246ad23746",
     "semantic_hash": "f7653706affa82ab53063d246ad23746"
   },
-  "Http/Controllers/Auth/EmailVerificationNotificationController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\EmailVerificationNotificationController.php": {
     "mtime": 1777603818.774353,
     "ast_hash": "adefaf54de9b870756f63e05c4676efb",
     "semantic_hash": "adefaf54de9b870756f63e05c4676efb"
   },
-  "Http/Controllers/Auth/EmailVerificationPromptController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\EmailVerificationPromptController.php": {
     "mtime": 1777603863.5819979,
     "ast_hash": "11d1b943db65b4f717c97ddd1650d35b",
     "semantic_hash": "11d1b943db65b4f717c97ddd1650d35b"
   },
-  "Http/Controllers/Auth/GoogleController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\GoogleController.php": {
     "mtime": 1780426552.222605,
     "ast_hash": "20a9ae523a1a184d46ccd9cf0137254b",
     "semantic_hash": "20a9ae523a1a184d46ccd9cf0137254b"
   },
-  "Http/Controllers/Auth/NewPasswordController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\NewPasswordController.php": {
     "mtime": 1777570169.8500865,
     "ast_hash": "806e274e94c7a726e967d5ae9bc29a8b",
     "semantic_hash": "806e274e94c7a726e967d5ae9bc29a8b"
   },
-  "Http/Controllers/Auth/PasswordController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\PasswordController.php": {
     "mtime": 1777570169.8506114,
     "ast_hash": "b174129f4c888fcbe29ad3fbe0762fde",
     "semantic_hash": "b174129f4c888fcbe29ad3fbe0762fde"
   },
-  "Http/Controllers/Auth/PasswordResetLinkController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\PasswordResetLinkController.php": {
     "mtime": 1777570169.8511255,
     "ast_hash": "4c6934c157d0f2e36457b437e08a44b2",
     "semantic_hash": "4c6934c157d0f2e36457b437e08a44b2"
   },
-  "Http/Controllers/Auth/RegisteredUserController.php": {
-    "mtime": 1780426542.859875,
-    "ast_hash": "7b6665715e4948b9034e3f090fda0685",
-    "semantic_hash": "7b6665715e4948b9034e3f090fda0685"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\RegisteredUserController.php": {
+    "mtime": 1781932970.2410138,
+    "ast_hash": "0454010b7582a4a270461a070ad5f0b8",
+    "semantic_hash": "0454010b7582a4a270461a070ad5f0b8"
   },
-  "Http/Controllers/Auth/VerifyEmailController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Auth\\VerifyEmailController.php": {
     "mtime": 1780431538.3239408,
     "ast_hash": "6cb35d3e75415f9f50f90830bb174e82",
     "semantic_hash": "6cb35d3e75415f9f50f90830bb174e82"
   },
-  "Http/Controllers/CheckoutController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\CheckoutController.php": {
     "mtime": 1781548039.1949148,
     "ast_hash": "a7775e82320a717647493441ed06947e",
     "semantic_hash": "a7775e82320a717647493441ed06947e"
   },
-  "Http/Controllers/ClassSessionController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\ClassSessionController.php": {
     "mtime": 1781120834.7617385,
     "ast_hash": "b215a85423c2c5f7bfbabdd7ae6a0c95",
     "semantic_hash": "b215a85423c2c5f7bfbabdd7ae6a0c95"
   },
-  "Http/Controllers/Controller.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Controller.php": {
     "mtime": 1775741725.0,
     "ast_hash": "25a307335c0719bc9a91b3f7babd186d",
     "semantic_hash": "25a307335c0719bc9a91b3f7babd186d"
   },
-  "Http/Controllers/DashboardController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\DashboardController.php": {
     "mtime": 1779995215.4926305,
     "ast_hash": "370d8fb62ac5097efe5a645f00a67497",
     "semantic_hash": "370d8fb62ac5097efe5a645f00a67497"
   },
-  "Http/Controllers/ExploreController.php": {
-    "mtime": 1780533962.1005495,
-    "ast_hash": "28d717e4b7234d663a0691748e594eb4",
-    "semantic_hash": "28d717e4b7234d663a0691748e594eb4"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\ExploreController.php": {
+    "mtime": 1784061599.8915293,
+    "ast_hash": "12d3b592cb83ffb9c5f07e6b99c63e16",
+    "semantic_hash": "12d3b592cb83ffb9c5f07e6b99c63e16"
   },
-  "Http/Controllers/Global/CartController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Global\\CartController.php": {
     "mtime": 1781547939.603078,
     "ast_hash": "daf13ee77f6d9eaefae5478bd704a665",
     "semantic_hash": "daf13ee77f6d9eaefae5478bd704a665"
   },
-  "Http/Controllers/Global/FamilyController.php": {
-    "mtime": 1781141850.4559424,
-    "ast_hash": "a0c209509f34e729836ecc32d0df505e",
-    "semantic_hash": "a0c209509f34e729836ecc32d0df505e"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Global\\FamilyController.php": {
+    "mtime": 1781805175.1091273,
+    "ast_hash": "c93526190cef4c483f544fed754ff468",
+    "semantic_hash": "c93526190cef4c483f544fed754ff468"
   },
-  "Http/Controllers/Global/PaymentHistoryController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Global\\PaymentHistoryController.php": {
     "mtime": 1781545497.7322946,
     "ast_hash": "3a393129779cc272b1af45f1f4d37a49",
     "semantic_hash": "3a393129779cc272b1af45f1f4d37a49"
   },
-  "Http/Controllers/Global/UserClassController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\Global\\UserClassController.php": {
     "mtime": 1781547896.2039633,
     "ast_hash": "a1d166237daed7b277e95c59901f4c62",
     "semantic_hash": "a1d166237daed7b277e95c59901f4c62"
   },
-  "Http/Controllers/HomeController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\HomeController.php": {
     "mtime": 1777570169.8511255,
     "ast_hash": "aa6dbfa961e9d1304cf3ad383b4ac388",
     "semantic_hash": "aa6dbfa961e9d1304cf3ad383b4ac388"
   },
-  "Http/Controllers/MercadoPagoOAuthController.php": {
-    "mtime": 1781539242.2572534,
-    "ast_hash": "105e3ce4e7c044e27c447cb2e2699983",
-    "semantic_hash": "105e3ce4e7c044e27c447cb2e2699983"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\MercadoPagoOAuthController.php": {
+    "mtime": 1783373225.3143265,
+    "ast_hash": "2f92bb2f0ed1b387a7548078a14c407b",
+    "semantic_hash": "2f92bb2f0ed1b387a7548078a14c407b"
   },
-  "Http/Controllers/NotificationController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\NotificationController.php": {
     "mtime": 1779330785.346937,
     "ast_hash": "91a54496fa5dbf98c6c4f379ec2bc454",
     "semantic_hash": "91a54496fa5dbf98c6c4f379ec2bc454"
   },
-  "Http/Controllers/PaymentController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\PaymentController.php": {
     "mtime": 1781209761.5694575,
     "ast_hash": "9445e232880f2af9eee4251f7e73d2e0",
     "semantic_hash": "9445e232880f2af9eee4251f7e73d2e0"
   },
-  "Http/Controllers/PaymentReturnController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\PaymentReturnController.php": {
     "mtime": 1778994287.6218562,
     "ast_hash": "fa3207e3f28cedb858100543943d273d",
     "semantic_hash": "fa3207e3f28cedb858100543943d273d"
   },
-  "Http/Controllers/PayrollController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\PayrollController.php": {
     "mtime": 1781029028.717098,
     "ast_hash": "0d670b62c20815da5ca62532aa4fb357",
     "semantic_hash": "0d670b62c20815da5ca62532aa4fb357"
   },
-  "Http/Controllers/ProfileController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\ProfileController.php": {
     "mtime": 1777605648.1009123,
     "ast_hash": "44b10d5b90bf71f3e9fb390c188d95b4",
     "semantic_hash": "44b10d5b90bf71f3e9fb390c188d95b4"
   },
-  "Http/Controllers/PromotionController.php": {
-    "mtime": 1780083053.7064486,
-    "ast_hash": "87b1ea4ccf522174a53332217e9a5124",
-    "semantic_hash": "87b1ea4ccf522174a53332217e9a5124"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\PromotionController.php": {
+    "mtime": 1781725145.4109378,
+    "ast_hash": "c7bf81b1761c6492862ae108b6a2887d",
+    "semantic_hash": "c7bf81b1761c6492862ae108b6a2887d"
   },
-  "Http/Controllers/SeoController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\SeoController.php": {
     "mtime": 1779774684.114723,
     "ast_hash": "55dbaa9f8c46ba06afaa9f3f388aa883",
     "semantic_hash": "55dbaa9f8c46ba06afaa9f3f388aa883"
   },
-  "Http/Controllers/StudentController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\StudentController.php": {
     "mtime": 1781141820.8986776,
     "ast_hash": "f5c1565bd3b1a970f3b32091492daade",
     "semantic_hash": "f5c1565bd3b1a970f3b32091492daade"
   },
-  "Http/Controllers/StudioController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\StudioController.php": {
     "mtime": 1778636444.758875,
     "ast_hash": "105127b78cd8e041b90c9da00bc89d5c",
     "semantic_hash": "105127b78cd8e041b90c9da00bc89d5c"
   },
-  "Http/Controllers/StudioPublicController.php": {
-    "mtime": 1778703449.0532696,
-    "ast_hash": "1de38140859e5d175381a400b1601f9d",
-    "semantic_hash": "1de38140859e5d175381a400b1601f9d"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\StudioPublicController.php": {
+    "mtime": 1781636112.344867,
+    "ast_hash": "2d79be6f53ab7aeac0390321a688d042",
+    "semantic_hash": "2d79be6f53ab7aeac0390321a688d042"
   },
-  "Http/Controllers/SubscriptionController.php": {
-    "mtime": 1781028972.692265,
-    "ast_hash": "951b33aa703185d5fbd0deac45a9ed91",
-    "semantic_hash": "951b33aa703185d5fbd0deac45a9ed91"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\SubscriptionController.php": {
+    "mtime": 1783112931.8495164,
+    "ast_hash": "ec77bfb78b202dc523fd86e76812ac29",
+    "semantic_hash": "ec77bfb78b202dc523fd86e76812ac29"
   },
-  "Http/Controllers/SupportController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\SupportController.php": {
     "mtime": 1779986166.205148,
     "ast_hash": "43f3ae555296603fda95b078adcaf6ff",
     "semantic_hash": "43f3ae555296603fda95b078adcaf6ff"
   },
-  "Http/Controllers/TeacherController.php": {
-    "mtime": 1780359005.4461493,
-    "ast_hash": "1421f2e023085f4c15162efa257774d9",
-    "semantic_hash": "1421f2e023085f4c15162efa257774d9"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\TeacherController.php": {
+    "mtime": 1781720691.1495805,
+    "ast_hash": "06bbb5c689032a9b8fabdfb08476db45",
+    "semantic_hash": "06bbb5c689032a9b8fabdfb08476db45"
   },
-  "Http/Controllers/TrainingMonthController.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\TrainingMonthController.php": {
     "mtime": 1779846215.4091537,
     "ast_hash": "1eadc50b0c95a3162d2b569af50e576c",
     "semantic_hash": "1eadc50b0c95a3162d2b569af50e576c"
   },
-  "Http/Controllers/WebhookController.php": {
-    "mtime": 1781046494.4126542,
-    "ast_hash": "02521aa994fbb8e7d2e2e442c0979524",
-    "semantic_hash": "02521aa994fbb8e7d2e2e442c0979524"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\WebhookController.php": {
+    "mtime": 1783099541.6001916,
+    "ast_hash": "b5e4687f9d3a70ac24e26ba95f5abc9e",
+    "semantic_hash": "b5e4687f9d3a70ac24e26ba95f5abc9e"
   },
-  "Http/Controllers/WorkshopController.php": {
-    "mtime": 1780947919.7513938,
-    "ast_hash": "1b602f8dce1130bc74ebe6be10805355",
-    "semantic_hash": "1b602f8dce1130bc74ebe6be10805355"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Controllers\\WorkshopController.php": {
+    "mtime": 1784059481.8105175,
+    "ast_hash": "4f7e611cd127ad3c38065b5f10288051",
+    "semantic_hash": "4f7e611cd127ad3c38065b5f10288051"
   },
-  "Http/Middleware/CheckProfileCompletion.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Middleware\\CheckProfileCompletion.php": {
     "mtime": 1778115887.6162293,
     "ast_hash": "d667d0698abb68ab9733f83dae9ce649",
     "semantic_hash": "d667d0698abb68ab9733f83dae9ce649"
   },
-  "Http/Middleware/EnsureDependentDecisionResolved.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Middleware\\EnsureDependentDecisionResolved.php": {
     "mtime": 1780417549.0890834,
     "ast_hash": "c44c2d3c1535ca6cd5fc6faceb705b57",
     "semantic_hash": "c44c2d3c1535ca6cd5fc6faceb705b57"
   },
-  "Http/Middleware/IdentifyStudio.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Middleware\\IdentifyStudio.php": {
     "mtime": 1778194970.1803606,
     "ast_hash": "24f5f3ac31721dfeb3c0adf259d2b7f0",
     "semantic_hash": "24f5f3ac31721dfeb3c0adf259d2b7f0"
   },
-  "Http/Middleware/IsSuperAdmin.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Middleware\\IsSuperAdmin.php": {
     "mtime": 1780531194.6620364,
     "ast_hash": "67a4c88bc15c47b6aec41e64ab8d2903",
     "semantic_hash": "67a4c88bc15c47b6aec41e64ab8d2903"
   },
-  "Http/Requests/Auth/LoginRequest.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Requests\\Auth\\LoginRequest.php": {
     "mtime": 1777570169.8511255,
     "ast_hash": "21107567fe3fc4fa4f0adf159dc2269f",
     "semantic_hash": "21107567fe3fc4fa4f0adf159dc2269f"
   },
-  "Http/Requests/ProfileUpdateRequest.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Requests\\ProfileUpdateRequest.php": {
     "mtime": 1777570169.8511255,
     "ast_hash": "80a73e67db650b32485bc84687e5b634",
     "semantic_hash": "80a73e67db650b32485bc84687e5b634"
   },
-  "Http/Requests/StoreSupportRequest.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Http\\Requests\\StoreSupportRequest.php": {
     "mtime": 1779986166.382258,
     "ast_hash": "2061b024365cba01051c68723a841c4e",
     "semantic_hash": "2061b024365cba01051c68723a841c4e"
   },
-  "Mail/ClassCancelledMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\ClassCancelledMail.php": {
     "mtime": 1781567163.0418744,
     "ast_hash": "535c061c1b6f12abf980c2e9e16c2adf",
     "semantic_hash": "535c061c1b6f12abf980c2e9e16c2adf"
   },
-  "Mail/ClassRefundedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\ClassRefundedMail.php": {
     "mtime": 1781563998.7510664,
     "ast_hash": "9dc11844b6e14e3e2623c991d93f8fb4",
     "semantic_hash": "9dc11844b6e14e3e2623c991d93f8fb4"
   },
-  "Mail/DemoScheduledMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\DemoScheduledMail.php": {
     "mtime": 1781567163.245829,
     "ast_hash": "adcf1937e5d26bfc523d946b03b12d79",
     "semantic_hash": "adcf1937e5d26bfc523d946b03b12d79"
   },
-  "Mail/DependentProfileLinkedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\DependentProfileLinkedMail.php": {
     "mtime": 1781567175.1426847,
     "ast_hash": "0e1e07531eb0050c3a3ef3bbfbd985d7",
     "semantic_hash": "0e1e07531eb0050c3a3ef3bbfbd985d7"
   },
-  "Mail/DependentTransferRequestMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\DependentTransferRequestMail.php": {
     "mtime": 1781567163.323223,
     "ast_hash": "d0ca3ceeb6105311fb402181626056c7",
     "semantic_hash": "d0ca3ceeb6105311fb402181626056c7"
   },
-  "Mail/FamilyLinkRequestMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\FamilyLinkRequestMail.php": {
     "mtime": 1781567163.3693168,
     "ast_hash": "f883513b6063db61dd94b57357e44aa4",
     "semantic_hash": "f883513b6063db61dd94b57357e44aa4"
   },
-  "Mail/LocalProfileLinkedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\LocalProfileLinkedMail.php": {
     "mtime": 1781567175.9141932,
     "ast_hash": "fbee28f5b662cfa00d1d5481b5b0192e",
     "semantic_hash": "fbee28f5b662cfa00d1d5481b5b0192e"
   },
-  "Mail/NewSubscriptionAlertMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\NewSubscriptionAlertMail.php": {
     "mtime": 1781567174.308616,
     "ast_hash": "12615e5c7d058dd04d7f9da64fc603a4",
     "semantic_hash": "12615e5c7d058dd04d7f9da64fc603a4"
   },
-  "Mail/PlanManuallyUpdatedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\PlanManuallyUpdatedMail.php": {
     "mtime": 1781567163.1572833,
     "ast_hash": "4bbe2de82c03eb3f5c6f054571f94c64",
     "semantic_hash": "4bbe2de82c03eb3f5c6f054571f94c64"
   },
-  "Mail/StudentInvitationMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\StudentInvitationMail.php": {
     "mtime": 1781567163.4463408,
     "ast_hash": "136842f4c676a93e38a71b8c0546139b",
     "semantic_hash": "136842f4c676a93e38a71b8c0546139b"
   },
-  "Mail/StudentPaymentReceiptMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\StudentPaymentReceiptMail.php": {
     "mtime": 1780509157.2900908,
     "ast_hash": "8afff05a6e63c0b4a5e1027087ee2c51",
     "semantic_hash": "8afff05a6e63c0b4a5e1027087ee2c51"
   },
-  "Mail/StudentWelcomeMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\StudentWelcomeMail.php": {
     "mtime": 1781567163.5256834,
     "ast_hash": "049e76365cde92642c9ba436e8b68c02",
     "semantic_hash": "049e76365cde92642c9ba436e8b68c02"
   },
-  "Mail/StudioMercadoPagoLinkedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\StudioMercadoPagoLinkedMail.php": {
     "mtime": 1781567163.5774426,
     "ast_hash": "b1d31519559c5e1e63e949cca1a51544",
     "semantic_hash": "b1d31519559c5e1e63e949cca1a51544"
   },
-  "Mail/StudioMercadoPagoUnlinkedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\StudioMercadoPagoUnlinkedMail.php": {
     "mtime": 1781567166.5762937,
     "ast_hash": "881456daa450a346aaae4d3a34667e40",
     "semantic_hash": "881456daa450a346aaae4d3a34667e40"
   },
-  "Mail/StudioPaymentNotificationMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\StudioPaymentNotificationMail.php": {
     "mtime": 1780509170.013137,
     "ast_hash": "41593bcf35feb86f018c2eb8957d55be",
     "semantic_hash": "41593bcf35feb86f018c2eb8957d55be"
   },
-  "Mail/SubscriptionReceiptMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\SubscriptionCanceledByDebtMail.php": {
+    "mtime": 1783112142.816403,
+    "ast_hash": "a63d531b91239e801edc38c91b4925f5",
+    "semantic_hash": "a63d531b91239e801edc38c91b4925f5"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\SubscriptionCanceledImmediateMail.php": {
+    "mtime": 1783112142.897317,
+    "ast_hash": "4fbcc2ca3157ef612e823dafe0363a5f",
+    "semantic_hash": "4fbcc2ca3157ef612e823dafe0363a5f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\SubscriptionCanceledScheduledMail.php": {
+    "mtime": 1783112142.9774258,
+    "ast_hash": "6aaec4c2b84264ebfe5a8a4bc9db77e3",
+    "semantic_hash": "6aaec4c2b84264ebfe5a8a4bc9db77e3"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\SubscriptionPastDueMail.php": {
+    "mtime": 1782605333.8758087,
+    "ast_hash": "be4da921e8964ea47a442156ae87cc92",
+    "semantic_hash": "be4da921e8964ea47a442156ae87cc92"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\SubscriptionReceiptMail.php": {
     "mtime": 1780509171.9739668,
     "ast_hash": "93344850035414772220e900cd35efdf",
     "semantic_hash": "93344850035414772220e900cd35efdf"
   },
-  "Mail/SupportInquiryMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\SupportInquiryMail.php": {
     "mtime": 1781567167.3844128,
     "ast_hash": "84a0b9dcea09dfdbf5a6315d424ab1b9",
     "semantic_hash": "84a0b9dcea09dfdbf5a6315d424ab1b9"
   },
-  "Mail/TeacherInvitationMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\TeacherInvitationMail.php": {
     "mtime": 1781567168.2150269,
     "ast_hash": "e60027288a0bb191ab33826211a9b87a",
     "semantic_hash": "e60027288a0bb191ab33826211a9b87a"
   },
-  "Mail/TeacherPaymentReceivedMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\TeacherPaymentReceivedMail.php": {
     "mtime": 1781567169.0909393,
     "ast_hash": "ddaf145091e80fc5bed4f037f10655b6",
     "semantic_hash": "ddaf145091e80fc5bed4f037f10655b6"
   },
-  "Mail/UserLinkedAsTeacherMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\UserLinkedAsTeacherMail.php": {
     "mtime": 1781567169.8997202,
     "ast_hash": "4756b1aa21a207dac2b7131fa5f1043e",
     "semantic_hash": "4756b1aa21a207dac2b7131fa5f1043e"
   },
-  "Mail/UserLinkedToStudioMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\UserLinkedToStudioMail.php": {
     "mtime": 1781567170.7556498,
     "ast_hash": "e8750c2cb965a970ce794ccdabcbbab2",
     "semantic_hash": "e8750c2cb965a970ce794ccdabcbbab2"
   },
-  "Mail/WelcomeStudioMail.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Mail\\WelcomeStudioMail.php": {
     "mtime": 1780509189.6251843,
     "ast_hash": "e79d13549fa428e1f3b33990d83d7b70",
     "semantic_hash": "e79d13549fa428e1f3b33990d83d7b70"
   },
-  "Models/Area.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Area.php": {
     "mtime": 1777690508.794429,
     "ast_hash": "0634136b5e3fd223c8adf06ff3154ba7",
     "semantic_hash": "0634136b5e3fd223c8adf06ff3154ba7"
   },
-  "Models/Attendance.php": {
-    "mtime": 1777605660.4083514,
-    "ast_hash": "3235abf3f18cea8045892063e7b2b64d",
-    "semantic_hash": "3235abf3f18cea8045892063e7b2b64d"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Attendance.php": {
+    "mtime": 1781673191.0358908,
+    "ast_hash": "dbac1206da63d1171b0845e28fc774a0",
+    "semantic_hash": "dbac1206da63d1171b0845e28fc774a0"
   },
-  "Models/ClassSession.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\ClassSession.php": {
     "mtime": 1779847128.8165534,
     "ast_hash": "3196e18453110e6b966fa58289fa3ba8",
     "semantic_hash": "3196e18453110e6b966fa58289fa3ba8"
   },
-  "Models/Country.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Country.php": {
     "mtime": 1780355320.98815,
     "ast_hash": "37cdb2b5bf6618a2f12372bdf970f053",
     "semantic_hash": "37cdb2b5bf6618a2f12372bdf970f053"
   },
-  "Models/Discipline.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Discipline.php": {
     "mtime": 1777690517.9072735,
     "ast_hash": "89aa157793b7538c656fac1d9aa15fc7",
     "semantic_hash": "89aa157793b7538c656fac1d9aa15fc7"
   },
-  "Models/Payment.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Payment.php": {
     "mtime": 1780961888.9757218,
     "ast_hash": "af602c25c4520c9936798d4afa72a1c7",
     "semantic_hash": "af602c25c4520c9936798d4afa72a1c7"
   },
-  "Models/Promotion.php": {
-    "mtime": 1778698570.7830257,
-    "ast_hash": "1e69360484fd7eba98ac91d898798cb1",
-    "semantic_hash": "1e69360484fd7eba98ac91d898798cb1"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Promotion.php": {
+    "mtime": 1781724847.4673536,
+    "ast_hash": "10771cec8846484546ee4b560eb5956b",
+    "semantic_hash": "10771cec8846484546ee4b560eb5956b"
   },
-  "Models/Scopes/StudioScope.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\SaasPayment.php": {
+    "mtime": 1782332275.9712687,
+    "ast_hash": "335708c76011f0cc2fa76dcb5a870e82",
+    "semantic_hash": "335708c76011f0cc2fa76dcb5a870e82"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Scopes\\StudioScope.php": {
     "mtime": 1778195284.300104,
     "ast_hash": "930afe4cf4ac4d073871af7188a7e71a",
     "semantic_hash": "930afe4cf4ac4d073871af7188a7e71a"
   },
-  "Models/Student.php": {
-    "mtime": 1780427050.4431136,
-    "ast_hash": "4b52ef0092b30672e382b0406bfab6a5",
-    "semantic_hash": "4b52ef0092b30672e382b0406bfab6a5"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Student.php": {
+    "mtime": 1781810526.7308238,
+    "ast_hash": "0453ac8456d4bb9354b02153b08e3996",
+    "semantic_hash": "0453ac8456d4bb9354b02153b08e3996"
   },
-  "Models/Studio.php": {
-    "mtime": 1781045956.8856883,
-    "ast_hash": "7e982439eb6d977b1ed21687c99249ff",
-    "semantic_hash": "7e982439eb6d977b1ed21687c99249ff"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Studio.php": {
+    "mtime": 1783112938.688245,
+    "ast_hash": "8352dde27e7faaeb0c1d3c64ad1c91f2",
+    "semantic_hash": "8352dde27e7faaeb0c1d3c64ad1c91f2"
   },
-  "Models/SubscriptionPlan.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\SubscriptionPlan.php": {
     "mtime": 1780584356.9822013,
     "ast_hash": "1d1fd2219db76a6890c9ab09fb61ed3a",
     "semantic_hash": "1d1fd2219db76a6890c9ab09fb61ed3a"
   },
-  "Models/Teacher.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Teacher.php": {
     "mtime": 1779989115.0199509,
     "ast_hash": "6866ad32fe3f97a7b8c8c1f04beb9762",
     "semantic_hash": "6866ad32fe3f97a7b8c8c1f04beb9762"
   },
-  "Models/TeacherPayment.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\TeacherPayment.php": {
     "mtime": 1779989073.6318154,
     "ast_hash": "a3df2bf06bdbd6909606668dd6a36494",
     "semantic_hash": "a3df2bf06bdbd6909606668dd6a36494"
   },
-  "Models/User.php": {
-    "mtime": 1781203043.2457235,
-    "ast_hash": "5ae232873228c2480cc020935db4a712",
-    "semantic_hash": "5ae232873228c2480cc020935db4a712"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\User.php": {
+    "mtime": 1783278811.8295982,
+    "ast_hash": "cf1133ac02d585e513fa5652fa8706a7",
+    "semantic_hash": "cf1133ac02d585e513fa5652fa8706a7"
   },
-  "Models/UserDependent.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\UserDependent.php": {
     "mtime": 1780464017.8889644,
     "ast_hash": "2c82b6749b3285f51a45483f0f805fc1",
     "semantic_hash": "2c82b6749b3285f51a45483f0f805fc1"
   },
-  "Models/Workshop.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\Workshop.php": {
     "mtime": 1781040121.631991,
     "ast_hash": "24b6360f0838f854c9983ae35b49f931",
     "semantic_hash": "24b6360f0838f854c9983ae35b49f931"
   },
-  "Models/WorkshopPrice.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\WorkshopPrice.php": {
     "mtime": 1778083564.3069763,
     "ast_hash": "74b222fb4879d0f85d89e350c39dc191",
     "semantic_hash": "74b222fb4879d0f85d89e350c39dc191"
   },
-  "Models/WorkshopSchedule.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Models\\WorkshopSchedule.php": {
     "mtime": 1779846057.3698125,
     "ast_hash": "12ba4ce16c09aa8e8d9ef705b33450ba",
     "semantic_hash": "12ba4ce16c09aa8e8d9ef705b33450ba"
   },
-  "Notifications/ClassCancelledNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\ClassCancelledNotification.php": {
     "mtime": 1779238055.1602552,
     "ast_hash": "ef1fe1542ae7b1a17ebc0b8de0488713",
     "semantic_hash": "ef1fe1542ae7b1a17ebc0b8de0488713"
   },
-  "Notifications/ClassFullNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\ClassFullNotification.php": {
     "mtime": 1781206271.7049644,
     "ast_hash": "21dd3c0ca83c86d60d58e4b71384ee32",
     "semantic_hash": "21dd3c0ca83c86d60d58e4b71384ee32"
   },
-  "Notifications/ClassModifiedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\ClassModifiedNotification.php": {
     "mtime": 1779238062.0617106,
     "ast_hash": "74c72b8faa6f9aada0a465430b521e47",
     "semantic_hash": "74c72b8faa6f9aada0a465430b521e47"
   },
-  "Notifications/DependentProfileLinkedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\DependentProfileLinkedNotification.php": {
     "mtime": 1780983436.329588,
     "ast_hash": "f88a7ed74d857b5ee5410a5dc4aeb26a",
     "semantic_hash": "f88a7ed74d857b5ee5410a5dc4aeb26a"
   },
-  "Notifications/FamilyLinkAcceptedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\FamilyLinkAcceptedNotification.php": {
     "mtime": 1780518800.0764616,
     "ast_hash": "f4ce9daa2c74fdd0d2649a61672809b4",
     "semantic_hash": "f4ce9daa2c74fdd0d2649a61672809b4"
   },
-  "Notifications/FamilyLinkRequestedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\FamilyLinkRequestedNotification.php": {
     "mtime": 1780517848.006727,
     "ast_hash": "bd8677cf6fb1e8c6ec488c3c0f95c959",
     "semantic_hash": "bd8677cf6fb1e8c6ec488c3c0f95c959"
   },
-  "Notifications/FamilyMemberLeftNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\FamilyMemberLeftNotification.php": {
     "mtime": 1780518800.0714557,
     "ast_hash": "78383491b5096ed687b21ad335f855ac",
     "semantic_hash": "78383491b5096ed687b21ad335f855ac"
   },
-  "Notifications/LocalProfileLinkedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\LocalProfileLinkedNotification.php": {
     "mtime": 1781118005.6668315,
     "ast_hash": "1d69e1bb642253351ee7b93c23fc5540",
     "semantic_hash": "1d69e1bb642253351ee7b93c23fc5540"
   },
-  "Notifications/RemovedFromFamilyNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\QueuedVerifyEmail.php": {
+    "mtime": 1783278774.1601634,
+    "ast_hash": "59e4fd8e86d2149af9e1cc839883bb8b",
+    "semantic_hash": "59e4fd8e86d2149af9e1cc839883bb8b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\RemovedFromFamilyNotification.php": {
     "mtime": 1780522278.6464832,
     "ast_hash": "a0c3e41370ad0b42e3ce844868f33a05",
     "semantic_hash": "a0c3e41370ad0b42e3ce844868f33a05"
   },
-  "Notifications/SaaSSubscriptionNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\SaaSSubscriptionNotification.php": {
     "mtime": 1781568719.967828,
     "ast_hash": "6ea8a3b8cf1fe8683190dddb88cad66a",
     "semantic_hash": "6ea8a3b8cf1fe8683190dddb88cad66a"
   },
-  "Notifications/SpotReservedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\SpotReservedNotification.php": {
     "mtime": 1779825009.4990945,
     "ast_hash": "e6d4cb32b0ef54c9a0b3cffc997340a2",
     "semantic_hash": "e6d4cb32b0ef54c9a0b3cffc997340a2"
   },
-  "Notifications/StudentAddedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\StudentAddedNotification.php": {
     "mtime": 1781139918.734611,
     "ast_hash": "07798b436ccc53f33b512dd418ee71b6",
     "semantic_hash": "07798b436ccc53f33b512dd418ee71b6"
   },
-  "Notifications/StudentPaymentApprovedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\StudentPaymentApprovedNotification.php": {
     "mtime": 1779238277.7524612,
     "ast_hash": "d43e5b25f2cb840b1b7e00a5695e8fea",
     "semantic_hash": "d43e5b25f2cb840b1b7e00a5695e8fea"
   },
-  "Notifications/StudioMPLinkedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\StudioMPLinkedNotification.php": {
     "mtime": 1779280126.1609943,
     "ast_hash": "748660e4451a479f5f9e22ce0e7e061a",
     "semantic_hash": "748660e4451a479f5f9e22ce0e7e061a"
   },
-  "Notifications/StudioMPUnlinkedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\StudioMPUnlinkedNotification.php": {
     "mtime": 1779280130.713465,
     "ast_hash": "01e91a4c287f3bc6f741c76d022b1340",
     "semantic_hash": "01e91a4c287f3bc6f741c76d022b1340"
   },
-  "Notifications/TeacherAddedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\SubscriptionCanceledByDebtNotification.php": {
+    "mtime": 1783112150.8699954,
+    "ast_hash": "0cf413a20a5cc172043f16c4a54d73cd",
+    "semantic_hash": "0cf413a20a5cc172043f16c4a54d73cd"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\SubscriptionCanceledImmediateNotification.php": {
+    "mtime": 1783112153.167697,
+    "ast_hash": "2b3f50baa477561379ae38e86a5a4872",
+    "semantic_hash": "2b3f50baa477561379ae38e86a5a4872"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\SubscriptionCanceledScheduledNotification.php": {
+    "mtime": 1783112155.3923025,
+    "ast_hash": "8387c752e2eb3e5fdb36a4ac5736a018",
+    "semantic_hash": "8387c752e2eb3e5fdb36a4ac5736a018"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\SubscriptionPastDueNotification.php": {
+    "mtime": 1783112148.5206618,
+    "ast_hash": "d890d56b7ffff8fda4cf1834bc6ef291",
+    "semantic_hash": "d890d56b7ffff8fda4cf1834bc6ef291"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\TeacherAddedNotification.php": {
     "mtime": 1779287268.026942,
     "ast_hash": "a743c8b4a6b1403cc5c2e60d312bb531",
     "semantic_hash": "a743c8b4a6b1403cc5c2e60d312bb531"
   },
-  "Notifications/TeacherPaymentReceivedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\TeacherPaymentReceivedNotification.php": {
     "mtime": 1780077744.2460206,
     "ast_hash": "0a2972fa56709476c01d70f2bcc8d588",
     "semantic_hash": "0a2972fa56709476c01d70f2bcc8d588"
   },
-  "Notifications/WorkshopAssignedNotification.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Notifications\\WorkshopAssignedNotification.php": {
     "mtime": 1779927236.7765849,
     "ast_hash": "0925bafeb7943b03042dd4db4b652cfb",
     "semantic_hash": "0925bafeb7943b03042dd4db4b652cfb"
   },
-  "Providers/AppServiceProvider.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Providers\\AppServiceProvider.php": {
     "mtime": 1779737329.9855907,
     "ast_hash": "b54e7f17adb63ebb06fe68f0432bd4cf",
     "semantic_hash": "b54e7f17adb63ebb06fe68f0432bd4cf"
   },
-  "Rules/ValidDocument.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Rules\\ValidDocument.php": {
     "mtime": 1778257918.1894603,
     "ast_hash": "6ab65d51f76d24c9fa781197c2505165",
     "semantic_hash": "6ab65d51f76d24c9fa781197c2505165"
   },
-  "Services/DashboardService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\DashboardService.php": {
     "mtime": 1781206089.3133752,
     "ast_hash": "184b12071481b2919f63b94604b999c7",
     "semantic_hash": "184b12071481b2919f63b94604b999c7"
   },
-  "Services/DocumentService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\DocumentService.php": {
     "mtime": 1778603943.8650393,
     "ast_hash": "f445369d52067d549fa8f69712b56bb4",
     "semantic_hash": "f445369d52067d549fa8f69712b56bb4"
   },
-  "Services/EnrollmentService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\EnrollmentService.php": {
     "mtime": 1781547881.5453792,
     "ast_hash": "39a56e70ebfbcc9e0d737b4f10d16316",
     "semantic_hash": "39a56e70ebfbcc9e0d737b4f10d16316"
   },
-  "Services/ExploreService.php": {
-    "mtime": 1780946146.143884,
-    "ast_hash": "ef5b558e66ccc9df364650e77b7f6e37",
-    "semantic_hash": "ef5b558e66ccc9df364650e77b7f6e37"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\ExploreService.php": {
+    "mtime": 1784061531.569495,
+    "ast_hash": "ca588274e00a3f82802178fdc245c061",
+    "semantic_hash": "ca588274e00a3f82802178fdc245c061"
   },
-  "Services/FamilyDecisionService.php": {
-    "mtime": 1781141856.592892,
-    "ast_hash": "23a0369ae5cc6b7436c9afdb41e8d20b",
-    "semantic_hash": "23a0369ae5cc6b7436c9afdb41e8d20b"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\FamilyDecisionService.php": {
+    "mtime": 1781805160.9408052,
+    "ast_hash": "3de2255140ebdf843e6e09fd8489aa41",
+    "semantic_hash": "3de2255140ebdf843e6e09fd8489aa41"
   },
-  "Services/MercadoPagoService.php": {
-    "mtime": 1781548056.243717,
-    "ast_hash": "b00b788ec829d82fb42ed56271198495",
-    "semantic_hash": "b00b788ec829d82fb42ed56271198495"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\MercadoPagoService.php": {
+    "mtime": 1783112943.2946727,
+    "ast_hash": "0c37e8758d25bee7fae9456097ef1e26",
+    "semantic_hash": "0c37e8758d25bee7fae9456097ef1e26"
   },
-  "Services/PayrollService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\PayrollService.php": {
     "mtime": 1781048552.1561966,
     "ast_hash": "c30f50d35eb7879bb751f411e4cec05e",
     "semantic_hash": "c30f50d35eb7879bb751f411e4cec05e"
   },
-  "Services/PricingService.php": {
-    "mtime": 1780945755.92064,
-    "ast_hash": "2dd9663bdb47fe8db4c29c67fd3d5c0a",
-    "semantic_hash": "2dd9663bdb47fe8db4c29c67fd3d5c0a"
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\PricingService.php": {
+    "mtime": 1781726737.8097785,
+    "ast_hash": "1911cb1458356982e0d8ec7318baf32c",
+    "semantic_hash": "1911cb1458356982e0d8ec7318baf32c"
   },
-  "Services/StudentProfileService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\StudentProfileService.php": {
     "mtime": 1781209661.2452695,
     "ast_hash": "ead214c94896ae8b6eecdcbe19d8a079",
     "semantic_hash": "ead214c94896ae8b6eecdcbe19d8a079"
   },
-  "Services/SupportService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\SupportService.php": {
     "mtime": 1779987559.9412622,
     "ast_hash": "12efe316008585407367efbf1a26aa57",
     "semantic_hash": "12efe316008585407367efbf1a26aa57"
   },
-  "Services/TenantIdentityService.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Services\\TenantIdentityService.php": {
     "mtime": 1779329238.0797677,
     "ast_hash": "4f61c6f49d539d192f639702259fee09",
     "semantic_hash": "4f61c6f49d539d192f639702259fee09"
   },
-  "Traits/BelongsToStudio.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\Traits\\BelongsToStudio.php": {
     "mtime": 1778195329.4833603,
     "ast_hash": "669d295c4811b4719359d4b59bb66c27",
     "semantic_hash": "669d295c4811b4719359d4b59bb66c27"
   },
-  "View/Components/AdminLayout.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\View\\Components\\AdminLayout.php": {
     "mtime": 1780585705.2037926,
     "ast_hash": "946fd526cc46841788a96093e5af3fd8",
     "semantic_hash": "946fd526cc46841788a96093e5af3fd8"
   },
-  "View/Components/AppLayout.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\View\\Components\\AppLayout.php": {
     "mtime": 1779775114.9122841,
     "ast_hash": "76e90b94fa960ad237b89634e3e8c32c",
     "semantic_hash": "76e90b94fa960ad237b89634e3e8c32c"
   },
-  "View/Components/GuestLayout.php": {
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\app\\View\\Components\\GuestLayout.php": {
     "mtime": 1779775108.864046,
     "ast_hash": "32d68330d20622d6deda00093348b50b",
     "semantic_hash": "32d68330d20622d6deda00093348b50b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\artisan": {
+    "mtime": 1775741725.0,
+    "ast_hash": "e66bb13691f6184c762c196427d8e685",
+    "semantic_hash": "e66bb13691f6184c762c196427d8e685"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\bootstrap\\app.php": {
+    "mtime": 1781632919.523651,
+    "ast_hash": "526347cb5ab4904fcf49aab3f85cacb8",
+    "semantic_hash": "526347cb5ab4904fcf49aab3f85cacb8"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\bootstrap\\cache\\packages.php": {
+    "mtime": 1783373244.365263,
+    "ast_hash": "14d0017d33443d876fa540ec5a13a12d",
+    "semantic_hash": "14d0017d33443d876fa540ec5a13a12d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\bootstrap\\cache\\services.php": {
+    "mtime": 1783373244.3782282,
+    "ast_hash": "7eb3ea912aedeade453691e89b889f0d",
+    "semantic_hash": "7eb3ea912aedeade453691e89b889f0d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\bootstrap\\providers.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "888c810b5a4720916f07aa05dd2c2dd3",
+    "semantic_hash": "888c810b5a4720916f07aa05dd2c2dd3"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\composer.json": {
+    "mtime": 1780971406.988341,
+    "ast_hash": "03ff6bbd2b382961e5c8199e586bf69b",
+    "semantic_hash": "03ff6bbd2b382961e5c8199e586bf69b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\app.php": {
+    "mtime": 1778900490.5936089,
+    "ast_hash": "f328e6e2fed5ba2243c694eb17fbc1fc",
+    "semantic_hash": "f328e6e2fed5ba2243c694eb17fbc1fc"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\auth.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "26354511ab860b301f2a3554bc388b91",
+    "semantic_hash": "26354511ab860b301f2a3554bc388b91"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\cache.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "c4c6c3d814db6eabf0e3f2a2985d7eab",
+    "semantic_hash": "c4c6c3d814db6eabf0e3f2a2985d7eab"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\cors.php": {
+    "mtime": 1778963236.5251524,
+    "ast_hash": "c15a3187c04d50afa1cfed8e5dece622",
+    "semantic_hash": "c15a3187c04d50afa1cfed8e5dece622"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\database.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "3cd69c7ecc842e4552e44eade546d91f",
+    "semantic_hash": "3cd69c7ecc842e4552e44eade546d91f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\filesystems.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "bde1aa1027f0448f17348dbd93f3d7ea",
+    "semantic_hash": "bde1aa1027f0448f17348dbd93f3d7ea"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\logging.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "d8255a5c07d3da72c7c9363f0c44bddd",
+    "semantic_hash": "d8255a5c07d3da72c7c9363f0c44bddd"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\mail.php": {
+    "mtime": 1781033233.861386,
+    "ast_hash": "d6e1737cde044accea3eeb16254dd406",
+    "semantic_hash": "d6e1737cde044accea3eeb16254dd406"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\queue.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "f98ce92e7bf51db1fabaf8a30e12fc5a",
+    "semantic_hash": "f98ce92e7bf51db1fabaf8a30e12fc5a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\sanctum.php": {
+    "mtime": 1778911704.7924926,
+    "ast_hash": "e3887ebee464a1b2c014cb16696a2b50",
+    "semantic_hash": "e3887ebee464a1b2c014cb16696a2b50"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\services.php": {
+    "mtime": 1783373190.0903425,
+    "ast_hash": "fe53ae3c4ae66cfccc1a1edde0aa8539",
+    "semantic_hash": "fe53ae3c4ae66cfccc1a1edde0aa8539"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\config\\session.php": {
+    "mtime": 1777577965.0372126,
+    "ast_hash": "1be03fbbc096ca4f805d405b4effb4ff",
+    "semantic_hash": "1be03fbbc096ca4f805d405b4effb4ff"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\factories\\UserFactory.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "1c9f381f9c2bc3027971a3bfdbe99164",
+    "semantic_hash": "1c9f381f9c2bc3027971a3bfdbe99164"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_000000_create_countries_table.php": {
+    "mtime": 1781714991.1014793,
+    "ast_hash": "4715067691c7f6f175f9dac99a44becb",
+    "semantic_hash": "4715067691c7f6f175f9dac99a44becb"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_010000_create_users_table.php": {
+    "mtime": 1781714991.025118,
+    "ast_hash": "5e7847e1e06d1413221d4660c757cfef",
+    "semantic_hash": "5e7847e1e06d1413221d4660c757cfef"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_020000_create_cache_table.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "6952fb360e8d8b84e6f47573e4459d48",
+    "semantic_hash": "6952fb360e8d8b84e6f47573e4459d48"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_030000_create_jobs_table.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "ead9cce2650b36345454f85e8c0214a0",
+    "semantic_hash": "ead9cce2650b36345454f85e8c0214a0"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_040000_create_areas_and_disciplines_tables.php": {
+    "mtime": 1777690468.6532385,
+    "ast_hash": "6aa7a097345c643be2f1be0340fbc3e8",
+    "semantic_hash": "6aa7a097345c643be2f1be0340fbc3e8"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_050000_create_studios_table.php": {
+    "mtime": 1781715623.176304,
+    "ast_hash": "c8821097e6a58d31c05a9c64a30d4257",
+    "semantic_hash": "c8821097e6a58d31c05a9c64a30d4257"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_060000_create_teachers_table.php": {
+    "mtime": 1781715199.4727318,
+    "ast_hash": "d5b0b99d652a82cb9f877d1623a72a1d",
+    "semantic_hash": "d5b0b99d652a82cb9f877d1623a72a1d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_070000_create_students_table.php": {
+    "mtime": 1781715215.4630952,
+    "ast_hash": "6feb42ece3f960411acc778ba2da78ce",
+    "semantic_hash": "6feb42ece3f960411acc778ba2da78ce"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_080000_create_workshops_table.php": {
+    "mtime": 1781715222.5619717,
+    "ast_hash": "896f2491ffb5f79e7f707df0f64d7e26",
+    "semantic_hash": "896f2491ffb5f79e7f707df0f64d7e26"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_090000_create_class_sessions_table.php": {
+    "mtime": 1777590749.933265,
+    "ast_hash": "861eb35e06edab7bbcbd85a018f7e76d",
+    "semantic_hash": "861eb35e06edab7bbcbd85a018f7e76d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_100000_create_payments_table.php": {
+    "mtime": 1781715240.0648894,
+    "ast_hash": "6c6c4faa7be14b5b91cdc723226416e2",
+    "semantic_hash": "6c6c4faa7be14b5b91cdc723226416e2"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_110000_create_attendances_table.php": {
+    "mtime": 1777590903.1413531,
+    "ast_hash": "db9db13070b8acdcaf7026191144e829",
+    "semantic_hash": "db9db13070b8acdcaf7026191144e829"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_120000_create_student_workshops_table.php": {
+    "mtime": 1777590939.198262,
+    "ast_hash": "7ae84b4f9fe57e445bae0a3c01fec792",
+    "semantic_hash": "7ae84b4f9fe57e445bae0a3c01fec792"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_140000_create_class_session_payment_table.php": {
+    "mtime": 1777590922.6621037,
+    "ast_hash": "83be77028f21cca76b1940ba73137e29",
+    "semantic_hash": "83be77028f21cca76b1940ba73137e29"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_150000_create_workshop_prices_table.php": {
+    "mtime": 1781715250.9367456,
+    "ast_hash": "e4ce2daa2d2ba3c5f406d2dc3a39949b",
+    "semantic_hash": "e4ce2daa2d2ba3c5f406d2dc3a39949b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_160000_create_promotions_table.php": {
+    "mtime": 1781725464.6839457,
+    "ast_hash": "47696d6f00497b968aa2917cad95460d",
+    "semantic_hash": "47696d6f00497b968aa2917cad95460d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_170000_create_class_session_student_table.php": {
+    "mtime": 1781715262.5006776,
+    "ast_hash": "e9a82325796e30919a05c0a44ca605a1",
+    "semantic_hash": "e9a82325796e30919a05c0a44ca605a1"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_180000_create_workshop_schedules_table.php": {
+    "mtime": 1781715320.6166449,
+    "ast_hash": "c80fdf14b99c1fd60c7306410a36ad17",
+    "semantic_hash": "c80fdf14b99c1fd60c7306410a36ad17"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_190000_create_user_dependents_table.php": {
+    "mtime": 1781714991.1736317,
+    "ast_hash": "3cdd04deeed2c8f06cfb7d0264424e55",
+    "semantic_hash": "3cdd04deeed2c8f06cfb7d0264424e55"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_200000_create_personal_access_tokens_table.php": {
+    "mtime": 1778911704.7904975,
+    "ast_hash": "eb77af89d184f92ec893eff344c34999",
+    "semantic_hash": "eb77af89d184f92ec893eff344c34999"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_04_14_210000_create_notifications_table.php": {
+    "mtime": 1779238000.4576023,
+    "ast_hash": "fd396841759fbd5474246c762ebef18b",
+    "semantic_hash": "fd396841759fbd5474246c762ebef18b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_05_28_000001_create_teacher_payments_table.php": {
+    "mtime": 1779989068.5340357,
+    "ast_hash": "5fc4b0e31c44410858e1e99ca93243c2",
+    "semantic_hash": "5fc4b0e31c44410858e1e99ca93243c2"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_06_04_104539_create_subscription_plans_table.php": {
+    "mtime": 1781715375.745359,
+    "ast_hash": "0949ddbf722ebe6f2f18b01c7cd106e4",
+    "semantic_hash": "0949ddbf722ebe6f2f18b01c7cd106e4"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_06_20_000000_add_legal_consent_to_users_table.php": {
+    "mtime": 1781932967.0833766,
+    "ast_hash": "b58d8264b25df3b819cd4f4893e15f0e",
+    "semantic_hash": "b58d8264b25df3b819cd4f4893e15f0e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_06_23_000001_add_next_plan_id_to_studios_table.php": {
+    "mtime": 1782238545.0450532,
+    "ast_hash": "042ced49e316d46b4e0cdfe2080c705c",
+    "semantic_hash": "042ced49e316d46b4e0cdfe2080c705c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\migrations\\2026_06_24_000001_create_saas_payments_table.php": {
+    "mtime": 1782332274.953292,
+    "ast_hash": "688494d843d963e7ce4847155883a75f",
+    "semantic_hash": "688494d843d963e7ce4847155883a75f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\AreaDisciplineSeeder.php": {
+    "mtime": 1777766407.0302083,
+    "ast_hash": "f366c140388951ad131c505770829f0f",
+    "semantic_hash": "f366c140388951ad131c505770829f0f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\DatabaseSeeder.php": {
+    "mtime": 1783361127.4919772,
+    "ast_hash": "909bcff10d407bf7a24dfc4d7e6c8c94",
+    "semantic_hash": "909bcff10d407bf7a24dfc4d7e6c8c94"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\LandingDemoSeeder.php": {
+    "mtime": 1783369603.7517223,
+    "ast_hash": "530fb46a83781998f51132ea50053e23",
+    "semantic_hash": "530fb46a83781998f51132ea50053e23"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\PaisSeeder.php": {
+    "mtime": 1780520504.895635,
+    "ast_hash": "030cf12fa863e54e7ee8ab21e67d28e3",
+    "semantic_hash": "030cf12fa863e54e7ee8ab21e67d28e3"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\PruebaSeeder.php": {
+    "mtime": 1783276372.106359,
+    "ast_hash": "953912628dd80f2e6e36e24d4790bcfc",
+    "semantic_hash": "953912628dd80f2e6e36e24d4790bcfc"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\SubscriptionPlanSeeder.php": {
+    "mtime": 1782171293.6051643,
+    "ast_hash": "c95f2d4ff9bb9409b63a200a5bb66336",
+    "semantic_hash": "c95f2d4ff9bb9409b63a200a5bb66336"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\database\\seeders\\SuperAdminSeeder.php": {
+    "mtime": 1780532244.487194,
+    "ast_hash": "472d5ebe6ab8d74694f3633548738ce1",
+    "semantic_hash": "472d5ebe6ab8d74694f3633548738ce1"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\package.json": {
+    "mtime": 1783304194.4669073,
+    "ast_hash": "9a08954df048b08dc3f78999d043c2ce",
+    "semantic_hash": "9a08954df048b08dc3f78999d043c2ce"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\js\\app.js": {
+    "mtime": 1783304444.5670564,
+    "ast_hash": "cd83f7a795bcfe25cfa1bcb259fb7ba9",
+    "semantic_hash": "cd83f7a795bcfe25cfa1bcb259fb7ba9"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\js\\bootstrap.js": {
+    "mtime": 1777570169.8708017,
+    "ast_hash": "767c1aff4a152ed88230b918d6dc7520",
+    "semantic_hash": "767c1aff4a152ed88230b918d6dc7520"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\account\\index.blade.php": {
+    "mtime": 1783994096.0306818,
+    "ast_hash": "9bd2b352ceb5c67f7c63c19251d624c6",
+    "semantic_hash": "9bd2b352ceb5c67f7c63c19251d624c6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\admin\\plans\\index.blade.php": {
+    "mtime": 1783295378.1529732,
+    "ast_hash": "3bf6efe53b29be42d07e3c4276122e2a",
+    "semantic_hash": "3bf6efe53b29be42d07e3c4276122e2a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\admin\\studios\\audit.blade.php": {
+    "mtime": 1783295556.7869067,
+    "ast_hash": "135b8b880fbfc129b96519647ba88e8d",
+    "semantic_hash": "135b8b880fbfc129b96519647ba88e8d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\admin\\studios\\index.blade.php": {
+    "mtime": 1783295610.712055,
+    "ast_hash": "ef4cde3984f0643312d95a6157828883",
+    "semantic_hash": "ef4cde3984f0643312d95a6157828883"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\auth\\google-complete.blade.php": {
+    "mtime": 1783294667.6790054,
+    "ast_hash": "bf0b409fdc2fd05ea6f2e544356d6670",
+    "semantic_hash": "bf0b409fdc2fd05ea6f2e544356d6670"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\auth\\login.blade.php": {
+    "mtime": 1783294566.3994102,
+    "ast_hash": "799dce388a39fa4935c7a598b640de9a",
+    "semantic_hash": "799dce388a39fa4935c7a598b640de9a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\auth\\register.blade.php": {
+    "mtime": 1783294685.160125,
+    "ast_hash": "3dfff6a602319f601722a92dfeb0a6dd",
+    "semantic_hash": "3dfff6a602319f601722a92dfeb0a6dd"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\auth\\verify-email.blade.php": {
+    "mtime": 1783294647.486825,
+    "ast_hash": "0ba42417b459c8a626f50dc3e564d4dd",
+    "semantic_hash": "0ba42417b459c8a626f50dc3e564d4dd"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\cart\\index.blade.php": {
+    "mtime": 1783397538.312044,
+    "ast_hash": "f6ebeae7a5a310160442895f126b4682",
+    "semantic_hash": "f6ebeae7a5a310160442895f126b4682"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\cart\\partials\\studio-groups.blade.php": {
+    "mtime": 1783295216.5942833,
+    "ast_hash": "c67148cf4810b2119b04f16f318036f6",
+    "semantic_hash": "c67148cf4810b2119b04f16f318036f6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\classsessions\\show.blade.php": {
+    "mtime": 1784001882.605682,
+    "ast_hash": "ff83cc12b6ab31023515618f776b1b80",
+    "semantic_hash": "ff83cc12b6ab31023515618f776b1b80"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\application-logo.blade.php": {
+    "mtime": 1783291845.5092156,
+    "ast_hash": "c3ab254072b362690bdb6dd888b00e4b",
+    "semantic_hash": "c3ab254072b362690bdb6dd888b00e4b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\auth-session-status.blade.php": {
+    "mtime": 1777570169.8758788,
+    "ast_hash": "f218fe6e9c1865c2ccf8ab8936e03fbc",
+    "semantic_hash": "f218fe6e9c1865c2ccf8ab8936e03fbc"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\danger-button.blade.php": {
+    "mtime": 1783293716.9780836,
+    "ast_hash": "d555d3c23685f5827e706e36f9cc56c5",
+    "semantic_hash": "d555d3c23685f5827e706e36f9cc56c5"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\dropdown-link.blade.php": {
+    "mtime": 1783293721.868681,
+    "ast_hash": "dd033f0870f0e549eb0a2165baceda83",
+    "semantic_hash": "dd033f0870f0e549eb0a2165baceda83"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\dropdown.blade.php": {
+    "mtime": 1777570169.8758788,
+    "ast_hash": "744fbaf442e81ebbf5819ae9432761df",
+    "semantic_hash": "744fbaf442e81ebbf5819ae9432761df"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\footer.blade.php": {
+    "mtime": 1784001013.4760902,
+    "ast_hash": "f00392f75a060138f46e281d093535b6",
+    "semantic_hash": "f00392f75a060138f46e281d093535b6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\input-error.blade.php": {
+    "mtime": 1777570169.880897,
+    "ast_hash": "cbe33d64f94575b76267cbb6878e88d8",
+    "semantic_hash": "cbe33d64f94575b76267cbb6878e88d8"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\input-label.blade.php": {
+    "mtime": 1783295823.310483,
+    "ast_hash": "d2e1521089dea192556946d359c4f205",
+    "semantic_hash": "d2e1521089dea192556946d359c4f205"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\modal.blade.php": {
+    "mtime": 1783293722.949339,
+    "ast_hash": "63ede6d870247b90f4c0099bd095cebd",
+    "semantic_hash": "63ede6d870247b90f4c0099bd095cebd"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\nav-link.blade.php": {
+    "mtime": 1783293718.7987542,
+    "ast_hash": "0c86dbd41fc4f2f2e22a340007503e48",
+    "semantic_hash": "0c86dbd41fc4f2f2e22a340007503e48"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\notifications-dropdown.blade.php": {
+    "mtime": 1783293752.3916879,
+    "ast_hash": "ad733fb3c2a80943d94183754a170c71",
+    "semantic_hash": "ad733fb3c2a80943d94183754a170c71"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\primary-button.blade.php": {
+    "mtime": 1783293714.4537702,
+    "ast_hash": "8edacb7504e78f36757599827b9f5546",
+    "semantic_hash": "8edacb7504e78f36757599827b9f5546"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\responsive-nav-link.blade.php": {
+    "mtime": 1783293720.8154824,
+    "ast_hash": "248e3a4ac58787673fa0557f64371c1f",
+    "semantic_hash": "248e3a4ac58787673fa0557f64371c1f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\secondary-button.blade.php": {
+    "mtime": 1783293715.7762568,
+    "ast_hash": "8666175085c03f93749d41e4ab5d75c6",
+    "semantic_hash": "8666175085c03f93749d41e4ab5d75c6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\side-rays.blade.php": {
+    "mtime": 1784002675.3222315,
+    "ast_hash": "b75184b9ced4f83d812285d100b8ef16",
+    "semantic_hash": "b75184b9ced4f83d812285d100b8ef16"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\studio-header.blade.php": {
+    "mtime": 1783293761.3994029,
+    "ast_hash": "559a7f17c97386a47f998e2d2e035c2e",
+    "semantic_hash": "559a7f17c97386a47f998e2d2e035c2e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\studio-tabs.blade.php": {
+    "mtime": 1783400002.2990527,
+    "ast_hash": "8212bf4a14e9c7feb4478724e89fe165",
+    "semantic_hash": "8212bf4a14e9c7feb4478724e89fe165"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\components\\text-input.blade.php": {
+    "mtime": 1783295781.7743511,
+    "ast_hash": "b2276ca42e98f1bfe5a37523dc121928",
+    "semantic_hash": "b2276ca42e98f1bfe5a37523dc121928"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\explore\\index.blade.php": {
+    "mtime": 1784062316.2335608,
+    "ast_hash": "4396a5078ca406b5c273c5456606e129",
+    "semantic_hash": "4396a5078ca406b5c273c5456606e129"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\explore\\partials\\_filters.blade.php": {
+    "mtime": 1784062035.5631628,
+    "ast_hash": "b1995a46274f5620b836ca7f226f3bb8",
+    "semantic_hash": "b1995a46274f5620b836ca7f226f3bb8"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\global\\Payments\\index.blade.php": {
+    "mtime": 1783396991.1995542,
+    "ast_hash": "ab7d343b24430214b857c66c869f596b",
+    "semantic_hash": "ab7d343b24430214b857c66c869f596b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\global\\classes\\student.blade.php": {
+    "mtime": 1783396991.201548,
+    "ast_hash": "f0f17ddd2c0dac48c10856260fbc7ad6",
+    "semantic_hash": "f0f17ddd2c0dac48c10856260fbc7ad6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\global\\classes\\teacher.blade.php": {
+    "mtime": 1783396991.201548,
+    "ast_hash": "9e1df33bd47ad7707bb05a1f0d5b877d",
+    "semantic_hash": "9e1df33bd47ad7707bb05a1f0d5b877d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\global\\classes\\teacher_session.blade.php": {
+    "mtime": 1783397179.5314028,
+    "ast_hash": "b42c03f997014cf4af3963840e99ecee",
+    "semantic_hash": "b42c03f997014cf4af3963840e99ecee"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\layouts\\admin.blade.php": {
+    "mtime": 1783293866.7242568,
+    "ast_hash": "65883a0a188616dafb6b9e1022695bf4",
+    "semantic_hash": "65883a0a188616dafb6b9e1022695bf4"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\layouts\\app.blade.php": {
+    "mtime": 1784052561.1446044,
+    "ast_hash": "e6016e5af62fe19561d643d56201ad29",
+    "semantic_hash": "e6016e5af62fe19561d643d56201ad29"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\layouts\\guest.blade.php": {
+    "mtime": 1784003277.2179244,
+    "ast_hash": "a628d9bf9af09df78614692c17007885",
+    "semantic_hash": "a628d9bf9af09df78614692c17007885"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\layouts\\navigation.blade.php": {
+    "mtime": 1783971769.2700703,
+    "ast_hash": "0ccdb3c375c352ca9f4d9b9bc27cd57f",
+    "semantic_hash": "0ccdb3c375c352ca9f4d9b9bc27cd57f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\legal\\privacy.blade.php": {
+    "mtime": 1783295610.7539425,
+    "ast_hash": "2a202cc9f398c93ae6fddaffbe8d6140",
+    "semantic_hash": "2a202cc9f398c93ae6fddaffbe8d6140"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\legal\\terms.blade.php": {
+    "mtime": 1783295610.7509508,
+    "ast_hash": "c59ad524c66441db68d1b5e8dd03e0f9",
+    "semantic_hash": "c59ad524c66441db68d1b5e8dd03e0f9"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\admin\\new_subscription.blade.php": {
+    "mtime": 1778954533.533373,
+    "ast_hash": "16d0cd763abbf7520a1e0e98de3483b1",
+    "semantic_hash": "16d0cd763abbf7520a1e0e98de3483b1"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\class-cancelled.blade.php": {
+    "mtime": 1781567188.9345312,
+    "ast_hash": "72b8b4bd1da5f55efc20659f99318952",
+    "semantic_hash": "72b8b4bd1da5f55efc20659f99318952"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\class-refunded.blade.php": {
+    "mtime": 1781567187.3625522,
+    "ast_hash": "58e6215a521dfad6435fd6b8e287fdb0",
+    "semantic_hash": "58e6215a521dfad6435fd6b8e287fdb0"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\dependent-profile-linked.blade.php": {
+    "mtime": 1781567194.039008,
+    "ast_hash": "bc891bdae6f75fe05e5cabc52830a99b",
+    "semantic_hash": "bc891bdae6f75fe05e5cabc52830a99b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\family\\link-request.blade.php": {
+    "mtime": 1781567225.377236,
+    "ast_hash": "898cbc315b942e9766c3722bebf0814a",
+    "semantic_hash": "898cbc315b942e9766c3722bebf0814a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\family\\transfer-request.blade.php": {
+    "mtime": 1781567222.9252093,
+    "ast_hash": "9725c52684608ddcbf7701598edae689",
+    "semantic_hash": "9725c52684608ddcbf7701598edae689"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\local-profile-linked.blade.php": {
+    "mtime": 1781567192.2575035,
+    "ast_hash": "b0c381af9dbba72162d054c4c4dbe06b",
+    "semantic_hash": "b0c381af9dbba72162d054c4c4dbe06b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\onboarding\\student-invitation.blade.php": {
+    "mtime": 1781567221.2655685,
+    "ast_hash": "8c189be6427589c1023ee6642cd2f68e",
+    "semantic_hash": "8c189be6427589c1023ee6642cd2f68e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\onboarding\\student-welcome.blade.php": {
+    "mtime": 1781567209.9663773,
+    "ast_hash": "e7cac9597538d57e3d5c6dcce770c7cc",
+    "semantic_hash": "e7cac9597538d57e3d5c6dcce770c7cc"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\onboarding\\teacher-invitation.blade.php": {
+    "mtime": 1781567219.969743,
+    "ast_hash": "2d2cbc4c660005bbb0fd5bcf5146cf8f",
+    "semantic_hash": "2d2cbc4c660005bbb0fd5bcf5146cf8f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\onboarding\\teacher-linked.blade.php": {
+    "mtime": 1781567212.2107944,
+    "ast_hash": "6616a67abcd4f8a2a23aed24fa4e3796",
+    "semantic_hash": "6616a67abcd4f8a2a23aed24fa4e3796"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\onboarding\\user-linked.blade.php": {
+    "mtime": 1781567211.0077963,
+    "ast_hash": "ded0dbd82611048bd22c3913de100c65",
+    "semantic_hash": "ded0dbd82611048bd22c3913de100c65"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\payments\\student_receipt.blade.php": {
+    "mtime": 1781567200.1432562,
+    "ast_hash": "9a5357e8b3f247fe24e76bd6ef86a379",
+    "semantic_hash": "9a5357e8b3f247fe24e76bd6ef86a379"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\payments\\studio_notification.blade.php": {
+    "mtime": 1781567200.8231494,
+    "ast_hash": "5bd7d10610038268f24245e952804512",
+    "semantic_hash": "5bd7d10610038268f24245e952804512"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\payroll\\teacher-payment-received.blade.php": {
+    "mtime": 1781567201.558176,
+    "ast_hash": "68086762a7addb582b2a61ff1c7fc4ea",
+    "semantic_hash": "68086762a7addb582b2a61ff1c7fc4ea"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\plan-manually-updated.blade.php": {
+    "mtime": 1781567190.6215866,
+    "ast_hash": "6c68a50b7e9475a0a44eb1e302b80f0e",
+    "semantic_hash": "6c68a50b7e9475a0a44eb1e302b80f0e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\studios\\mp-linked.blade.php": {
+    "mtime": 1781567208.199368,
+    "ast_hash": "fbcb0b4332ee5b97c5ba5238b6f63bb9",
+    "semantic_hash": "fbcb0b4332ee5b97c5ba5238b6f63bb9"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\studios\\mp-unlinked.blade.php": {
+    "mtime": 1781567206.704059,
+    "ast_hash": "7bc1482c76f7f67531ec27b984728366",
+    "semantic_hash": "7bc1482c76f7f67531ec27b984728366"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\studios\\welcome.blade.php": {
+    "mtime": 1781567198.6668925,
+    "ast_hash": "6bfedb25ea4a6c7ef03da1359af51825",
+    "semantic_hash": "6bfedb25ea4a6c7ef03da1359af51825"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\subscriptions\\canceled-debt.blade.php": {
+    "mtime": 1783112163.0538218,
+    "ast_hash": "acbd618ba49929884616d55ae59be0e5",
+    "semantic_hash": "acbd618ba49929884616d55ae59be0e5"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\subscriptions\\canceled-immediate.blade.php": {
+    "mtime": 1783112168.0830176,
+    "ast_hash": "e3dcbc0f603725038b857e0e83522b0b",
+    "semantic_hash": "e3dcbc0f603725038b857e0e83522b0b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\subscriptions\\canceled-scheduled.blade.php": {
+    "mtime": 1783112173.3922274,
+    "ast_hash": "0b131c6cafabf2d5b6ad8db9b464a3d6",
+    "semantic_hash": "0b131c6cafabf2d5b6ad8db9b464a3d6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\subscriptions\\past-due.blade.php": {
+    "mtime": 1782605337.187913,
+    "ast_hash": "92f2abc1183dc9a5e67ff58fd4343d50",
+    "semantic_hash": "92f2abc1183dc9a5e67ff58fd4343d50"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\subscriptions\\receipt.blade.php": {
+    "mtime": 1781567199.3605833,
+    "ast_hash": "ca9b8cddbd79d71307969c50c1e41632",
+    "semantic_hash": "ca9b8cddbd79d71307969c50c1e41632"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\support\\demo-scheduled-admin.blade.php": {
+    "mtime": 1781567217.1176434,
+    "ast_hash": "5dc290f9b4740e81559d81c9188e8929",
+    "semantic_hash": "5dc290f9b4740e81559d81c9188e8929"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\support\\demo-scheduled-user.blade.php": {
+    "mtime": 1781567213.9330702,
+    "ast_hash": "cabdf147c9f0aa2a345fd3de28a9936f",
+    "semantic_hash": "cabdf147c9f0aa2a345fd3de28a9936f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\mail\\support\\support-inquiry.blade.php": {
+    "mtime": 1781567217.8589933,
+    "ast_hash": "287a8ab53f9a9cb3d9d4586799a2228a",
+    "semantic_hash": "287a8ab53f9a9cb3d9d4586799a2228a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\payments\\failure.blade.php": {
+    "mtime": 1783294976.8229866,
+    "ast_hash": "9112cac8e2011921f32b3c5f03e671b7",
+    "semantic_hash": "9112cac8e2011921f32b3c5f03e671b7"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\payments\\pending.blade.php": {
+    "mtime": 1783294969.6555014,
+    "ast_hash": "16232330896f62893a4493358d49f296",
+    "semantic_hash": "16232330896f62893a4493358d49f296"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\payments\\success.blade.php": {
+    "mtime": 1783294960.865274,
+    "ast_hash": "e80b7daf1784d811e0788912a20c6770",
+    "semantic_hash": "e80b7daf1784d811e0788912a20c6770"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\profile\\dependent-decision.blade.php": {
+    "mtime": 1783295062.1962316,
+    "ast_hash": "3ffad739a664074685ad6d18507817f1",
+    "semantic_hash": "3ffad739a664074685ad6d18507817f1"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\profile\\edit.blade.php": {
+    "mtime": 1784083517.3995738,
+    "ast_hash": "9e2d1b1988eb2d9807ba3f26ec1ef82a",
+    "semantic_hash": "9e2d1b1988eb2d9807ba3f26ec1ef82a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\profile\\family\\index.blade.php": {
+    "mtime": 1784083678.6389937,
+    "ast_hash": "eed8ce6ebf5484e5ba609b75d37b79de",
+    "semantic_hash": "eed8ce6ebf5484e5ba609b75d37b79de"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\profile\\partials\\delete-user-form.blade.php": {
+    "mtime": 1783295038.421259,
+    "ast_hash": "1f095cf6b280932f7a0616d075759050",
+    "semantic_hash": "1f095cf6b280932f7a0616d075759050"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\profile\\partials\\update-password-form.blade.php": {
+    "mtime": 1783295029.3553467,
+    "ast_hash": "2bafa0bbd21340429b7765920a9d658c",
+    "semantic_hash": "2bafa0bbd21340429b7765920a9d658c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\profile\\partials\\update-profile-information-form.blade.php": {
+    "mtime": 1783295019.453579,
+    "ast_hash": "9a7bca3f6332fd42ead7efba9640bc0a",
+    "semantic_hash": "9a7bca3f6332fd42ead7efba9640bc0a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\promotions\\index.blade.php": {
+    "mtime": 1783994096.0286882,
+    "ast_hash": "34d60b5b1bac9f23bf7077f415833b1e",
+    "semantic_hash": "34d60b5b1bac9f23bf7077f415833b1e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\students\\calendar.blade.php": {
+    "mtime": 1784002337.554778,
+    "ast_hash": "272a7e78ed85135c2728e22dce111a8a",
+    "semantic_hash": "272a7e78ed85135c2728e22dce111a8a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\students\\index.blade.php": {
+    "mtime": 1783994096.0286882,
+    "ast_hash": "84a1a349b90736d71f97791cfd3f38e9",
+    "semantic_hash": "84a1a349b90736d71f97791cfd3f38e9"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\studios\\dashboard.blade.php": {
+    "mtime": 1783999301.8178403,
+    "ast_hash": "9087ee4fb43033154c0c8b209f59433c",
+    "semantic_hash": "9087ee4fb43033154c0c8b209f59433c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\studios\\index.blade.php": {
+    "mtime": 1783396991.2045403,
+    "ast_hash": "154fdcb250934c76302d1d7fd627cd3e",
+    "semantic_hash": "154fdcb250934c76302d1d7fd627cd3e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\studios\\payroll.blade.php": {
+    "mtime": 1783396991.201548,
+    "ast_hash": "ac9e756f52b5b77e1bf9702655a8667a",
+    "semantic_hash": "ac9e756f52b5b77e1bf9702655a8667a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\subscriptions\\index.blade.php": {
+    "mtime": 1783397259.2521968,
+    "ast_hash": "0a3c6dd4f54f533ff6913e37e2d23973",
+    "semantic_hash": "0a3c6dd4f54f533ff6913e37e2d23973"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\support\\index.blade.php": {
+    "mtime": 1783923398.6575716,
+    "ast_hash": "b9620439803bc57247a588c7e3b445da",
+    "semantic_hash": "b9620439803bc57247a588c7e3b445da"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\teachers\\index.blade.php": {
+    "mtime": 1783994096.0266943,
+    "ast_hash": "0a522911b4ba8cab728ea669cf1de858",
+    "semantic_hash": "0a522911b4ba8cab728ea669cf1de858"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\teachers\\payroll.blade.php": {
+    "mtime": 1783994199.3104153,
+    "ast_hash": "4e6965a0ae408d25ce7dca9c776d4692",
+    "semantic_hash": "4e6965a0ae408d25ce7dca9c776d4692"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\trainingmonth\\index.blade.php": {
+    "mtime": 1783994096.0266943,
+    "ast_hash": "3b14e6784916f95e2c93fff633f0bc31",
+    "semantic_hash": "3b14e6784916f95e2c93fff633f0bc31"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\trainingmonth\\show.blade.php": {
+    "mtime": 1783994490.0596697,
+    "ast_hash": "20f5b4dcd975ba36ee403bd0a7964de7",
+    "semantic_hash": "20f5b4dcd975ba36ee403bd0a7964de7"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\welcome.blade.php": {
+    "mtime": 1783968480.206529,
+    "ast_hash": "b191666ab23aafcb433e459b20d4849c",
+    "semantic_hash": "b191666ab23aafcb433e459b20d4849c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\resources\\views\\workshops\\index.blade.php": {
+    "mtime": 1783994096.0117338,
+    "ast_hash": "ef9474d3804c8991ae95482d6cc4e743",
+    "semantic_hash": "ef9474d3804c8991ae95482d6cc4e743"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\routes\\api.php": {
+    "mtime": 1780967274.5564394,
+    "ast_hash": "7035cff4321b7eb375125156833dd4a6",
+    "semantic_hash": "7035cff4321b7eb375125156833dd4a6"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\routes\\auth.php": {
+    "mtime": 1777570169.8911884,
+    "ast_hash": "c230bc31e814bcfa0553ff5935e0c4e4",
+    "semantic_hash": "c230bc31e814bcfa0553ff5935e0c4e4"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\routes\\console.php": {
+    "mtime": 1782605348.0861742,
+    "ast_hash": "440b58fe2456c5d2549d747bdc9ef2ca",
+    "semantic_hash": "440b58fe2456c5d2549d747bdc9ef2ca"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\routes\\web.php": {
+    "mtime": 1784061554.9025452,
+    "ast_hash": "9000c001649fb8a16f705297311e646f",
+    "semantic_hash": "9000c001649fb8a16f705297311e646f"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\skills-lock.json": {
+    "mtime": 1781287993.1906984,
+    "ast_hash": "d5ab6ed19e5a015de89521b2014fe3d0",
+    "semantic_hash": "d5ab6ed19e5a015de89521b2014fe3d0"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\Auth\\AuthenticationTest.php": {
+    "mtime": 1777570169.8925796,
+    "ast_hash": "d26edda4c81db8cf925542be1559428e",
+    "semantic_hash": "d26edda4c81db8cf925542be1559428e"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\Auth\\EmailVerificationTest.php": {
+    "mtime": 1777570169.8935647,
+    "ast_hash": "b2998354a8941e19d8b5966ed58fbc3b",
+    "semantic_hash": "b2998354a8941e19d8b5966ed58fbc3b"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\Auth\\PasswordConfirmationTest.php": {
+    "mtime": 1777570169.8935647,
+    "ast_hash": "639819d11873f6b0989e7cd97292f8df",
+    "semantic_hash": "639819d11873f6b0989e7cd97292f8df"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\Auth\\PasswordResetTest.php": {
+    "mtime": 1777570169.8945613,
+    "ast_hash": "c93f904d5b856553fdb69fa37fe45eda",
+    "semantic_hash": "c93f904d5b856553fdb69fa37fe45eda"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\Auth\\PasswordUpdateTest.php": {
+    "mtime": 1777570169.8945613,
+    "ast_hash": "019fcd718b09c089a0b622bd876c7679",
+    "semantic_hash": "019fcd718b09c089a0b622bd876c7679"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\Auth\\RegistrationTest.php": {
+    "mtime": 1777570169.8945613,
+    "ast_hash": "e4ff585fa041fda863cc5e5214efee8c",
+    "semantic_hash": "e4ff585fa041fda863cc5e5214efee8c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\ExampleTest.php": {
+    "mtime": 1777570169.8945613,
+    "ast_hash": "d38ddea7655f855a32c0325991776d48",
+    "semantic_hash": "d38ddea7655f855a32c0325991776d48"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Feature\\ProfileTest.php": {
+    "mtime": 1777570169.8945613,
+    "ast_hash": "4e771ef2c6a1f18a14bd0e398c4fc4bf",
+    "semantic_hash": "4e771ef2c6a1f18a14bd0e398c4fc4bf"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Pest.php": {
+    "mtime": 1777570169.8945613,
+    "ast_hash": "8eba2d9095aca77285fb1916f9c558d3",
+    "semantic_hash": "8eba2d9095aca77285fb1916f9c558d3"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\TestCase.php": {
+    "mtime": 1775741725.0,
+    "ast_hash": "7e567dc27e68d5b57bae16af07f68907",
+    "semantic_hash": "7e567dc27e68d5b57bae16af07f68907"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\tests\\Unit\\ExampleTest.php": {
+    "mtime": 1776221514.4617524,
+    "ast_hash": "2bc41f1156dead26b2a3082f9634b041",
+    "semantic_hash": "2bc41f1156dead26b2a3082f9634b041"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\vite.config.js": {
+    "mtime": 1779739165.7342968,
+    "ast_hash": "4a6d6404b71ec163b0fe05a926790a84",
+    "semantic_hash": "4a6d6404b71ec163b0fe05a926790a84"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\brandkit\\SKILL.md": {
+    "mtime": 1781287976.0657668,
+    "ast_hash": "7491f8fb77b0ebf517b758d096ac4ab4",
+    "semantic_hash": "7491f8fb77b0ebf517b758d096ac4ab4"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\design-taste-frontend-v1\\SKILL.md": {
+    "mtime": 1781287976.0729282,
+    "ast_hash": "05b271f9985412ac9c081a0511bb6cbe",
+    "semantic_hash": "05b271f9985412ac9c081a0511bb6cbe"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\design-taste-frontend\\SKILL.md": {
+    "mtime": 1781287976.0739257,
+    "ast_hash": "648c8bf98f84fbe7f14bf2da035c57fe",
+    "semantic_hash": "648c8bf98f84fbe7f14bf2da035c57fe"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\full-output-enforcement\\SKILL.md": {
+    "mtime": 1781287976.0699363,
+    "ast_hash": "2072dc2c1357dc9cd6384d1f441e05c3",
+    "semantic_hash": "2072dc2c1357dc9cd6384d1f441e05c3"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\gpt-taste\\SKILL.md": {
+    "mtime": 1781287976.0669446,
+    "ast_hash": "e2a7560cbfce7a853dd8f65eca12c103",
+    "semantic_hash": "e2a7560cbfce7a853dd8f65eca12c103"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\high-end-visual-design\\SKILL.md": {
+    "mtime": 1781287976.0709338,
+    "ast_hash": "64f7c1069a5a3d18797950d8fac7b63a",
+    "semantic_hash": "64f7c1069a5a3d18797950d8fac7b63a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\image-to-code\\SKILL.md": {
+    "mtime": 1781287976.0679417,
+    "ast_hash": "b18a810930da9c6b558b15c85bc74007",
+    "semantic_hash": "b18a810930da9c6b558b15c85bc74007"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\imagegen-frontend-mobile\\SKILL.md": {
+    "mtime": 1781287976.0679417,
+    "ast_hash": "6253c18387ca5d561a945ffe14e70d54",
+    "semantic_hash": "6253c18387ca5d561a945ffe14e70d54"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\imagegen-frontend-web\\SKILL.md": {
+    "mtime": 1781287976.068939,
+    "ast_hash": "728f55ab7e44330e78aac4ca8331d83a",
+    "semantic_hash": "728f55ab7e44330e78aac4ca8331d83a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\industrial-brutalist-ui\\SKILL.md": {
+    "mtime": 1781287976.065947,
+    "ast_hash": "da7f92d7e3b8b526ecbd71009fe973ca",
+    "semantic_hash": "da7f92d7e3b8b526ecbd71009fe973ca"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\minimalist-ui\\SKILL.md": {
+    "mtime": 1781287976.0699363,
+    "ast_hash": "32f8681f79a681d00a4b72ddce4415b1",
+    "semantic_hash": "32f8681f79a681d00a4b72ddce4415b1"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\redesign-existing-projects\\SKILL.md": {
+    "mtime": 1781287976.0709338,
+    "ast_hash": "c8d729e3e807df37dcd5e6262c9b8843",
+    "semantic_hash": "c8d729e3e807df37dcd5e6262c9b8843"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\stitch-design-taste\\DESIGN.md": {
+    "mtime": 1781287976.071931,
+    "ast_hash": "7f8c91aeecc8983b687965c2fc23438c",
+    "semantic_hash": "7f8c91aeecc8983b687965c2fc23438c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\.agents\\skills\\stitch-design-taste\\SKILL.md": {
+    "mtime": 1781287976.071931,
+    "ast_hash": "fcbb4f37d67a66a53013b484dcfc9f25",
+    "semantic_hash": "fcbb4f37d67a66a53013b484dcfc9f25"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\CLAUDE.md": {
+    "mtime": 1781566958.287964,
+    "ast_hash": "976a7cc2b1e53681ba150c38acb8e23c",
+    "semantic_hash": "976a7cc2b1e53681ba150c38acb8e23c"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\README.md": {
+    "mtime": 1775741725.0,
+    "ast_hash": "d2661a31fed7f254f5b7d3b6fe19330a",
+    "semantic_hash": "d2661a31fed7f254f5b7d3b6fe19330a"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\instrucciones.txt": {
+    "mtime": 1783293138.4433334,
+    "ast_hash": "8b1745ce01d594057c95769bd9789c5d",
+    "semantic_hash": "8b1745ce01d594057c95769bd9789c5d"
+  },
+  "C:\\Users\\Oscar\\Herd\\EstadoPrisma\\pendientes.txt": {
+    "mtime": 1784087828.5137,
+    "ast_hash": "49a1cd74f3d3beec46351d77fe7939e2",
+    "semantic_hash": "49a1cd74f3d3beec46351d77fe7939e2"
   }
 }

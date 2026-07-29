@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
         if (app()->environment('local', 'testing')) {
             $this->call([
                 PruebaSeeder::class,
+                LandingDemoSeeder::class,
             ]);
             
             $this->command->info('Seeders de prueba ejecutados correctamente en entorno local.');

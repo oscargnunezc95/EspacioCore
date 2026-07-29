@@ -6,19 +6,18 @@ use App\Models\Studio;
 use App\Models\ClassSession;
 use App\Models\Student;
 use App\Models\Payment;
-use App\Models\SaasPayment;
-use App\Models\SubscriptionPlan;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Services\EnrollmentService;
 use App\Services\PricingService;
-use App\Services\PayrollService; // <-- Importante para el pago a profesores
+use App\Services\PayrollService;
 use MercadoPago\MercadoPagoConfig;
 use MercadoPago\Client\Preference\PreferenceClient;
 use MercadoPago\Client\Payment\PaymentClient;
 use MercadoPago\Client\Payment\PaymentRefundClient;
-use MercadoPago\Client\PreApproval\PreApprovalClient;
+use MercadoPago\Client\Order\OrderClient;
+use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
 
 class MercadoPagoService
@@ -52,7 +51,7 @@ class MercadoPagoService
 
     public function createPreference($studioId, $selections, $user)
     {
-        $studio = Studio::with('user.country', 'subscriptionPlan')->findOrFail($studioId);
+        $studio = Studio::with('user.country')->findOrFail($studioId);
         
         $studioToken = $studio->mp_access_token;
 
@@ -101,6 +100,7 @@ class MercadoPagoService
             'items'              => $items,
             'statement_descriptor' => strtoupper(substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $studio->name), 0, 20)),
             'external_reference' => json_encode([
+                'type'       => 'student_payment', // ✅ AGREGADO: Bandera obligatoria para el enrutador del webhook
                 'user_id'    => $user->id,
                 'selections' => $selections,
                 'studio_id'  => $studioId,
@@ -114,21 +114,9 @@ class MercadoPagoService
             'notification_url' => rtrim($webhookDomain, '/') . '/api/webhooks/mercadopago', 
         ];
 
-        // =========================================================================
-        // LÓGICA DE SPLIT PAYMENT (COBRO DE TU COMISIÓN)
-        // =========================================================================
-        $plan = $studio->subscriptionPlan;
-        $feePercent = $plan ? (float) $plan->platform_fee_percent : 5.00; 
+        // NOTA: El 100% del dinero va al token del estudio sin retenciones automáticas.
+        // La comisión de la plataforma se factura aparte mediante el sistema Floor-Capped.
 
-        if ($feePercent > 0 && $totalAmount > 0) {
-            $feeAmount = round($totalAmount * ($feePercent / 100));
-            
-            // Medida de seguridad: La comisión nunca puede ser mayor o igual al total
-            if ($feeAmount > 0 && $feeAmount < $totalAmount) {
-                $request['marketplace_fee'] = $feeAmount;
-            }
-        }
-        
         $preference = $client->create($request);
 
         if (!$preference->init_point) {
@@ -141,10 +129,11 @@ class MercadoPagoService
         ];
     }
 
-    // =========================================================================
-    // EL DIRECTOR DE ORQUESTA (Dispatcher)
-    // =========================================================================
-    public function handlePaymentWebhook($dataId)
+    /**
+     * El Director de Orquesta (Dispatcher) del Webhook
+     * Procesa la notificación de Mercado Pago aplicando inferencia de tipos y validación estricta.
+     */
+    public function handlePaymentWebhook($dataId): void
     {
         $this->setToken(config('services.mercadopago.token'));
 
@@ -156,15 +145,54 @@ class MercadoPagoService
             return;
         }
 
+        // Si el pago no existe o aún no está aprobado, se ignora pacíficamente sin error
         if (!$mpPayment || $mpPayment->status !== 'approved') {
-            Log::info("Pago {$dataId} ignorado o no aprobado. Estado: " . ($mpPayment->status ?? 'null'));
+            Log::info("Pago {$dataId} ignorado o no aprobado. Estado actual: " . ($mpPayment->status ?? 'null'));
             return;
         }
 
         $meta = json_decode($mpPayment->external_reference, true);
-        $type = $meta['type'] ?? 'student_payment'; // Fallback a alumno si no hay flag
 
-        // Derivamos según el tipo de pago
+        // 1. RESOLUCIÓN DE CACHÉ (Para referencias cortas del Orders API / QR Estático)
+        if (!is_array($meta) || !isset($meta['type'])) {
+            $cached = \Illuminate\Support\Facades\Cache::get("mp_order_meta:{$mpPayment->external_reference}");
+            if (is_array($cached)) {
+                $meta = $cached;
+                Log::info("Metadata de orden resuelta exitosamente desde caché", ['ref' => $mpPayment->external_reference]);
+            }
+        }
+
+        // 2. 🛡️ INFERENCIA AUTOMÁTICA DE TIPO (Smart Fallback para payloads legacy o incompletos)
+        // Si el JSON es válido pero le falta la bandera 'type', lo deducimos por su contenido
+        if (is_array($meta) && !isset($meta['type'])) {
+            if (isset($meta['selections'])) {
+                $meta['type'] = 'student_payment';
+                Log::info("💡 [Smart Fallback] Tipo 'student_payment' inferido automáticamente por la presencia de 'selections' para pago ID: {$dataId}");
+            } elseif (isset($meta['teacher_id'])) {
+                $meta['type'] = 'teacher_payment';
+                Log::info("💡 [Smart Fallback] Tipo 'teacher_payment' inferido automáticamente para pago ID: {$dataId}");
+            } elseif (isset($meta['invoice_id'])) {
+                $meta['type'] = 'platform_invoice_payment';
+                Log::info("💡 [Smart Fallback] Tipo 'platform_invoice_payment' inferido automáticamente para pago ID: {$dataId}");
+            }
+        }
+
+        // 3. 🚨 BLINDAJE ESTRICTO ANTE FALLOS SILENCIOSOS
+        // Si después de la inferencia sigue sin haber un tipo válido, abortamos CON EXCEPCIÓN
+        // para que el WebhookController no registre un falso positivo en los logs.
+        if (!is_array($meta) || !isset($meta['type'])) {
+            Log::warning("⚠️ [MP Webhook] Abortando: Webhook recibido sin metadata válida en external_reference y sin posible inferencia.", [
+                'payment_id'         => $dataId,
+                'external_reference' => $mpPayment->external_reference,
+                'decoded'            => $meta,
+            ]);
+            
+            throw new \Exception("Metadata inválida o incompleta (falta atributo 'type') para el pago MP ID: {$dataId}");
+        }
+
+        $type = $meta['type'];
+
+        // 4. DERIVACIÓN HACIA EL SUB-SISTEMA CORRESPONDIENTE
         switch ($type) {
             case 'teacher_payment':
                 $this->processTeacherPayment($meta);
@@ -174,13 +202,13 @@ class MercadoPagoService
                 $this->processStudentPayment($dataId, $mpPayment, $meta);
                 break;
 
-            case 'saas_subscription':
-                $this->processSaaSPayment($dataId, $mpPayment, $meta);
+            case 'platform_invoice_payment':
+                $this->processPlatformInvoicePayment($dataId, $mpPayment, $meta);
                 break;
 
             default:
-                Log::warning("Tipo de pago desconocido en Webhook: {$type}");
-                break;
+                Log::warning("⚠️ [MP Webhook] Tipo de pago desconocido o no manejado: [{$type}] para ID: {$dataId}");
+                throw new \Exception("Tipo de pago no soportado [{$type}] en Webhook para ID: {$dataId}");
         }
     }
 
@@ -216,27 +244,31 @@ class MercadoPagoService
     }
 
     // =========================================================================
-    // 3. LÓGICA AISLADA: PAGO DE ALUMNOS (CON IDEMPOTENCIA PARA SPLIT PAYMENTS)
+    // 3. LÓGICA AISLADA: PAGO DE ALUMNOS (CON IDEMPOTENCIA Y MAILS GARANTIZADOS)
     // =========================================================================
-    private function processStudentPayment($dataId, $mpPayment, array $meta)
+    private function processStudentPayment($dataId, $mpPayment, array $meta): void
     {
-        // 🚨 GUARDIA DE CONCURRENCIA EXTREMA: Bloqueo Atómico en RAM
         $lockKey = "mp_payment_lock_{$dataId}";
 
-        // Cache::add solo devuelve 'true' si la llave NO existía y logra crearla.
-        // Si devuelve 'false', significa que otro webhook idéntico entró hace milisegundos.
         if (!\Illuminate\Support\Facades\Cache::add($lockKey, true, 60)) {
             Log::info("Idempotencia Concurrente: El pago MP {$dataId} ya está siendo procesado por otro hilo. Abortando clon.");
             return;
         }
 
         try {
-            // Guardia de Idempotencia Histórica (Por si Mercado Pago reintenta horas después)
             $existingPayment = Payment::where('mp_payment_id', $dataId)->first();
             
             if ($existingPayment) {
                 Log::info("Idempotencia Histórica: El pago MP {$dataId} ya existe en el Ledger con estado [{$existingPayment->status}]. Cancelando clon.");
+                \Illuminate\Support\Facades\Cache::forget($lockKey);
                 return; 
+            }
+
+            // Si viene del Order API (QR), convertir session_ids + student_id → formato selections
+            if (empty($meta['selections']) && !empty($meta['session_ids']) && !empty($meta['student_id'])) {
+                $meta['selections'] = array_map(function ($sid) use ($meta) {
+                    return ['session_id' => (int) $sid, 'student_id' => (int) $meta['student_id']];
+                }, $meta['session_ids']);
             }
 
             $selectionsPagadas = $meta['selections'] ?? [];
@@ -244,12 +276,12 @@ class MercadoPagoService
 
             if (empty($selectionsPagadas)) {
                 Log::warning("Pago {$dataId} sin selections en external_reference");
+                \Illuminate\Support\Facades\Cache::forget($lockKey);
                 return;
             }
 
             $totalAmount = (float) $mpPayment->transaction_amount;
 
-            // MAGIA FINANCIERA: Extraer tu comisión exacta reportada por Mercado Pago
             $totalPlatformFee = 0;
             if (isset($mpPayment->fee_details)) {
                 foreach ($mpPayment->fee_details as $fee) {
@@ -265,7 +297,9 @@ class MercadoPagoService
 
             $selectionsByStudent = collect($selectionsPagadas)->groupBy('student_id');
 
-            // CAPA 4: PRE-TRANSACTION CAPACITY VALIDATION (All-or-Nothing)
+            // =========================================================================
+            // CAPA 4: PRE-VALIDACIÓN DE CAPACIDAD (All-or-Nothing Pre-DB)
+            // =========================================================================
             $allSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique()->toArray();
             $enrollmentService = app(EnrollmentService::class);
             $capacityInfo = $enrollmentService->getCapacityInfo($allSessionIds);
@@ -288,13 +322,15 @@ class MercadoPagoService
                 }
             }
 
+            // --- CASO A: OVERBOOKING DETECTADO ANTES DE ENTRAR A BD ---
             if (!empty($overbookedSessions)) {
                 $overIds = array_column($overbookedSessions, 'session_id');
                 Log::warning("Layer 4 bloqueo: sessions " . implode(',', $overIds) . " overbooked. Reembolsando payment {$dataId} completo.");
 
                 $firstSel = $selectionsPagadas[0];
-                $firstSession = ClassSession::withoutGlobalScopes()->find($firstSel['session_id']);
-                $firstStudent = Student::withoutGlobalScopes()->find($firstSel['student_id']);
+                // 🚀 ARREGLO 1: Cargamos explícitamente el usuario y el taller/studio
+                $firstSession = ClassSession::with('workshop.studio')->withoutGlobalScopes()->find($firstSel['session_id']);
+                $firstStudent = Student::with('user')->withoutGlobalScopes()->find($firstSel['student_id']);
                 $studio = $studioId ? Studio::withoutGlobalScopes()->find($studioId) : ($firstSession ? $firstSession->workshop->studio : null);
 
                 $payment = Payment::create([
@@ -315,6 +351,8 @@ class MercadoPagoService
                 }
                 $payment->classSessions()->attach($allPivot);
 
+                \Illuminate\Support\Facades\Cache::forget($lockKey);
+
                 try {
                     $studioToken = $studio?->mp_access_token;
                     if ($studioToken) {
@@ -329,6 +367,7 @@ class MercadoPagoService
                     Log::error("Layer 4 error reembolso MP: payment {$dataId}, " . $e->getMessage());
                 }
 
+                // 🚀 ARREGLO 2: Envío de correo con verificación explícita y log de trazabilidad
                 try {
                     if ($firstStudent && $firstStudent->user && $firstSession) {
                         Mail::to($firstStudent->user->email)
@@ -338,6 +377,9 @@ class MercadoPagoService
                                 $studio,
                                 $totalAmount
                             ));
+                        Log::info("📧 [Mail encolado] ClassRefundedMail enviado a {$firstStudent->user->email} por overbooking Pre-DB.");
+                    } else {
+                        Log::warning("📧 [Mail omitido] Faltaron datos de relación (Student/User/Session) en overbooking Pre-DB para el ID {$dataId}.");
                     }
                 } catch (\Exception $e) {
                     Log::error('Layer 4 error enviando ClassRefundedMail: ' . $e->getMessage());
@@ -346,18 +388,24 @@ class MercadoPagoService
                 return;
             }
 
+            // =========================================================================
+            // CAPA 3: TRANSACCIÓN FINANCIERA EN BD
+            // =========================================================================
             DB::beginTransaction();
             
-            $studio = $studioId ? Studio::withoutGlobalScopes()->find($studioId) : null;
+            $studio = $studioId ? Studio::with('user')->withoutGlobalScopes()->find($studioId) : null;
+            $overbookedGroup = false;
+            $createdPayments = []; 
 
             foreach ($selectionsByStudent as $studentId => $sels) {
                 $firstSel = $sels->first();
                 $sessionIds = $sels->pluck('session_id')->toArray();
-                $firstSession = ClassSession::withoutGlobalScopes()->find($firstSel['session_id']);
+                // 🚀 ARREGLO 3: Eager loading obligatorio para evitar variables nulas en el post-proceso
+                $firstSession = ClassSession::with('workshop.studio')->withoutGlobalScopes()->find($firstSel['session_id']);
 
                 if (!$firstSession) continue;
 
-                $student = Student::withoutGlobalScopes()->find($studentId);
+                $student = Student::with('user')->withoutGlobalScopes()->find($studentId);
                 if (!$student) continue;
 
                 $paymentAmount = $amountPerSelection * count($sessionIds);
@@ -375,6 +423,12 @@ class MercadoPagoService
                     'status'         => 'approved',
                 ]);
 
+                $createdPayments[] = [
+                    'payment'      => $payment,
+                    'student'      => $student,
+                    'firstSession' => $firstSession
+                ];
+
                 $pivotData = [];
                 foreach ($sessionIds as $sid) {
                     $pivotData[$sid] = ['student_id' => $studentId];
@@ -389,8 +443,6 @@ class MercadoPagoService
                 $yaEstabaPagado = $pivotActual && $pivotActual->payment_status === 'paid';
 
                 if (!$yaEstabaPagado) {
-                    $overbookedGroup = false;
-
                     foreach ($sessionIds as $sid) {
                         $session = ClassSession::withoutGlobalScopes()->find($sid);
                         if (!$session) continue;
@@ -420,9 +472,48 @@ class MercadoPagoService
                                 ->exists();
 
                             if (!$alreadyPaid) {
-                                $overbookedGroup = true;
-                                Log::warning("Overbooking detectado en BD: session {$sid}, student {$studentId}, payment {$dataId}");
-                                break;
+                                // El UPDATE falló. Puede ser por: (a) capacidad llena, o (b) el alumno
+                                // nunca fue inscrito en la sesión (no hay fila 'pending' que actualizar).
+                                $isEnrolled = DB::table('class_session_student')
+                                    ->where('class_session_id', $sid)
+                                    ->where('student_id', $studentId)
+                                    ->exists();
+
+                                if (!$isEnrolled) {
+                                    // Caso (b): Alumno paga sin estar pre-inscrito (ej: link por email).
+                                    // Lo inscribimos directamente si hay cupo disponible.
+                                    $paidCount = DB::table('class_session_student')
+                                        ->where('class_session_id', $sid)
+                                        ->where('payment_status', 'paid')
+                                        ->count();
+
+                                    if ($paidCount < $maxStudents) {
+                                        DB::table('class_session_student')->insert([
+                                            'class_session_id' => $sid,
+                                            'student_id'       => $studentId,
+                                            'payment_status'   => 'paid',
+                                            'created_at'       => now(),
+                                            'updated_at'       => now(),
+                                        ]);
+                                        $session->attendances()->firstOrCreate([
+                                            'student_id' => $studentId,
+                                            'studio_id'  => $session->studio_id ?? $studioId,
+                                        ]);
+                                        Log::info("Alumno {$studentId} auto-inscrito y pagado en session {$sid} (pago sin pre-inscripción)", [
+                                            'payment_id' => $dataId,
+                                        ]);
+                                    } else {
+                                        // Realmente sin cupo
+                                        $overbookedGroup = true;
+                                        Log::warning("Overbooking real (sin cupo) en session {$sid}, student {$studentId}, payment {$dataId}");
+                                        break;
+                                    }
+                                } else {
+                                    // Caso (a): Está inscrito pero el UPDATE falló → capacidad llena
+                                    $overbookedGroup = true;
+                                    Log::warning("Overbooking detectado por concurrencia SQL: session {$sid}, student {$studentId}, payment {$dataId}");
+                                    break;
+                                }
                             }
                         } else {
                             $session->attendances()->firstOrCreate([
@@ -434,314 +525,230 @@ class MercadoPagoService
 
                     if ($overbookedGroup) {
                         $payment->update(['status' => 'refunded_overbooking']);
-
-                        try {
-                            $studioToken = $studio?->mp_access_token;
-                            if ($studioToken) {
-                                $this->setToken($studioToken);
-                            } else {
-                                $this->setToken(config('services.mercadopago.token'));
-                            }
-
-                            $refundClient = new PaymentRefundClient();
-                            $refund = $refundClient->refundTotal((int) $dataId);
-                            Log::info("Overbooking resuelto: reembolso emitido para payment {$dataId}, status {$refund->status}");
-                        } catch (\Exception $e) {
-                            Log::error("Error al emitir reembolso MP por overbooking en BD: payment {$dataId}, " . $e->getMessage());
-                        }
-
-                        try {
-                            if ($student->user && isset($firstSession)) {
-                                $studioForMail = $studio ?? $firstSession->workshop->studio;
-                                Mail::to($student->user->email)
-                                    ->queue(new \App\Mail\ClassRefundedMail(
-                                        $firstSession,
-                                        $student,
-                                        $studioForMail,
-                                        $paymentAmount
-                                    ));
-                            }
-                        } catch (\Exception $e) {
-                            Log::error('Error enviando ClassRefundedMail: ' . $e->getMessage());
-                        }
-
-                    } else {
-                        try {
-                            if ($student->user) {
-                                $student->user->notify(new \App\Notifications\StudentPaymentApprovedNotification($payment));
-                            }
-                        } catch (\Exception $e) {
-                            Log::error('Error notificando pago aprobado MP: ' . $e->getMessage());
-                        }
                     }
-
                 } else {
-                    Log::info("Pago {$dataId} ya estaba registrado. Evitando duplicidad cruzada.");
+                    Log::info("Pago {$dataId} ya estaba registrado para estudiante {$studentId}. Evitando duplicidad cruzada.");
                 }
             }
 
             DB::commit();
+            \Illuminate\Support\Facades\Cache::forget($lockKey);
 
-            $affectedSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique()->toArray();
-            app(EnrollmentService::class)->notifyCapacityChange($affectedSessionIds, 0);
+            // =========================================================================
+            // CAPA DE AISLAMIENTO: ACCIONES POST-PERSISTENCIA (Red / Mails / Colas)
+            // =========================================================================
+
+            // --- CASO B: OVERBOOKING DETECTADO DENTRO DE LA TRANSACCIÓN SQL ---
+            if ($overbookedGroup) {
+                try {
+                    $studioToken = $studio?->mp_access_token;
+                    if ($studioToken) {
+                        $this->setToken($studioToken);
+                    } else {
+                        $this->setToken(config('services.mercadopago.token'));
+                    }
+
+                    $refundClient = new PaymentRefundClient();
+                    $refund = $refundClient->refundTotal((int) $dataId);
+                    Log::info("Overbooking SQL resuelto: reembolso emitido para payment {$dataId}, status {$refund->status}");
+                } catch (\Exception $e) {
+                    Log::error("Error crítico de red: No se pudo emitir reembolso MP en BD para payment {$dataId}: " . $e->getMessage());
+                }
+
+                // 🚀 ARREGLO 4: Iterar limpiamente sobre las transacciones creadas para notificar el reembolso
+                foreach ($createdPayments as $item) {
+                    try {
+                        if ($item['student']->user && $item['firstSession']) {
+                            $studioForMail = $studio ?? $item['firstSession']->workshop->studio;
+                            Mail::to($item['student']->user->email)
+                                ->queue(new \App\Mail\ClassRefundedMail(
+                                    $item['firstSession'],
+                                    $item['student'],
+                                    $studioForMail,
+                                    $item['payment']->amount
+                                ));
+                            Log::info("📧 [Mail encolado] ClassRefundedMail enviado a {$item['student']->user->email} por overbooking en SQL.");
+                        } else {
+                            Log::warning("📧 [Mail omitido] No se encontró el user para el alumno ID {$item['student']->id} en overbooking SQL.");
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Error de red enviando ClassRefundedMail por overbooking SQL: ' . $e->getMessage());
+                    }
+                }
+
+                return;
+            }
+
+            // --- CASO C: PAGO EXITOSO SIN SOBRECUPO ---
+
+            try {
+                $affectedSessionIds = collect($selectionsPagadas)->pluck('session_id')->unique()->toArray();
+                app(EnrollmentService::class)->notifyCapacityChange($affectedSessionIds, 0, 'payment');
+            } catch (\Exception $e) {
+                Log::error("Error secundario al notificar cambio de capacidad en pago {$dataId}: " . $e->getMessage());
+            }
+
+            // 🚀 Despacho garantizado de correos y notificaciones
+            foreach ($createdPayments as $item) {
+                try {
+                    if ($item['student']->user && $item['payment']->status === 'approved') {
+
+                        $studentName = $item['student']->name;
+
+                        // Garantizar que tenemos el estudio con la relación user cargada
+                        $studioForMail = $studio?->relationLoaded('user')
+                            ? $studio
+                            : optional($item['firstSession']->workshop ?? null)->studio;
+                        if ($studioForMail && !$studioForMail->relationLoaded('user')) {
+                            $studioForMail->load('user');
+                        }
+
+                        // 1️⃣ AL ALUMNO [Notificación In-App]: Alimenta la campana de alertas
+                        $item['student']->user->notify(
+                            new \App\Notifications\StudentPaymentApprovedNotification($item['payment'])
+                        );
+                        Log::info("🔔 [Notificación In-App encolada] Campana actualizada para {$item['student']->user->email}.");
+
+                        // 2️⃣ AL ALUMNO [Correo Electrónico]: Envía 1 solo comprobante digital
+                        if ($studioForMail) {
+                            Mail::to($item['student']->user->email)
+                                ->queue(new \App\Mail\StudentPaymentReceiptMail(
+                                    $studioForMail,
+                                    $item['payment'],
+                                    $studentName
+                                ));
+                            Log::info("📧 [Mail Alumno encolado] StudentPaymentReceiptMail enviado a {$item['student']->user->email}.");
+                        }
+
+                        // 3️⃣ AL ESTUDIO [Correo Electrónico]: Alerta de nueva venta al dueño
+                        if ($studioForMail && $studioForMail->user) {
+                            Mail::to($studioForMail->user->email)
+                                ->queue(new \App\Mail\StudioPaymentNotificationMail(
+                                    $studioForMail,
+                                    $item['payment'],
+                                    $studentName
+                                ));
+                            Log::info("📧 [Mail Estudio encolado] StudioPaymentNotificationMail enviado a {$studioForMail->user->email}.");
+                        }
+
+                    }
+                } catch (\Exception $e) {
+                    Log::error("Error secundario enviando correos/notificaciones para pago {$dataId}: " . $e->getMessage());
+                }
+            }
 
         } catch (\Exception $e) {
-            DB::rollBack();
-            // Si hubo un error técnico real, liberamos el candado para permitir que Mercado Pago reintente
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
             \Illuminate\Support\Facades\Cache::forget($lockKey);
-            Log::error("Error asignando pago {$dataId} en BD: " . $e->getMessage());
+            Log::error("Error crítico transaccional asignando pago {$dataId} en BD: " . $e->getMessage() . " - Línea: " . $e->getLine());
             throw $e;
         }
     }
 
     // =========================================================================
-    // LÓGICA AISLADA: PAGO DE SUSCRIPCIÓN SAAS (REGISTRO EN saas_payments)
+    // LÓGICA AISLADA: PAGO DE FACTURA DE PLATAFORMA (FLOOR-CAPPED)
     // =========================================================================
-    private function processSaaSPayment($dataId, $mpPayment, array $meta): void
+    private function processPlatformInvoicePayment($dataId, $mpPayment, array $meta): void
     {
-        // 🚨 GUARDIA DE CONCURRENCIA: Bloqueo Atómico en RAM
-        $lockKey = "saas_payment_lock_{$dataId}";
+        $lockKey = "platform_invoice_payment_lock_{$dataId}";
 
         if (!\Illuminate\Support\Facades\Cache::add($lockKey, true, 60)) {
-            Log::info("Idempotencia Concurrente: El pago SaaS {$dataId} ya está siendo procesado por otro hilo. Ignorando clon.");
+            Log::info("Idempotencia Concurrente: El pago de factura {$dataId} ya está siendo procesado. Ignorando clon.");
             return;
         }
 
         try {
-            // Guardia de Idempotencia Histórica
-            $existingPayment = SaasPayment::where('mp_payment_id', $dataId)->first();
+            $invoiceId = $meta['invoice_id'] ?? null;
+            $studioId  = $meta['studio_id'] ?? null;
 
-            if ($existingPayment) {
-                Log::info("Idempotencia Histórica: El pago SaaS {$dataId} ya existe en saas_payments con estado [{$existingPayment->status}]. Ignorando clon.");
+            if (!$invoiceId || !$studioId) {
+                Log::warning("Pago de factura {$dataId} sin invoice_id o studio_id en metadata.");
                 return;
             }
 
-            $studioId = $meta['studio_id'] ?? null;
-            $status = $mpPayment->status ?? 'approved';
+            $invoice = \App\Models\StudioInvoice::where('id', $invoiceId)
+                ->where('studio_id', $studioId)
+                ->first();
 
-            // Solo insertar si el pago está aprobado
+            if (!$invoice) {
+                Log::warning("Factura #{$invoiceId} no encontrada para pago {$dataId}.");
+                return;
+            }
+
+            if ($invoice->isPaid()) {
+                Log::info("Factura #{$invoiceId} ya estaba pagada. Ignorando pago duplicado {$dataId}.");
+                return;
+            }
+
+            $status = $mpPayment->status ?? 'unknown';
+
             if ($status !== 'approved') {
-                Log::info("Pago SaaS {$dataId} ignorado. Estado no aprobado: {$status}.");
+                Log::info("Pago de factura {$dataId} ignorado. Estado: {$status}.");
                 return;
             }
 
-            SaasPayment::create([
-                'studio_id'     => $studioId,
-                'mp_payment_id' => (string) $dataId,
-                'amount'        => (float) ($mpPayment->transaction_amount ?? 0),
-                'status'        => $status,
-            ]);
-
-            Log::info("Pago SaaS {$dataId} registrado exitosamente en saas_payments para el estudio {$studioId}.");
-
-        } catch (\Exception $e) {
-            // Si falla por error técnico, liberamos el candado para permitir reintento
-            \Illuminate\Support\Facades\Cache::forget($lockKey);
-            Log::error("Error procesando pago SaaS {$dataId} en saas_payments: " . $e->getMessage());
-            throw $e;
-        }
-    }
-
-    public function processSaaSSubscription(string $dataId): void
-    {
-        $subscription = $this->getSubscriptionDetails($dataId);
-
-        $rawRef = $subscription['external_reference'] ?? null;
-        $status = $subscription['status'] ?? null;
-
-        // ─── DECODIFICAR EXTERNAL_REFERENCE (soporta JSON nuevo y string legacy) ───
-        $studioId = null;
-        $planId = null;
-        if ($rawRef) {
-            $decoded = json_decode($rawRef, true);
-            if (is_array($decoded) && isset($decoded['studio_id'])) {
-                // Nuevo formato JSON: {'type' => 'saas_subscription', 'studio_id' => X, 'plan_id' => Y}
-                $studioId = $decoded['studio_id'];
-                $planId   = $decoded['plan_id'] ?? null;
-            } else {
-                // Legacy: string plano con el ID del estudio
-                $studioId = $rawRef;
-            }
-        }
-
-        if ($studioId && $studio = Studio::with('subscriptionPlan')->find($studioId)) {
-
-            // 🚨 GUARDIA DE IDEMPOTENCIA ROBUSTA: Bloqueo atómico por
-            //    preapproval_id + status. Dos webhooks con la misma combinación
-            //    solo se procesan UNA vez. La llave vive 1 h (ventana de reintentos de MP).
-            $dedupeKey = "mp_sub_dedup_{$dataId}_{$status}";
-            if (!\Illuminate\Support\Facades\Cache::add($dedupeKey, true, 3600)) {
-                Log::info("Idempotencia SaaS: combinación preapproval={$dataId} status={$status} ya fue procesada. Ignorando webhook clonado.");
+            $studio = \App\Models\Studio::find($studioId);
+            if (!$studio) {
+                Log::warning("Studio #{$studioId} no encontrado para pago de factura {$dataId}.");
                 return;
             }
 
-            if ($status === 'authorized') {
-
-                // Resolver el plan DESDE el external_reference (no desde el studio actual,
-                // porque subscription_plan_id aún no se actualizó — y es lo correcto).
-                $plan = $planId ? SubscriptionPlan::find($planId) : $studio->subscriptionPlan;
-                $planName = $plan ? $plan->name : 'Pro';
-                $planSlug = $plan ? $plan->slug : 'pro';
-                $planPrice = $plan ? $plan->price : 45000;
-
-                // ─── ANCLAJE DEL CICLO DE FACTURACIÓN ───
-                // Si el pago es exitoso tras un reintento por morosidad, anclamos
-                // al ciclo original para NO REGALAR DÍAS GRATIS DE SERVICIO.
-                $newExpiration = ($studio->subscription_expires_at
-                    && $studio->subscription_status !== 'free'
-                    && $studio->subscription_expires_at->isPast())
-                    ? $studio->subscription_expires_at->copy()->addDays(30)
-                    : now()->addDays(30);
-
-                $currentCycle = $studio->billing_cycles_count + 1;
-
-                // Si la suscripción estaba en morosidad, la devolvemos al slug del plan actual
-                $targetStatus = $planSlug;
-
-                // ✅ SOLO AQUÍ se confirma la suscripción: el pago fue autorizado.
-                $studio->update([
-                    'subscription_plan_id'    => $plan ? $plan->id : $studio->subscription_plan_id,
-                    'mp_preapproval_id'       => $dataId,
-                    'subscription_status'     => $targetStatus,
-                    'subscription_expires_at' => $newExpiration,
-                    'billing_cycles_count'    => $currentCycle,
-                    'next_plan_id'            => null,  // El cambio se aplica YA, no hay plan futuro pendiente
+            // ═══════════════════════════════════════════════════════
+            // TRANSACCIÓN ATÓMICA: Marcar factura + reducir ciclo founder
+            // ═══════════════════════════════════════════════════════
+            DB::transaction(function () use ($invoice, $studio) {
+                // 1. Marcar factura como pagada
+                $invoice->update([
+                    'status'  => 'paid',
+                    'paid_at' => now(),
                 ]);
 
-                if ($plan && $plan->max_billing_cycles && $currentCycle >= $plan->max_billing_cycles) {
+                // 2. Reducción de ciclo Founder si aplica
+                if ($studio->is_founder && $studio->founder_cycles_remaining > 0) {
+                    $studio->decrement('founder_cycles_remaining');
 
-                    try {
-                        $this->cancelPreapproval($dataId);
-                    } catch (\Exception $e) {
-                        Log::error("Error cancelando suscripción SaaS en MP: " . $e->getMessage());
+                    // Refrescar para obtener el valor actualizado
+                    $studio->refresh();
+
+                    if ($studio->founder_cycles_remaining <= 0) {
+                        $studio->update(['is_founder' => false]);
+                        Log::info("👑 Beneficio Founder agotado para Studio #{$studio->id}. Ciclos consumidos.");
                     }
 
-                    Mail::to($studio->user->email)
-                        ->queue(new \App\Mail\PlanLifecycleEndingMail($studio));
-
-                } else {
-                    Mail::to($studio->user->email)
-                        ->queue(new \App\Mail\SubscriptionReceiptMail($studio, $planName, $planPrice));
+                    Log::info("👑 Ciclo Founder reducido: Studio #{$studio->id}, restantes: {$studio->founder_cycles_remaining}");
                 }
+            });
 
-                $adminEmail = env('ADMIN_NOTIFICATION_EMAIL', 'admin@estadoprisma.test');
-                Mail::to($adminEmail)
-                    ->queue(new \App\Mail\NewSubscriptionAlertMail($studio, $planName));
-
-            } elseif (in_array($status, ['pending', 'past_due'])) {
-                // ─── ENTRADA EN MOROSIDAD ───
-                // NO modificamos subscription_expires_at: el ciclo original se respeta.
-                // Solo marcamos el estado para que el Motor de Ciclo de Vida actúe
-                // si se superan los 5 días de gracia.
-                $studio->update(['subscription_status' => 'past_due']);
-
-                Mail::to($studio->user->email)
-                    ->queue(new \App\Mail\SubscriptionPastDueMail($studio));
-            } elseif (in_array($status, ['paused', 'cancelled'])) {
-                $studio->update(['mp_preapproval_id' => null]);
-            }
-
+            // 3. Correos de notificación (fuera de la transacción, en cola)
             try {
-                if ($studio->user) {
-                    $studio->user->notify(new \App\Notifications\SaaSSubscriptionNotification($studio, $status));
+                // A) Recibo para el dueño del estudio
+                if ($studio->user && $studio->user->email) {
+                    Mail::to($studio->user->email)
+                        ->queue(new \App\Mail\PlatformInvoicePaidMail($studio, $invoice->fresh()));
+                    Log::info("📧 Recibo de pago de factura encolado para Studio #{$studio->id}.");
                 }
+
+                // B) Alerta interna para la plataforma (TÚ)
+                $adminEmail = config('mail.support_email', env('ADMIN_EMAIL', 'contacto@estadoprisma.com'));
+                if ($adminEmail) {
+                    Mail::to($adminEmail)
+                        ->queue(new \App\Mail\AdminInvoicePaidAlertMail($studio, $invoice->fresh()));
+                    Log::info("📧 Alerta interna de cobro de comisión encolada para {$adminEmail}.");
+                }
+                
             } catch (\Exception $e) {
-                Log::error('Error registrando notificación in-app de suscripción SaaS: ' . $e->getMessage());
+                Log::error("Error encolando recibos/alertas de factura: " . $e->getMessage());
             }
+
+            Log::info("✅ Factura #{$invoice->id} marcada como pagada. Studio #{$studio->id} liberado del bloqueo.");
+
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Cache::forget($lockKey);
+            Log::error("Error procesando pago de factura {$dataId}: " . $e->getMessage());
+            throw $e;
         }
-    }
-
-    public function createSubscriptionLink(Studio $studio, string $planSlug, int $countryId): string
-    {
-        $plan = SubscriptionPlan::where('slug', $planSlug)
-            ->where('is_active', true)
-            ->firstOrFail();
-
-        $country = \App\Models\Country::find($countryId);
-        if (!$country) {
-            Log::error('País no encontrado al crear link de suscripción', [
-                'studio_id'  => $studio->id,
-                'country_id' => $countryId,
-            ]);
-            throw new \Exception('El país seleccionado no es válido. Por favor, elige otro.');
-        }
-        $currencyCode = $country->currency_code ?: 'CLP';
-
-        // 1. Validación estricta de cupos (Capacity Limit)
-        if ($plan->capacity_limit !== null) {
-            $currentSubscribers = Studio::where('subscription_plan_id', $plan->id)
-                ->whereIn('subscription_status', ['pro', 'elite', 'past_due'])
-                ->count();
-
-            if ($currentSubscribers >= $plan->capacity_limit) {
-                throw new \Exception('Lo sentimos, los cupos para este plan se han agotado.');
-            }
-        }
-
-        // 2. Generar link de pago vía suscripción (Preapproval) — la API se llama PRIMERO
-        $this->setToken(config('services.mercadopago.token'));
-
-        $studio->loadMissing('user');
-
-        $client = new PreApprovalClient();
-
-        $request = [
-            'reason'             => $plan->name,
-            'external_reference' => json_encode(['type' => 'saas_subscription', 'studio_id' => $studio->id, 'plan_id' => $plan->id]),
-            'payer_email'        => $studio->user->email,
-            'auto_recurring'     => [
-                'frequency'          => 1,
-                'frequency_type'     => 'months',
-                'transaction_amount' => (float) $plan->price,
-                'currency_id'        => $currencyCode,
-            ],
-            'back_url' => $this->absoluteUrl(route('dashboard', ['subdomain' => $studio->subdomain])),
-        ];
-
-        try {
-            $preapproval = $client->create($request);
-        } catch (\MercadoPago\Exceptions\MPApiException $e) {
-            $apiResponse = $e->getApiResponse();
-            $responseContent = $apiResponse ? $apiResponse->getContent() : null;
-
-            Log::error('MercadoPago API Error al crear preapproval', [
-                'studio_id'       => $studio->id,
-                'plan_slug'       => $planSlug,
-                'country_id'      => $countryId,
-                'currency_code'   => $currencyCode,
-                'api_http_status' => $e->getStatusCode(),
-                'api_message'     => $e->getMessage(),
-                'api_response'    => $responseContent,
-            ]);
-            throw new \Exception('El servicio de pagos no está disponible en este momento. Por favor, intenta más tarde.');
-        }
-
-        if (!$preapproval->init_point) {
-            throw new \Exception('No se pudo generar el link de suscripción. Intenta más tarde.');
-        }
-
-        // 3. NO actualizamos subscription_plan_id aquí — el plan solo se confirma
-        //    cuando el webhook de MP notifica que el pago fue autorizado.
-        //    Así evitamos que cerrar la pasarela sin pagar cambie la suscripción.
-
-        return $preapproval->init_point;
-    }
-
-    public function getSubscriptionDetails($dataId)
-    {
-        $this->setToken(config('services.mercadopago.token'));
-
-        $client = new PreApprovalClient();
-        $preapproval = $client->get($dataId);
-
-        if (!$preapproval) {
-            throw new \Exception("Suscripción {$dataId} no encontrada en Mercado Pago.");
-        }
-
-        return [
-            'external_reference' => $preapproval->external_reference,
-            'status'             => $preapproval->status,
-        ];
     }
 
     public function createTeacherPaymentPreference(array $data): array
@@ -794,23 +801,8 @@ class MercadoPagoService
         ];
     }
 
-    public function cancelPreapproval(string $preapprovalId): void
-    {
-        $this->setToken(config('services.mercadopago.token'));
-
-        $client = new \MercadoPago\Client\PreApproval\PreApprovalClient();
-
-        $client->update($preapprovalId, [
-            "status" => "cancelled"
-        ]);
-
-        \Illuminate\Support\Facades\Log::info("Suscripción {$preapprovalId} cancelada exitosamente vía API.");
-    }
-
     /**
      * Emite un reembolso total sobre un pago de Mercado Pago.
-     * Se usa cuando el estudio cambia de plan dentro del período de gracia (7 días)
-     * y corresponde devolver el cobro del mes actual.
      */
     public function refundPayment(string $paymentId): object
     {
@@ -826,5 +818,509 @@ class MercadoPagoService
             \Illuminate\Support\Facades\Log::error("Error al reembolsar payment {$paymentId}: " . $e->getMessage());
             throw new \Exception('No se pudo emitir el reembolso en este momento. Intenta más tarde.');
         }
+    }
+
+    // =========================================================================
+    // GATEWAY DE PAGO: QR ESTÁTICO, QR DINÁMICO Y LINK POR CORREO
+    // =========================================================================
+
+    /**
+     * Setup único: crea Store + POS en MercadoPago para el QR estático del estudio.
+     * Se llama automáticamente al vincular MP vía OAuth, o manualmente desde AccountController.
+     *
+     * Implementa patrón find-or-create: primero busca si la tienda/POS ya existen
+     * (usando los endpoints correctos de la API de In-Store, SIN el prefijo /v1),
+     * y solo crea si no los encuentra. Extrae el QR de qr.image en la respuesta del POS.
+     */
+    public function setupStaticQR(Studio $studio): void
+    {
+        if (empty($studio->mp_access_token)) {
+            throw new \Exception('El estudio no tiene una cuenta de MercadoPago vinculada.');
+        }
+
+        if (empty($studio->mp_user_id)) {
+            throw new \Exception('No se pudo identificar el ID de usuario de MercadoPago. Reintenta la vinculación OAuth.');
+        }
+
+        $this->setToken($studio->mp_access_token);
+        $apiBaseUrl = config('services.mercadopago.api_url', 'https://api.mercadopago.com');
+        $mpUserId = $studio->mp_user_id;
+        // IMPORTANTE: external_id debe ser estrictamente alfanumérico (sin guiones, sin símbolos)
+        $externalStoreId = "STUDIO{$studio->id}";
+        $posExternalId = $studio->mp_external_pos_id ?: "POSSTUDIO{$studio->id}";
+
+        try {
+            // ═══════════════════════════════════════════════════════════
+            // 1. FIND OR CREATE STORE
+            //    Endpoint correcto: POST /users/{user_id}/stores (sin /v1)
+            // ═══════════════════════════════════════════════════════════
+            $storeId = $studio->mp_store_id;
+
+            if (empty($storeId)) {
+                // Intentar encontrar tienda ya existente por external_id
+                $storeId = $this->findExistingStore($apiBaseUrl, $mpUserId, $externalStoreId, $studio->mp_access_token);
+
+                if (!$storeId) {
+                    // Construir location requerido por la API
+                    $location = [
+                        'street_name'   => $studio->address ?: 'Sin dirección registrada',
+                        'street_number' => 'S/N',
+                        'city_name'     => $studio->city ?: 'Santiago',
+                        'state_name'    => $studio->region ?: 'Región Metropolitana',
+                        'latitude'      => (float) ($studio->latitude ?: -33.448),
+                        'longitude'     => (float) ($studio->longitude ?: -70.669),
+                    ];
+
+                    // Crear nueva tienda
+                    $storeResponse = Http::withToken($studio->mp_access_token)
+                        ->post("{$apiBaseUrl}/users/{$mpUserId}/stores", [
+                            'name'        => $studio->name,
+                            'external_id' => $externalStoreId,
+                            'location'    => $location,
+                        ]);
+
+                    if (!$storeResponse->successful()) {
+                        Log::error('MP Store creation failed', [
+                            'studio_id' => $studio->id,
+                            'status'    => $storeResponse->status(),
+                            'response'  => $storeResponse->json(),
+                        ]);
+                        throw new \Exception('No se pudo crear la tienda en MercadoPago. Verifica que tu cuenta tenga los permisos necesarios (scope de In-Store/QR).');
+                    }
+
+                    $storeData = $storeResponse->json();
+                    $storeId = (string) ($storeData['id'] ?? throw new \Exception('No se recibió el ID de la tienda desde MercadoPago.'));
+
+                    // Verificar que el external_id devuelto coincida con el enviado
+                    $returnedExternalId = $storeData['external_id'] ?? null;
+                    if ($returnedExternalId && $returnedExternalId !== $externalStoreId) {
+                        Log::warning('MP Store external_id divergente', [
+                            'enviado'  => $externalStoreId,
+                            'devuelto' => $returnedExternalId,
+                        ]);
+                        $externalStoreId = $returnedExternalId;
+                    }
+
+                    Log::info("Store creada para estudio {$studio->id}", [
+                        'store_id'     => $storeId,
+                        'external_id'  => $externalStoreId,
+                    ]);
+                } else {
+                    Log::info("Store existente encontrada para estudio {$studio->id}", ['store_id' => $storeId]);
+                }
+
+                $studio->update(['mp_store_id' => $storeId]);
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // 2. FIND OR CREATE POS (y extraer QR)
+            //    Endpoint correcto: POST /pos (sin /v1 ni ruta anidada bajo store)
+            // ═══════════════════════════════════════════════════════════
+            $qrImageUrl = null;
+
+            // Intentar encontrar POS existente
+            $existingPos = $this->findExistingPos($apiBaseUrl, $storeId, $posExternalId, $studio->mp_access_token);
+
+            if ($existingPos) {
+                $posExternalId = $existingPos['external_id'] ?? $posExternalId;
+                // El QR está en qr.image (URL a PNG), también hay qr.template_document y qr.template_image
+                $qrImageUrl = $existingPos['qr']['image'] ?? null;
+                Log::info("POS existente encontrado para estudio {$studio->id}", [
+                    'pos_external_id' => $posExternalId,
+                    'has_qr'          => !empty($qrImageUrl),
+                ]);
+            }
+
+            // Si no se encontró POS o no tiene QR, crear uno nuevo
+            if (empty($qrImageUrl)) {
+                $posResponse = Http::withToken($studio->mp_access_token)
+                    ->post("{$apiBaseUrl}/pos", [
+                        'name'               => 'Caja Principal',
+                        'fixed_amount'       => false,
+                        'store_id'           => (int) $storeId,
+                        'external_store_id'  => $externalStoreId,
+                        'external_id'        => $posExternalId,
+                        // Sin 'category' → queda como categoría genérica (evita error pos_unknown_mcc)
+                    ]);
+
+                if (!$posResponse->successful()) {
+                    Log::error('MP POS creation failed', [
+                        'studio_id' => $studio->id,
+                        'store_id'  => $storeId,
+                        'status'    => $posResponse->status(),
+                        'response'  => $posResponse->json(),
+                    ]);
+                    throw new \Exception('No se pudo crear el punto de venta en MercadoPago. Revisa los permisos de tu cuenta.');
+                }
+
+                $posData = $posResponse->json();
+                $posExternalId = $posData['external_id'] ?? $posExternalId;
+                $qrImageUrl = $posData['qr']['image'] ?? null;
+
+                Log::info("POS creado para estudio {$studio->id}", [
+                    'pos_external_id' => $posExternalId,
+                    'has_qr'          => !empty($qrImageUrl),
+                ]);
+            }
+
+            if (empty($qrImageUrl)) {
+                throw new \Exception('No se pudo obtener la imagen del QR estático desde MercadoPago. La respuesta del POS no incluyó qr.image.');
+            }
+
+            // ═══════════════════════════════════════════════════════════
+            // 3. PERSISTIR QR EN EL ESTUDIO
+            // ═══════════════════════════════════════════════════════════
+            $studio->update([
+                'mp_external_pos_id' => $posExternalId,
+                'mp_pos_qr_url'      => $qrImageUrl,
+            ]);
+
+            Log::info("Static QR setup completado para estudio {$studio->id}", [
+                'store_id'   => $storeId,
+                'pos_ext_id' => $posExternalId,
+                'qr_url'     => $qrImageUrl,
+            ]);
+
+        } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'No se pudo')) {
+                throw $e;
+            }
+            Log::error('Error inesperado en setupStaticQR: ' . $e->getMessage(), [
+                'studio_id' => $studio->id,
+                'trace'     => $e->getTraceAsString(),
+            ]);
+            throw new \Exception('Error al configurar el QR estático: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Busca una tienda existente en MercadoPago por su external_id.
+     * Retorna el store_id (string) si existe, o null si no.
+     */
+    private function findExistingStore(string $apiBaseUrl, string $mpUserId, string $externalStoreId, string $accessToken): ?string
+    {
+        try {
+            // Endpoint correcto: GET /users/{user_id}/stores/search?external_id=...
+            $response = Http::withToken($accessToken)
+                ->get("{$apiBaseUrl}/users/{$mpUserId}/stores/search", [
+                    'external_id' => $externalStoreId,
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('MP find store request failed', [
+                    'status'   => $response->status(),
+                    'response' => $response->json(),
+                ]);
+                return null;
+            }
+
+            $data = $response->json();
+
+            // La respuesta tiene formato {paging: {...}, results: [...]}
+            $stores = $data['results'] ?? $data;
+            if (!is_array($stores)) {
+                return null;
+            }
+
+            foreach ($stores as $store) {
+                if (($store['external_id'] ?? '') === $externalStoreId) {
+                    return (string) $store['id'];
+                }
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::warning('Error buscando store existente: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Busca un POS existente en MercadoPago por su external_id.
+     * Retorna el array completo del POS si existe, o null si no.
+     */
+    private function findExistingPos(string $apiBaseUrl, string $storeId, string $externalPosId, string $accessToken): ?array
+    {
+        try {
+            // GET /pos?external_id=... (la API de POS no usa sufijo /search, solo query params)
+            $response = Http::withToken($accessToken)
+                ->get("{$apiBaseUrl}/pos", [
+                    'external_id' => $externalPosId,
+                ]);
+
+            if (!$response->successful()) {
+                Log::warning('MP find POS request failed', [
+                    'status'   => $response->status(),
+                    'response' => $response->json(),
+                ]);
+                return null;
+            }
+
+            $data = $response->json();
+
+            // La API devuelve {paging: {...}, results: [...]}
+            $posList = $data['results'] ?? $data;
+            if (!is_array($posList)) {
+                return null;
+            }
+
+            foreach ($posList as $pos) {
+                if (($pos['external_id'] ?? '') === $externalPosId) {
+                    return $pos;
+                }
+            }
+
+            return null;
+        } catch (\Exception $e) {
+            Log::warning('Error buscando POS existente: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Genera una Orden de pago presencial (QR estático) para las sesiones seleccionadas.
+     * La alumna escanea el QR fijo del estudio y ve el monto pre-cargado en su app de MP.
+     */
+    public function generateStaticQROrder(Studio $studio, array $sessionIds, Student $student): array
+    {
+        if (empty($studio->mp_access_token)) {
+            throw new \Exception('Este estudio no tiene una cuenta de MercadoPago vinculada.');
+        }
+
+        if (empty($studio->mp_external_pos_id)) {
+            throw new \Exception('El QR estático aún no está configurado. Usa "QR Normal" o contacta a soporte.');
+        }
+
+        if (empty($sessionIds)) {
+            throw new \Exception('Debes seleccionar al menos una clase.');
+        }
+
+        // Calcular precio con PricingService
+        $result = $this->pricingService->calculateCart($studio->id, $sessionIds, $student->id);
+
+        if ($result['total'] <= 0) {
+            throw new \Exception('El total a pagar debe ser mayor a 0.');
+        }
+
+        $this->setToken($studio->mp_access_token);
+
+        $sessionIdsParam = array_map('intval', $sessionIds);
+
+        // external_reference: la API de Orders requiere ≤64 chars alfanumérico.
+        // Guardamos la metadata completa en Cache y usamos un ID corto como referencia.
+        $shortRef = 'QR' . $studio->id . 'S' . $student->id . 'T' . time();
+        $fullMeta = [
+            'type'        => 'student_payment',
+            'studio_id'   => $studio->id,
+            'student_id'  => $student->id,
+            'session_ids' => $sessionIdsParam,
+        ];
+        \Illuminate\Support\Facades\Cache::put("mp_order_meta:{$shortRef}", $fullMeta, now()->addDays(7));
+
+        $items = array_map(function ($b) {
+            return [
+                'title'        => $b['name'],
+                'unit_price'   => (string) $b['subtotal'],
+                'quantity'     => 1,
+                'unit_measure' => 'unit',
+            ];
+        }, $result['breakdown']);
+
+        $webhookDomain = config('services.mercadopago.webhook_domain') ?: rtrim(config('app.url'), '/');
+
+        $request = [
+            'type'               => 'qr',
+            'total_amount'       => (string) $result['total'],
+            'external_reference' => $shortRef,
+            'notification_url'   => rtrim($webhookDomain, '/') . '/api/webhooks/mercadopago',
+            'config' => [
+                'qr' => [
+                    'external_pos_id' => $studio->mp_external_pos_id,
+                    'mode'            => 'static',
+                ],
+            ],
+            'transactions' => [
+                'payments' => [
+                    [
+                        'amount' => (string) $result['total'],
+                    ],
+                ],
+            ],
+            'items' => $items,
+        ];
+
+        try {
+            $client = new OrderClient();
+            $order = $client->create($request);
+
+            Log::info("Static QR Order creada para estudio {$studio->id}, orden {$order->id}", [
+                'student_id' => $student->id,
+                'total'      => $result['total'],
+            ]);
+
+            return [
+                'order_id'  => $order->id,
+                'total'     => $result['total'],
+                'qr_url'    => $studio->mp_pos_qr_url,
+                'breakdown' => $result['breakdown'],
+            ];
+        } catch (\MercadoPago\Exceptions\MPApiException $e) {
+            $apiResponse = $e->getApiResponse();
+            $responseBody = $apiResponse ? $apiResponse->getContent() : null;
+            Log::error('MP Order creation failed: ' . $e->getMessage(), [
+                'studio_id'     => $studio->id,
+                'api_status'    => $e->getStatusCode(),
+                'api_response'  => $responseBody,
+                'request'       => $request,
+            ]);
+            throw new \Exception('Error al generar la orden de pago: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Genera una preferencia de Checkout Pro simplificada para un solo estudiante.
+     * Usado por QR Normal y Link por Correo.
+     */
+    public function generateGatewayPreference(Studio $studio, array $sessionIds, Student $student): array
+    {
+        if (empty($studio->mp_access_token)) {
+            throw new \Exception('Este estudio no tiene una cuenta de MercadoPago vinculada.');
+        }
+
+        if (empty($sessionIds)) {
+            throw new \Exception('Debes seleccionar al menos una clase.');
+        }
+
+        // Calcular precio con PricingService
+        $result = $this->pricingService->calculateCart($studio->id, $sessionIds, $student->id);
+
+        if ($result['total'] <= 0) {
+            throw new \Exception('El total a pagar debe ser mayor a 0.');
+        }
+
+        $this->setToken($studio->mp_access_token);
+
+        $sessionIdsParam = array_map('intval', $sessionIds);
+        $baseUrl = rtrim(config('app.url'), '/');
+        $webhookDomain = config('services.mercadopago.webhook_domain') ?: rtrim(config('app.url'), '/');
+
+        $items = array_map(function ($b) use ($studio) {
+            return [
+                'title'       => $b['name'],
+                'quantity'    => 1,
+                'unit_price'  => (float) $b['subtotal'],
+                'currency_id' => $studio->currency_code,
+            ];
+        }, $result['breakdown']);
+
+        $selections = array_map(function ($sid) use ($student) {
+            return [
+                'session_id' => (int) $sid,
+                'student_id' => $student->id,
+            ];
+        }, $sessionIdsParam);
+
+        $request = [
+            'items'               => $items,
+            'statement_descriptor' => strtoupper(substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $studio->name), 0, 20)),
+            'external_reference'   => json_encode([
+                'type'       => 'student_payment',
+                'user_id'    => $student->user_id,
+                'selections' => $selections,
+                'studio_id'  => $studio->id,
+            ]),
+            'back_urls' => [
+                'success' => $baseUrl . '/pagos/exito',
+                'failure' => $baseUrl . '/pagos/error',
+                'pending' => $baseUrl . '/pagos/pendiente',
+            ],
+            'auto_return'      => 'approved',
+            'notification_url' => rtrim($webhookDomain, '/') . '/api/webhooks/mercadopago',
+        ];
+
+        // NOTA: El 100% va al token del estudio. La plataforma factura su comisión aparte.
+
+        try {
+            $client = new PreferenceClient();
+            $preference = $client->create($request);
+
+            if (!$preference->init_point) {
+                throw new \Exception('Error al generar el link de pago con MercadoPago.');
+            }
+
+            Log::info("Gateway Preference creada para estudio {$studio->id}, estudiante {$student->id}", [
+                'preference_id' => $preference->id,
+                'total'         => $result['total'],
+            ]);
+
+            return [
+                'init_point'    => $preference->init_point,
+                'preference_id' => $preference->id,
+                'total'         => $result['total'],
+                'breakdown'     => $result['breakdown'],
+            ];
+        } catch (\MercadoPago\Exceptions\MPApiException $e) {
+            Log::error('MP Preference creation failed: ' . $e->getMessage(), [
+                'studio_id' => $studio->id,
+            ]);
+            throw new \Exception('Error al generar el link de pago: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Genera una preferencia de pago y envía el link por correo al estudiante.
+     */
+    public function sendPaymentEmail(Studio $studio, array $sessionIds, Student $student): array
+    {
+        if (empty($student->email)) {
+            throw new \Exception('El alumno no tiene correo electrónico registrado. Edita su perfil para agregar uno.');
+        }
+
+        // Generar la preferencia de pago
+        $preferenceData = $this->generateGatewayPreference($studio, $sessionIds, $student);
+
+        // Determinar tipo de pago
+        $classCount = count($sessionIds);
+        $breakdown = $preferenceData['breakdown'];
+        $hasDiscount = !empty(array_filter($breakdown, fn($b) => $b['is_discount'] ?? false));
+        $hasPromo = $hasDiscount; // descuentos vienen de promociones
+
+        if ($hasPromo) {
+            $paymentType = 'promocion';
+        } elseif ($classCount > 1) {
+            $paymentType = 'pack';
+        } else {
+            $paymentType = 'single';
+        }
+
+        // Enviar correo con el link de pago
+        try {
+            Mail::to($student->email)->queue(
+                new \App\Mail\StudentPaymentLinkMail(
+                    $studio,
+                    $student,
+                    $preferenceData['init_point'],
+                    $preferenceData['total'],
+                    $paymentType,
+                    $classCount,
+                    $breakdown,
+                )
+            );
+
+            Log::info("Payment link email queued para {$student->email}", [
+                'studio_id'    => $studio->id,
+                'student_id'   => $student->id,
+                'total'        => $preferenceData['total'],
+                'payment_type' => $paymentType,
+                'class_count'  => $classCount,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error enviando correo de link de pago: ' . $e->getMessage(), [
+                'student_email' => $student->email,
+            ]);
+            throw new \Exception('El link de pago se generó, pero hubo un error al enviar el correo. Comparte el link manualmente.');
+        }
+
+        return $preferenceData;
     }
 }

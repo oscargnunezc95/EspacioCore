@@ -68,7 +68,7 @@ class ClassSession extends Model
     public function students()
     {
         // Las alumnas que reservaron/se inscribieron a esta clase
-        return $this->belongsToMany(Student::class, 'class_session_student')
+        return $this->belongsToMany(Student::class, 'class_session_student') 
                     ->withPivot('payment_status') // <-- Vínculo para que el profesor vea quién debe
                     ->withTimestamps();
     }

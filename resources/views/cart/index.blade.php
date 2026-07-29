@@ -2,9 +2,10 @@
     <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
         
         <div class="text-center mb-10 md:mb-14">
-            <h1 class="text-3xl md:text-4xl font-black text-zinc-900 tracking-tight">Mi Portal de Pagos</h1>
-            <p class="mt-3 text-zinc-500 font-medium text-base md:text-lg">Selecciona las clases que deseas confirmar. La promoción o pack genererá el descuento automáticamente al seleccionar las clases. Has click en Ver Ofertas para ver las promociones.</p>
+            <h1 class="text-3xl md:text-4xl font-black tracking-tight">Mi Portal de Pagos</h1>
+            <p class="mt-3 text-stone-500 font-medium text-base md:text-lg">Selecciona las clases que deseas confirmar. La promoción o pack generará el descuento automáticamente al seleccionar las clases. Haz click en Ver Ofertas para ver las promociones.</p>
         </div>
+
         {{-- CAPA 2: BANNER DE ALERTA DE CUPOS --}}
         @if(($hasStockIssues ?? false) && Auth::check())
         <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-start gap-3 max-w-7xl mx-auto">
@@ -17,13 +18,14 @@
             </div>
         </div>
         @endif
+
         {{-- CONTENEDOR DE ESTUDIOS --}}
         <div id="classes-container">
             @auth
                 @if($groupedSessions->isEmpty())
-                    <div class="py-8 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
-                        <p class="text-zinc-500 font-medium">No tienes clases pendientes de pago.</p>
-                        <a href="{{ route('explore') }}" class="inline-block mt-4 text-indigo-600 font-bold hover:underline">Explorar Catálogo</a>
+                    <div class="py-8 text-center border-2 border-dashed border-stone-200 rounded-3xl">
+                        <p class="text-stone-500 font-medium">No tienes clases pendientes de pago.</p>
+                        <a href="{{ route('explore') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline">Explorar Catálogo</a>
                     </div>
                 @else
                     @include('cart.partials.studio-groups', ['groupedSessions' => $groupedSessions])
@@ -35,13 +37,13 @@
 
     {{-- MODAL DE GUEST CHECKOUT --}}
     <div id="guestCheckoutModal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
-        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-zinc-100 transform transition-all">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-md w-full shadow-xl border border-stone-100 transform transition-all">
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h3 class="text-xl font-black text-zinc-900">Datos de tu Reserva</h3>
-                    <p class="text-xs text-zinc-500 mt-1 leading-tight">Ingresa tus datos para asegurar tu cupo antes de pagar.</p>
+                    <h3 class="text-xl font-black text-stone-900">Datos de tu Reserva</h3>
+                    <p class="text-xs text-stone-500 mt-1 leading-tight">Ingresa tus datos para asegurar tu cupo antes de pagar.</p>
                 </div>
-                <button type="button" onclick="document.getElementById('guestCheckoutModal').classList.add('hidden')" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <button type="button" onclick="document.getElementById('guestCheckoutModal').classList.add('hidden')" class="text-stone-400 hover:text-stone-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -54,21 +56,21 @@
                 
                 <div class="space-y-4 mb-6">
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre Completo</label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Nombre Completo</label>
                         <input type="text" name="guest_name" required placeholder="Ej: Camila Rojas" 
-                               class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all">
+                               class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Correo Electrónico</label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Correo Electrónico</label>
                         <input type="email" name="guest_email" required placeholder="camila@ejemplo.com" 
-                               class="w-full rounded-xl border border-zinc-300 p-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all">
-                        <p class="text-[10px] text-zinc-500 mt-1.5">A este correo te enviaremos el comprobante y el acceso a tu clase.</p>
+                               class="w-full rounded-xl border border-stone-300 p-3 text-sm focus:ring-2 focus:ring-red-600 focus:border-red-600 outline-none transition-all">
+                        <p class="text-[10px] text-stone-500 mt-1.5">A este correo te enviaremos el comprobante y el acceso a tu clase.</p>
                     </div>
                 </div>
 
-                <div class="flex gap-3 pt-2 border-t border-zinc-100">
-                    <button type="button" onclick="document.getElementById('guestCheckoutModal').classList.add('hidden')" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors duration-200 text-sm">Cancelar</button>
-                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 focus:ring-2 focus:ring-offset-2 focus:ring-zinc-900 transition-all duration-200 active:scale-95 text-sm flex items-center justify-center gap-2">
+                <div class="flex gap-3 pt-2 border-t border-stone-100">
+                    <button type="button" onclick="document.getElementById('guestCheckoutModal').classList.add('hidden')" class="w-full bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-95 text-sm">Cancelar</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm flex items-center justify-center gap-2">
                         Ir a Pagar
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </button>
@@ -89,7 +91,6 @@
         // 1. INICIALIZACIÓN
         // ==========================================
         document.addEventListener('DOMContentLoaded', () => {
-            // Usamos window.AppConfig.isLoggedIn en lugar de isLoggedIn
             if (!window.AppConfig.isLoggedIn) {
                 loadGuestCart();
             } else {
@@ -129,16 +130,16 @@
 
             if (cartIds.length === 0) {
                 container.innerHTML = `
-                    <div class="py-8 text-center border-2 border-dashed border-zinc-200 rounded-3xl">
-                        <p class="text-zinc-500 font-medium">Tu carrito está vacío.</p>
-                        <a href="/explorar" class="inline-block mt-4 text-indigo-600 font-bold hover:underline">Explorar Catálogo</a>
+                    <div class="py-8 text-center border-2 border-dashed border-stone-200 rounded-3xl">
+                        <p class="text-stone-500 font-medium">Tu carrito está vacío.</p>
+                        <a href="/explorar" class="inline-block mt-4 text-red-600 font-bold hover:underline">Explorar Catálogo</a>
                     </div>`;
                 return;
             }
 
             if (!tokenMeta) return;
 
-            container.innerHTML = `<div class="text-center py-10 text-zinc-400 font-bold animate-pulse">Calculando tus clases...</div>`;
+            container.innerHTML = `<div class="text-center py-10 text-stone-400 font-bold animate-pulse">Calculando tus clases...</div>`;
 
             fetch('/api/cart/guest-sessions', {
                 method: 'POST',
@@ -154,7 +155,6 @@
                 if(data.html) {
                     container.innerHTML = data.html;
                     
-                    // 🔥 SOLUCIÓN PARA INVITADOS: Calcular apenas se inyecten los checkboxes
                     setTimeout(() => {
                         calculateCart();
                     }, 100);
@@ -200,7 +200,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.error) {
-                    alert("No se pudo remover la clase: " + data.message);
+                    alert("No se pudo remover la clase: " + data.error);
                     btnElement.innerHTML = originalHtml;
                     btnElement.disabled = false;
                 } else {
@@ -221,9 +221,9 @@
                         // Si no quedan grupos en todo el contenedor, mostramos estado vacío
                         if (document.querySelectorAll('.studio-cart-group').length === 0) {
                             document.getElementById('classes-container').innerHTML = `
-                                <div class="py-8 text-center border-2 border-dashed border-zinc-200 rounded-3xl animate-fade-in">
-                                    <p class="text-zinc-500 font-medium">No tienes clases pendientes de pago.</p>
-                                    <a href="{{ route('explore') }}" class="inline-block mt-4 text-indigo-600 font-bold hover:underline">Explorar Catálogo</a>
+                                <div class="py-8 text-center border-2 border-dashed border-stone-200 rounded-3xl animate-fade-in">
+                                    <p class="text-stone-500 font-medium">No tienes clases pendientes de pago.</p>
+                                    <a href="{{ route('explore') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline">Explorar Catálogo</a>
                                 </div>`;
                         }
 
@@ -279,17 +279,20 @@
                 const totalEl = document.getElementById(`total-${studioId}`);
                 const breakdownEl = document.getElementById(`breakdown-${studioId}`);
 
+                // Si el estudio no tiene MercadoPago, no existe botón de pago; saltamos
+                if (!btnPay) return;
+
                 if (checkedBoxes.length === 0) {
                     btnPay.disabled = true;
                     btnPay.innerHTML = `Pagar Selección`;
                     totalEl.innerText = "$0";
-                    breakdownEl.innerHTML = "<span class='text-zinc-400'>0 clases seleccionadas</span>";
+                    breakdownEl.innerHTML = "<span class='text-stone-400'>0 clases seleccionadas</span>";
                     return;
                 }
 
                 btnPay.disabled = true; 
                 btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
-                totalEl.innerHTML = `<span class="animate-pulse text-zinc-400 text-lg">Calculando...</span>`;
+                totalEl.innerHTML = `<span class="animate-pulse text-stone-400 text-lg">Calculando...</span>`;
 
                 // Desarmamos el string "14-5" (session_id-student_id)
                 const selections = Array.from(checkedBoxes).map(cb => {
@@ -387,7 +390,6 @@
         function payStudio(studioId) {
             const checkedBoxes = document.querySelectorAll(`input.session-checkbox[data-studio-id="${studioId}"]:checked`);
 
-            // Desarmamos el string "14-5" (session_id-student_id)
             const selections = Array.from(checkedBoxes).map(cb => {
                 const parts = cb.value.split('-');
                 return { session_id: parseInt(parts[0]), student_id: parseInt(parts[1]) };
@@ -411,7 +413,6 @@
             // Lógica para Invitados (Abre el Modal)
             if (!window.AppConfig.isLoggedIn) {
                 document.getElementById('guest_studio_id').value = studioId;
-                // Como los invitados no tienen familiares, podemos extraer solo los session_ids únicos
                 const uniqueSessionIds = Array.from(new Set(selections.map(s => s.session_id)));
                 document.getElementById('guest_session_ids').value = JSON.stringify(uniqueSessionIds);
                 document.getElementById('guestCheckoutModal').classList.remove('hidden');
@@ -449,11 +450,17 @@
                 return res.json();
             })
             .then(data => {
-                if (!data) return; // handled by 422 branch
+                if (!data) return;
                 if (data.error || data.message) {
                     showCartToast(data.error || data.message || "No se pudo generar el enlace de pago.", 'error');
                     btnPay.disabled = false;
                     btnPay.innerHTML = `Pagar Selección`;
+                    return;
+                }
+
+                // 🆕 Checkout gratuito: total $0, redirigir a éxito sin MercadoPago
+                if (data.free_checkout) {
+                    window.location.href = data.redirect_url;
                     return;
                 }
 

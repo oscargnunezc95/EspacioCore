@@ -20,21 +20,26 @@ class StudioController extends Controller
     }
 
     /**
-     * Crea un nuevo estudio con validación de imagen y subdominio.
+     * Crea un nuevo estudio con validación de imágenes, subdominio y redes.
      */
     public function store(Request $request)
     {
         $request->validate([
-            'name'      => 'required|string|max:255',
-            'logo'      => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:15360', 
-            'address'   => 'nullable|string|max:255',
-            'latitude'  => 'nullable|numeric',
-            'longitude' => 'nullable|numeric',
-            'city'      => 'nullable|string|max:255',
-            'region'    => 'nullable|string|max:255',
-            'country'   => 'nullable|string|max:255',
-            'description' => 'nullable|string|max:1000',
-            'social_link' => 'nullable|url|max:255',
+            'name'          => 'required|string|max:255',
+            'logo'          => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:15360', 
+            'cover'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360', 
+            'address'       => 'nullable|string|max:255',
+            'latitude'      => 'nullable|numeric',
+            'longitude'     => 'nullable|numeric',
+            'city'          => 'nullable|string|max:255',
+            'region'        => 'nullable|string|max:255',
+            'country'       => 'nullable|string|max:255',
+            'description'   => 'nullable|string|max:1000',
+            'instagram_url' => 'nullable|url|max:255',
+            'tiktok_url'    => 'nullable|url|max:255',
+            'youtube_url'   => 'nullable|url|max:255',
+            'email'         => 'nullable|email|max:255',
+            'whatsapp'      => 'nullable|string|max:50',
         ]);
 
         $baseSlug = Str::slug($request->name);
@@ -48,16 +53,17 @@ class StudioController extends Controller
 
         $logoPath = null;
         $iconPath = null;
+        $coverPath = null;
 
+        $manager = new ImageManager(['driver' => 'gd']);
+
+        // 1. Procesamiento de Logo (Cuadrado / Icono)
         if ($request->hasFile('logo')) {
             $file = $request->file('logo');
             $baseFilename = uniqid();
             $filename = 'studios/logos/' . $baseFilename . '.webp';
             $iconFilename = 'studios/logos/' . $baseFilename . '_icon.webp';
             
-            $manager = new ImageManager(['driver' => 'gd']);
-            
-            // 1. Generamos la imagen original optimizada (Max 1920px)
             $image = $manager->make($file->getRealPath())
                 ->resize(1920, null, function ($constraint) {
                     $constraint->aspectRatio();
@@ -65,13 +71,12 @@ class StudioController extends Controller
                 })
                 ->encode('webp', 80);
 
-            // 2. Generamos el Icono/Thumbnail (Cuadrado perfecto de 200x200px)
             $icon = $manager->make($file->getRealPath())
                 ->fit(200, 200, function ($constraint) {
                     $constraint->upsize();
                 })
                 ->encode('webp', 80);
-                             
+                              
             Storage::disk('public')->put($filename, (string) $image);
             Storage::disk('public')->put($iconFilename, (string) $icon);
             
@@ -79,27 +84,47 @@ class StudioController extends Controller
             $iconPath = $iconFilename;
         }
 
+        // 2. Procesamiento de Foto de Portada / Card (Horizontal 16:9 -> 1200x675)
+        if ($request->hasFile('cover')) {
+            $file = $request->file('cover');
+            $coverFilename = 'studios/covers/' . uniqid() . '_cover.webp';
+            
+            $coverImage = $manager->make($file->getRealPath())
+                ->fit(1200, 675, function ($constraint) {
+                    $constraint->upsize();
+                })
+                ->encode('webp', 80);
+
+            Storage::disk('public')->put($coverFilename, (string) $coverImage);
+            $coverPath = $coverFilename;
+        }
+
         Studio::create([
-            'user_id'   => auth()->id(),
-            'name'      => $request->name,
-            'subdomain' => $subdomain,
-            'logo_path' => $logoPath,
-            'icon_path' => $iconPath, // Guardamos la ruta del icono
-            'address'   => $request->address,
-            'latitude'  => $request->latitude,
-            'longitude' => $request->longitude,
-            'city'      => $request->city,
-            'region'    => $request->region,
-            'country'   => $request->country,
-            'description' => $request->description,
-            'social_link' => $request->social_link,
+            'user_id'       => auth()->id(),
+            'name'          => $request->name,
+            'subdomain'     => $subdomain,
+            'logo_path'     => $logoPath,
+            'icon_path'     => $iconPath,
+            'cover_path'    => $coverPath,
+            'address'       => $request->address,
+            'latitude'      => $request->latitude,
+            'longitude'     => $request->longitude,
+            'city'          => $request->city,
+            'region'        => $request->region,
+            'country'       => $request->country,
+            'description'   => $request->description,
+            'instagram_url' => $request->instagram_url,
+            'tiktok_url'    => $request->tiktok_url,
+            'youtube_url'   => $request->youtube_url,
+            'email'         => $request->email,
+            'whatsapp'      => $request->whatsapp,
         ]);
 
         return back()->with('success', '¡Tu nuevo Espacio ha sido creado con éxito!');
     }
 
     /**
-     * Actualiza un estudio existente y gestiona el reemplazo de archivos.
+     * Actualiza un estudio existente y gestiona el reemplazo independiente de archivos.
      */
     public function update(Request $request, Studio $studio)
     {
@@ -108,17 +133,25 @@ class StudioController extends Controller
         }
 
         $request->validate([
-            'name' => 'required|string|max:255',
-            'logo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
-            'description' => 'nullable|string|max:1000',
-            'social_link' => 'nullable|url|max:255',
+            'name'          => 'required|string|max:255',
+            'logo'          => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
+            'cover'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
+            'description'   => 'nullable|string|max:1000',
+            'instagram_url' => 'nullable|url|max:255',
+            'tiktok_url'    => 'nullable|url|max:255',
+            'youtube_url'   => 'nullable|url|max:255',
+            'email'         => 'nullable|email|max:255',
+            'whatsapp'      => 'nullable|string|max:50',
         ]);
 
         $data = $request->only([
-            'name', 'address', 'latitude', 'longitude', 'city', 'region', 'country', 
-            'description', 'social_link' // <-- AHORA SÍ LOS VA A GUARDAR
+            'name', 'address', 'latitude', 'longitude', 'city', 'region', 'country',
+            'description', 'instagram_url', 'tiktok_url', 'youtube_url', 'email', 'whatsapp'
         ]);
 
+        $manager = new ImageManager(['driver' => 'gd']);
+
+        // Actualización de Logo
         if ($request->hasFile('logo')) {
             try {
                 $file = $request->file('logo');
@@ -126,40 +159,51 @@ class StudioController extends Controller
                 $newFilename = 'studios/logos/' . $baseFilename . '.webp';
                 $newIconFilename = 'studios/logos/' . $baseFilename . '_icon.webp';
                 
-                $manager = new \Intervention\Image\ImageManager(['driver' => 'gd']);
-                
-                // Imagen principal
                 $image = $manager->make($file->getRealPath())
-                                 ->resize(1920, null, function ($constraint) {
-                                     $constraint->aspectRatio();
-                                     $constraint->upsize();
-                                 })
-                                 ->encode('webp', 80);
+                    ->resize(1920, null, function ($constraint) {
+                        $constraint->aspectRatio();
+                        $constraint->upsize();
+                    })
+                    ->encode('webp', 80);
 
-                // Icono
                 $icon = $manager->make($file->getRealPath())
-                                ->fit(200, 200, function ($constraint) {
-                                    $constraint->upsize();
-                                })
-                                ->encode('webp', 80);
+                    ->fit(200, 200, function ($constraint) {
+                        $constraint->upsize();
+                    })
+                    ->encode('webp', 80);
                 
-                // Guardamos las nuevas versiones
                 Storage::disk('public')->put($newFilename, (string) $image);
                 Storage::disk('public')->put($newIconFilename, (string) $icon);
 
-                // Borramos las viejas si existían
-                if ($studio->logo_path) {
-                    Storage::disk('public')->delete($studio->logo_path);
-                }
-                if ($studio->icon_path) {
-                    Storage::disk('public')->delete($studio->icon_path);
-                }
+                if ($studio->logo_path) Storage::disk('public')->delete($studio->logo_path);
+                if ($studio->icon_path) Storage::disk('public')->delete($studio->icon_path);
 
                 $data['logo_path'] = $newFilename;
                 $data['icon_path'] = $newIconFilename;
-
             } catch (\Exception $e) {
-                return redirect()->route('studios.index')->withErrors(['logo' => 'Error al procesar la imagen: ' . $e->getMessage()]);
+                return redirect()->route('studios.index')->withErrors(['logo' => 'Error en logo: ' . $e->getMessage()]);
+            }
+        }
+
+        // Actualización de Portada / Card
+        if ($request->hasFile('cover')) {
+            try {
+                $file = $request->file('cover');
+                $newCoverFilename = 'studios/covers/' . uniqid() . '_cover.webp';
+                
+                $coverImage = $manager->make($file->getRealPath())
+                    ->fit(1200, 675, function ($constraint) {
+                        $constraint->upsize();
+                    })
+                    ->encode('webp', 80);
+
+                Storage::disk('public')->put($newCoverFilename, (string) $coverImage);
+
+                if ($studio->cover_path) Storage::disk('public')->delete($studio->cover_path);
+
+                $data['cover_path'] = $newCoverFilename;
+            } catch (\Exception $e) {
+                return redirect()->route('studios.index')->withErrors(['cover' => 'Error en portada: ' . $e->getMessage()]);
             }
         }
 
@@ -177,13 +221,9 @@ class StudioController extends Controller
             abort(403, 'No tienes permiso para eliminar este espacio.');
         }
 
-        if ($studio->logo_path) {
-            Storage::disk('public')->delete($studio->logo_path);
-        }
-        
-        if ($studio->icon_path) {
-            Storage::disk('public')->delete($studio->icon_path);
-        }
+        if ($studio->logo_path) Storage::disk('public')->delete($studio->logo_path);
+        if ($studio->icon_path) Storage::disk('public')->delete($studio->icon_path);
+        if ($studio->cover_path) Storage::disk('public')->delete($studio->cover_path);
 
         $studio->delete();
 

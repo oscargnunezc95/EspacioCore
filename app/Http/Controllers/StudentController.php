@@ -228,7 +228,10 @@ class StudentController extends Controller
         $sessionsByDate = $sessions->groupBy('date');
 
         // 2. Consulta Eloquent limpia para extraer los IDs pagados sin usar DB::table()
+        // Excluimos pagos con estado "refunded" o "refunded_overbooking" porque esas
+        // clases deben mostrarse como "Disponible" para que puedan volver a pagarse.
         $paidSessionIds = Payment::where('student_id', $student->id)
+            ->whereNotIn('status', ['refunded', 'refunded_overbooking'])
             ->with('classSessions')
             ->get()
             ->flatMap(function($payment) {
@@ -237,6 +240,16 @@ class StudentController extends Controller
             ->unique()
             ->toArray();
 
-        return view('students.calendar', compact('student', 'monthDate', 'sessionsByDate', 'paidSessionIds'));
+        return view('students.calendar', compact('student', 'monthDate', 'sessionsByDate', 'paidSessionIds', 'studio'));
+    }
+
+    public function payments($subdomain, $studentId)
+    {
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $student = Student::withTrashed()->findOrFail($studentId);
+
+        $payments = $student->payments()->latest()->with('classSessions.workshop')->paginate(15);
+
+        return view('students.payments', compact('student', 'payments'));
     }
 }

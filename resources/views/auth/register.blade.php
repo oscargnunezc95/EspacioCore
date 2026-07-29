@@ -5,8 +5,8 @@
         <div class="w-full max-w-sm mx-auto lg:mx-0">
             
             <div class="mb-10">
-                <h1 class="text-3xl font-bold tracking-tight text-zinc-900">Únete al Espacio</h1>
-                <p class="mt-2 text-sm text-zinc-500 font-medium">Crea tu cuenta gratis y comienza a gestionar tu estudio.</p>
+                <h1 class="text-3xl font-bold tracking-tight text-stone-900">Únete al Espacio</h1>
+                <p class="mt-2 text-sm text-stone-500 font-medium">Crea tu cuenta gratis y comienza a gestionar tu estudio.</p>
             </div>
 
             @if ($errors->any())
@@ -20,7 +20,7 @@
                 </div>
             @endif
 
-            <a href="{{ route('google.redirect') }}" class="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-zinc-700 bg-white border border-zinc-300 rounded-xl hover:bg-zinc-50 hover:text-zinc-900 transition-all duration-200 shadow-sm gap-3 active:scale-[0.98]">
+            <a href="{{ route('google.redirect') }}" class="flex items-center justify-center w-full px-4 py-3 text-sm font-bold text-stone-700 bg-white border border-stone-300 rounded-xl hover:bg-stone-50 hover:text-stone-900 transition-all duration-200 shadow-sm gap-3 active:scale-[0.98]">
                 <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -32,10 +32,10 @@
 
             <div class="relative mt-8 mb-6">
                 <div class="absolute inset-0 flex items-center" aria-hidden="true">
-                    <div class="w-full border-t border-zinc-200"></div>
+                    <div class="w-full border-t border-stone-200"></div>
                 </div>
                 <div class="relative flex justify-center text-sm font-medium">
-                    <span class="px-3 bg-white text-zinc-400">O regístrate con tu correo</span>
+                    <span class="px-3 bg-white text-stone-400">O regístrate con tu correo</span>
                 </div>
             </div>
 
@@ -43,28 +43,28 @@
                 @csrf
 
                 <div>
-                    <label for="name" class="block text-sm font-bold text-zinc-700">Nombre completo</label>
+                    <label for="name" class="block text-sm font-bold text-stone-700">Nombre completo</label>
                     <div class="mt-1.5">
                         <input id="name" name="name" type="text" value="{{ old('name') }}" required autofocus autocomplete="name"
-                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('name') border-rose-500 ring-2 ring-rose-200 @enderror">
+                            class="block w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500 transition-all duration-200 sm:text-sm @error('name') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
                     <x-input-error :messages="$errors->get('name')" class="mt-1.5" />
                 </div>
 
                 <div>
-                    <label for="email" class="block text-sm font-bold text-zinc-700">Correo electrónico</label>
+                    <label for="email" class="block text-sm font-bold text-stone-700">Correo electrónico</label>
                     <div class="mt-1.5">
                         <input id="email" name="email" type="email" value="{{ old('email') }}" required autocomplete="email"
-                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('email') border-rose-500 ring-2 ring-rose-200 @enderror">
+                            class="block w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500 transition-all duration-200 sm:text-sm @error('email') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
                     <x-input-error :messages="$errors->get('email')" class="mt-1.5" />
                 </div>
 
                 <div class="mb-4">
-                    <label for="country_id" class="block text-sm font-bold text-zinc-700">País</label>
+                    <label for="country_id" class="block text-sm font-bold text-stone-700">País</label>
                     <div class="mt-1.5">
                         <select id="country_id" name="country_id" required
-                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('country_id') border-rose-500 ring-2 ring-rose-200 @enderror">
+                            class="block w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 focus:outline-none focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500 transition-all duration-200 sm:text-sm @error('country_id') border-rose-500 ring-2 ring-rose-200 @enderror">
                             @foreach($countries as $country)
                                 <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>
                                     {{ $country->name }}
@@ -77,31 +77,31 @@
 
                 <div>
                     <div class="flex justify-between items-baseline">
-                        <label for="national_id" class="block text-sm font-bold text-zinc-700">Documento de Identidad</label>
+                        <label for="national_id" class="block text-sm font-bold text-stone-700">Documento de Identidad</label>
                     </div>
-                    <p class="text-xs text-zinc-500 mb-1.5 mt-0.5 font-medium">Para vincularte automáticamente a tus clases.</p>
+                    <p class="text-xs text-stone-500 mb-1.5 mt-0.5 font-medium">Para vincularte automáticamente a tus clases.</p>
                     <div class="mt-1.5">
                         <input id="national_id" name="national_id" type="text" value="{{ old('national_id') }}" required
                             placeholder="Ej: 12345678-9"
-                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('national_id') border-rose-500 ring-2 ring-rose-200 @enderror">
+                            class="block w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500 transition-all duration-200 sm:text-sm @error('national_id') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
                     <x-input-error :messages="$errors->get('national_id')" class="mt-1.5" />
                 </div>
 
                 <div>
-                    <label for="password" class="block text-sm font-bold text-zinc-700">Contraseña</label>
+                    <label for="password" class="block text-sm font-bold text-stone-700">Contraseña</label>
                     <div class="mt-1.5">
                         <input id="password" name="password" type="password" required autocomplete="new-password"
-                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('password') border-rose-500 ring-2 ring-rose-200 @enderror">
+                            class="block w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500 transition-all duration-200 sm:text-sm @error('password') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
                     <x-input-error :messages="$errors->get('password')" class="mt-1.5" />
                 </div>
 
                 <div>
-                    <label for="password_confirmation" class="block text-sm font-bold text-zinc-700">Confirmar contraseña</label>
+                    <label for="password_confirmation" class="block text-sm font-bold text-stone-700">Confirmar contraseña</label>
                     <div class="mt-1.5">
                         <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password"
-                            class="block w-full px-4 py-3 bg-zinc-50 border rounded-xl text-zinc-900 placeholder-zinc-400 focus:outline-none focus:bg-white focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all duration-200 sm:text-sm @error('password_confirmation') border-rose-500 ring-2 ring-rose-200 @enderror">
+                            class="block w-full px-4 py-3 bg-stone-50 border rounded-xl text-stone-900 placeholder-stone-400 focus:outline-none focus:bg-white focus:border-red-600 focus:ring-2 focus:ring-red-500 transition-all duration-200 sm:text-sm @error('password_confirmation') border-rose-500 ring-2 ring-rose-200 @enderror">
                     </div>
                     <x-input-error :messages="$errors->get('password_confirmation')" class="mt-1.5" />
                 </div>
@@ -115,13 +115,13 @@
                     <div class="relative flex items-start gap-3">
                         <div class="flex h-6 items-center">
                             <input id="terms_accepted" name="terms_accepted" type="checkbox" value="1"
-                                class="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 cursor-pointer transition-all duration-200 @error('terms_accepted') border-rose-500 ring-2 ring-rose-200 @enderror">
+                                class="h-5 w-5 rounded border-stone-300 text-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 cursor-pointer transition-all duration-200 @error('terms_accepted') border-rose-500 ring-2 ring-rose-200 @enderror">
                         </div>
                         <div class="text-sm leading-6">
-                            <label for="terms_accepted" class="font-medium text-zinc-700 cursor-pointer select-none">
+                            <label for="terms_accepted" class="font-medium text-stone-700 cursor-pointer select-none">
                                 Acepto los
                                 <a href="{{ route('legal.terms') }}" target="_blank" rel="noopener noreferrer"
-                                   class="font-semibold text-zinc-900 hover:text-indigo-600 transition-colors duration-200 underline decoration-zinc-300 underline-offset-4">
+                                   class="font-semibold text-stone-900 hover:text-red-600 transition-colors duration-200 underline decoration-stone-300 underline-offset-4">
                                     Términos y Condiciones
                                 </a>
                                 <span aria-hidden="true" class="text-rose-500">*</span>
@@ -133,13 +133,13 @@
                     <div class="relative flex items-start gap-3">
                         <div class="flex h-6 items-center">
                             <input id="privacy_accepted" name="privacy_accepted" type="checkbox" value="1"
-                                class="h-5 w-5 rounded border-zinc-300 text-zinc-900 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-1 cursor-pointer transition-all duration-200 @error('privacy_accepted') border-rose-500 ring-2 ring-rose-200 @enderror">
+                                class="h-5 w-5 rounded border-stone-300 text-red-600 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 cursor-pointer transition-all duration-200 @error('privacy_accepted') border-rose-500 ring-2 ring-rose-200 @enderror">
                         </div>
                         <div class="text-sm leading-6">
-                            <label for="privacy_accepted" class="font-medium text-zinc-700 cursor-pointer select-none">
+                            <label for="privacy_accepted" class="font-medium text-stone-700 cursor-pointer select-none">
                                 He leído y acepto la
                                 <a href="{{ route('legal.privacy') }}" target="_blank" rel="noopener noreferrer"
-                                   class="font-semibold text-zinc-900 hover:text-indigo-600 transition-colors duration-200 underline decoration-zinc-300 underline-offset-4">
+                                   class="font-semibold text-stone-900 hover:text-red-600 transition-colors duration-200 underline decoration-stone-300 underline-offset-4">
                                     Política de Privacidad
                                 </a>
                                 <span aria-hidden="true" class="text-rose-500">*</span>
@@ -153,18 +153,18 @@
 
                 <div class="pt-4">
                     <button type="submit"
-                        class="flex w-full justify-center px-4 py-3 text-sm font-bold text-white bg-zinc-900 rounded-xl hover:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 active:scale-[0.98] transition-all duration-200 shadow-sm">
+                        class="flex w-full justify-center px-4 py-3 text-sm font-bold text-white bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2">
                         Crear mi cuenta
                     </button>
-                    <p class="mt-3 text-center text-xs text-zinc-500 font-medium">
+                    <p class="mt-3 text-center text-xs text-stone-500 font-medium">
                         Te enviaremos un correo para verificar tu cuenta de forma segura.
                     </p>
                 </div>
             </form>
 
             <div class="mt-8 text-center text-sm">
-                <span class="text-zinc-500 font-medium">¿Ya tienes una cuenta?</span>
-                <a href="{{ route('login') }}" class="font-bold text-zinc-900 hover:text-zinc-600 transition-colors duration-200 underline decoration-zinc-300 underline-offset-4">
+                <span class="text-stone-500 font-medium">¿Ya tienes una cuenta?</span>
+                <a href="{{ route('login') }}" class="font-bold text-stone-900 hover:text-stone-600 transition-colors duration-200 underline decoration-stone-300 underline-offset-4">
                     Inicia sesión aquí
                 </a>
             </div>

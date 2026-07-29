@@ -10,13 +10,16 @@ class Promotion extends Model
     use BelongsToStudio;
 
     protected $fillable = [
-        'studio_id', 'name', 'type', 'total_price', 
-        'additional_price', 'is_active', 'class_count', 'is_monthly' // <-- AÑADIDO
+        'studio_id', 'name', 'type', 'total_price',
+        'additional_price', 'validity_months', 'validity_type',
+        'allows_retroactive', 'is_active', 'class_count',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
-        'is_monthly' => 'boolean', // <-- AÑADIDO
+        'validity_months' => 'integer',
+        'validity_type' => 'string',
+        'allows_retroactive' => 'boolean',
     ];
 
     // Cambiamos workshops() por workshopPrices()

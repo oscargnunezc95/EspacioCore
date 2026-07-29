@@ -14,13 +14,17 @@ return [
     |
     */
     'mercadopago' => [
-        'token' => env('MERCADOPAGO_ACCESS_TOKEN'),
-        'public_key' => env('MERCADOPAGO_PUBLIC_KEY'),
-        'app_id' => env('MERCADOPAGO_APP_ID'),
-        'secret' => env('MERCADOPAGO_CLIENT_SECRET'),
-        'redirect_uri' => env('MERCADOPAGO_REDIRECT_URI'),
+        'token'          => env('MERCADOPAGO_ACCESS_TOKEN'),
+        'platform_token' => env('MERCADOPAGO_PLATFORM_TOKEN'), // Token del dueño de la plataforma (para cobro de facturas)
+        'public_key'     => env('MERCADOPAGO_PUBLIC_KEY'),
+        'app_id'         => env('MERCADOPAGO_APP_ID'),
+        'secret'         => env('MERCADOPAGO_CLIENT_SECRET'),
+        'redirect_uri'   => env('MERCADOPAGO_REDIRECT_URI'),
         'webhook_domain' => env('MERCADOPAGO_WEBHOOK_DOMAIN'),
-        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'), // <-- Agrega esta línea
+        'webhook_secret' => env('MERCADOPAGO_WEBHOOK_SECRET'),
+        // Las URLs base de la API que parametrizamos
+        'auth_url'       => env('MERCADOPAGO_AUTH_URL', 'https://auth.mercadopago.cl/authorization'),
+        'api_url'        => env('MERCADOPAGO_API_URL', 'https://api.mercadopago.com'),
     ],
 
     'postmark' => [

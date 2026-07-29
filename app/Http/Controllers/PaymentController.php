@@ -15,6 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Log;
+use App\Services\PricingService;
+use App\Services\MercadoPagoService;
 use Carbon\Carbon;
 
 class PaymentController extends Controller
@@ -79,7 +81,7 @@ class PaymentController extends Controller
 
         try {
             if ($student->email) {
-                Mail::to($student->email)->send(
+                Mail::to($student->email)->queue(
                     new StudentPaymentReceiptMail($studio, $payment, $student->name)
                 );
             }
@@ -98,7 +100,8 @@ class PaymentController extends Controller
         $enrollmentService = app(EnrollmentService::class);
         $enrollmentService->notifyCapacityChange(
             $request->session_ids,
-            $student->user_id ?: 0
+            $student->user_id ?: 0,
+            'payment'
         );
 
         return back()->with('success', '¡Pago y asistencia registrados correctamente!');
@@ -154,5 +157,105 @@ class PaymentController extends Controller
         });
 
         return response()->json($formatted);
+    }
+
+    // =========================================================================
+    // GATEWAY DE PAGO: API ENDPOINTS PARA EL CALENDARIO
+    // =========================================================================
+
+    /**
+     * Calcula el precio de las sesiones seleccionadas usando PricingService.
+     * GET /api/students/{student}/gateway/calculate?session_ids[]=1&session_ids[]=2
+     */
+    public function calculateGatewayPrice(Request $request, $subdomain, Student $student)
+    {
+        $request->validate([
+            'session_ids'   => 'required|array|min:1',
+            'session_ids.*' => 'integer|exists:class_sessions,id',
+        ]);
+
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $pricingService = app(PricingService::class);
+
+        $result = $pricingService->calculateCart(
+            $studio->id,
+            $request->session_ids,
+            $student->id
+        );
+
+        return response()->json([
+            'total'          => $result['total'],
+            'currency_symbol' => $studio->currency_symbol,
+            'breakdown'      => $result['breakdown'],
+        ]);
+    }
+
+    /**
+     * Genera una orden de pago con QR estático de MercadoPago.
+     * POST /api/students/{student}/gateway/static-qr
+     */
+    public function generateStaticQROrder(Request $request, $subdomain, Student $student)
+    {
+        $request->validate([
+            'session_ids'   => 'required|array|min:1',
+            'session_ids.*' => 'integer|exists:class_sessions,id',
+        ]);
+
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $mpService = app(MercadoPagoService::class);
+
+        try {
+            $data = $mpService->generateStaticQROrder($studio, $request->session_ids, $student);
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Genera una preferencia de Checkout Pro para QR dinámico.
+     * POST /api/students/{student}/gateway/dynamic-qr
+     */
+    public function generateDynamicQR(Request $request, $subdomain, Student $student)
+    {
+        $request->validate([
+            'session_ids'   => 'required|array|min:1',
+            'session_ids.*' => 'integer|exists:class_sessions,id',
+        ]);
+
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $mpService = app(MercadoPagoService::class);
+
+        try {
+            $data = $mpService->generateGatewayPreference($studio, $request->session_ids, $student);
+            return response()->json($data);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
+    }
+
+    /**
+     * Genera link de pago y lo envía por correo al estudiante.
+     * POST /api/students/{student}/gateway/send-email
+     */
+    public function sendPaymentEmail(Request $request, $subdomain, Student $student)
+    {
+        $request->validate([
+            'session_ids'   => 'required|array|min:1',
+            'session_ids.*' => 'integer|exists:class_sessions,id',
+        ]);
+
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+        $mpService = app(MercadoPagoService::class);
+
+        try {
+            $data = $mpService->sendPaymentEmail($studio, $request->session_ids, $student);
+            return response()->json([
+                'message' => 'Link de pago enviado exitosamente.',
+                'total'   => $data['total'],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        }
     }
 }

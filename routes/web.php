@@ -21,6 +21,7 @@ use App\Http\Controllers\Global\FamilyController;
 use App\Http\Controllers\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionPlanController;
 use App\Http\Controllers\Admin\StudioManagementController;
+use App\Http\Controllers\Admin\BillingController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\MercadoPagoOAuthController;
 use App\Http\Controllers\AccountController;
@@ -59,6 +60,11 @@ Route::domain($baseDomain)->group(function () {
     Route::get('/', [HomeController::class, 'index'])->name('home');
     Route::get('/explorar', [ExploreController::class, 'index'])->name('explore');
 
+    // Endpoints AJAX para dropdowns dependientes del explorer (públicos, GET)
+    Route::get('/api/explore/disciplines', [ExploreController::class, 'disciplinesByArea'])->name('api.explore.disciplines');
+    Route::get('/api/explore/regions', [ExploreController::class, 'regionsByCountry'])->name('api.explore.regions');
+    Route::get('/api/explore/cities', [ExploreController::class, 'citiesByRegion'])->name('api.explore.cities');
+
     // SEO: robots.txt y sitemap.xml
     Route::get('/robots.txt', [SeoController::class, 'robots']);
     Route::get('/sitemap.xml', [SeoController::class, 'sitemap']);
@@ -88,13 +94,13 @@ Route::domain($baseDomain)->group(function () {
     // ---------------------------------------------------------
 
     // Decisión de dependiente: requiere perfil completo (national_id + country_id)
-    Route::middleware(['auth', 'verified', 'check.profile', 'dependent.decision'])->group(function () {
+    Route::middleware(['auth', 'check.profile', 'dependent.decision'])->group(function () {
         Route::get('/profile/dependiente/decision', [FamilyController::class, 'dependentDecision'])->name('profile.dependent.decision');
         Route::post('/profile/dependiente/unlink', [FamilyController::class, 'unlinkDependent'])->name('profile.dependent.unlink');
         Route::post('/profile/dependiente/share', [FamilyController::class, 'shareAndKeepDependent'])->name('profile.dependent.share');
     });
 
-    Route::middleware(['auth', 'verified', 'check.profile', 'dependent.decision'])->group(function () {
+    Route::middleware(['auth', 'check.profile', 'dependent.decision'])->group(function () {
         
         // El botón de la UI apuntará aquí
         Route::get('/oauth/mercadopago/redirect', [MercadoPagoOAuthController::class, 'redirect'])
@@ -126,9 +132,15 @@ Route::domain($baseDomain)->group(function () {
         Route::post('/mis-estudios', [StudioController::class, 'store'])->name('studios.store');
         Route::put('/studios/{studio}', [StudioController::class, 'update'])->name('studios.update');
 
-        // Suscripción a Planes (Mercado Pago)
+        // Suscripción a Planes (Mercado Pago) - SE AGREGA 'verified' SOLO AQUÍ
         Route::post('/studios/{studio}/subscribe', [SubscriptionController::class, 'subscribe'])
+            ->middleware('verified')
             ->name('studios.subscribe');
+
+        // 👇 NUEVA RUTA PARA REINTENTAR PAGO (Movida al dominio principal)
+        Route::post('/studios/{studio}/retry-payment', [SubscriptionController::class, 'retryPayment'])
+            ->middleware('verified')
+            ->name('studios.retry-payment');
 
         // Clases del Usuario (Portales)
         Route::get('/mis-clases/alumno', [UserClassController::class, 'asStudent'])->name('global.classes.student');
@@ -186,6 +198,14 @@ Route::domain($baseDomain)->group(function () {
             ->name('admin.plans.toggle');
         Route::get('/estudios/{studio}/auditoria', [\App\Http\Controllers\Admin\StudioManagementController::class, 'audit'])
             ->name('admin.studios.audit');
+
+        // --- GESTIÓN DE FACTURACIÓN (Piso Mínimo y Facturas) ---
+        Route::get('/billing', [BillingController::class, 'index'])
+            ->name('admin.billing.index');
+        Route::patch('/billing/standard-floor', [BillingController::class, 'updateStandardFloor'])
+            ->name('admin.billing.update-standard-floor');
+        Route::patch('/billing/invoices/{invoice}/floor', [BillingController::class, 'updateInvoiceFloor'])
+            ->name('admin.billing.update-invoice-floor');
     });
     
 
@@ -200,14 +220,25 @@ Route::domain($baseDomain)->group(function () {
 Route::domain('{subdomain}.' . $baseDomain)->group(function () {
     
     // --- ACCESO PÚBLICO AL ESTUDIO (Link in Bio / Instagram) ---
-    // Esta ruta debe ser accesible sin estar logueado
-    Route::get('/', [StudioPublicController::class, 'show'])->name('studio.public.show');
+    // Estas rutas deben ser accesibles sin estar logueado.
+    // El middleware public.studio.status bloquea el escaparate si el
+    // estudio tiene facturas vencidas (HTTP 503 + vista de suspensión).
+    Route::middleware(['public.studio.status'])->group(function () {
+        // Escaparate público del estudio — vistas separadas por sección
+        Route::get('/', [StudioPublicController::class, 'perfil'])->name('studio.public.perfil');
+        Route::get('/talleres', [StudioPublicController::class, 'talleres'])->name('studio.public.talleres');
+        Route::get('/promos', [StudioPublicController::class, 'promos'])->name('studio.public.promos');
+        Route::get('/calendario', [StudioPublicController::class, 'calendario'])->name('studio.public.calendario');
+    });
 
     // --- GESTIÓN INTERNA DEL ESTUDIO (Requiere Auth e Identificar Estudio) ---
-    Route::middleware(['web', 'auth', 'verified', 'identify.studio'])->group(function () {
-        
+    Route::middleware(['web', 'auth', 'identify.studio', 'check.studio.debt'])->group(function () {
+
         Route::get('/cuenta', [AccountController::class, 'index'])->name('account.index');
+        Route::get('/cuenta/facturacion', [AccountController::class, 'billing'])->name('account.billing');
+        Route::post('/cuenta/facturacion/{invoiceId}/pagar', [AccountController::class, 'payInvoice'])->name('account.billing.pay');
         Route::delete('/cuenta/mercadopago', [AccountController::class, 'disconnectMercadoPago'])->name('account.mp.disconnect');
+        Route::post('/cuenta/mercadopago/setup-static-qr', [AccountController::class, 'setupStaticQR'])->name('account.mp.setup-static-qr');
         
         // Dashboard del Estudio
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -221,6 +252,7 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
             Route::patch('/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
             Route::delete('/{id}/force', [StudentController::class, 'forceDelete'])->name('students.force_delete');
             Route::get('/{student}/calendar/{month?}', [StudentController::class, 'calendar'])->name('students.calendar');
+            Route::get('/{student}/payments', [StudentController::class, 'payments'])->name('students.payments');
         });
         
         // Módulo profesores
@@ -251,8 +283,19 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
         Route::delete('/payments/{payment}', [PaymentController::class, 'destroy'])->name('payments.destroy');
         Route::get('/api/students/{student}/available-sessions', [PaymentController::class, 'getAvailableSessions']);
 
-        // Suscripción SaaS del Estudio
-        Route::get('/suscripcion', [SubscriptionController::class, 'index'])->name('subscriptions.index');
+        // Gateway de pago (API desde el calendario)
+        Route::prefix('api/students/{student}/gateway')->name('gateway.')->group(function () {
+            Route::get('/calculate', [PaymentController::class, 'calculateGatewayPrice'])->name('calculate');
+            Route::post('/static-qr', [PaymentController::class, 'generateStaticQROrder'])->name('static-qr');
+            Route::post('/dynamic-qr', [PaymentController::class, 'generateDynamicQR'])->name('dynamic-qr');
+            Route::post('/send-email', [PaymentController::class, 'sendPaymentEmail'])->name('send-email');
+        });
+
+        // Suscripción SaaS del Estudio — DESHABILITADA (sistema migrado a Facturación por Uso)
+        // Las rutas antiguas de suscripción se eliminan en esta refactorización.
+        // Route::get('/suscripcion', ...);
+        // Route::post('/studios/{studio}/subscribe', ...);
+        // Route::post('/studios/{studio}/retry-payment', ...);
 
         // Módulo de Liquidaciones (Payroll) - Anidado por Profesor
         Route::get('/teachers/{teacher}/payroll/{month?}', [\App\Http\Controllers\PayrollController::class, 'show'])->name('teachers.payroll.show');

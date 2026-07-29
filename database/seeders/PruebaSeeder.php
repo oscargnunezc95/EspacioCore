@@ -29,7 +29,7 @@ class PruebaSeeder extends Seeder
             ]
         );*/
         // 1.5 Vincular a Luis como hermano de Oscar
-        \App\Models\UserDependent::firstOrCreate(
+        /* \App\Models\UserDependent::firstOrCreate(
             [
                 'user_id' => 1,
                 'national_id' => 188021069, // ID de Luis Nuñez
@@ -41,7 +41,7 @@ class PruebaSeeder extends Seeder
                 'relationship' => 'Hermano/a',
                 'status' => 'active', // Lo forzamos a activo para pruebas locales
             ]
-        ); 
+        );  */
         // 2. Configuración de Estudios y Talleres (Adaptado a Schedules Múltiples)
         // Días: 0=Dom, 1=Lun, 2=Mar, 3=Mié, 4=Jue, 5=Vie, 6=Sáb
         $studiosData = [

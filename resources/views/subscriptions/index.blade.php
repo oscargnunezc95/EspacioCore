@@ -6,13 +6,13 @@
     <div class="pt-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {{-- Breadcrumbs --}}
-        <div class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
-            <span class="text-zinc-900">Mi Suscripción</span>
+        <div class="flex text-xs font-bold text-stone-500 mb-3 gap-2 items-center">
+            <span class="text-stone-900">Mi Suscripción</span>
         </div>
 
         {{-- Cabecera: Título + Plan Actual --}}
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-10">
-            <h1 class="text-xl sm:text-2xl md:text-3xl font-black text-zinc-900 truncate">
+            <h1 class="text-xl sm:text-2xl md:text-3xl font-black truncate">
                 Mi Suscripción
             </h1>
 
@@ -26,11 +26,11 @@
                 {{-- Plan Actual --}}
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold border
                             @if($isFree)
-                                bg-zinc-100 text-zinc-600 border-zinc-300
+                                bg-stone-100 text-stone-600 border-stone-300
                             @else
                                 bg-emerald-50 text-emerald-700 border-emerald-300
                             @endif">
-                    <span class="text-xs uppercase tracking-wider text-zinc-400">Plan actual</span>
+                    <span class="text-xs uppercase tracking-wider text-stone-400">Plan actual</span>
                     <span>{{ $currentPlan ? $currentPlan->name : 'Plan Gratuito' }}</span>
                 </div>
 
@@ -45,17 +45,36 @@
         </div>
         {{-- BANNER DE ALERTA: PAGO RECHAZADO / MOROSO (past_due) --}}
         @if($studio->subscription_status === 'past_due')
-            <div class="mt-4 mb-6 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+            <div class="mt-4 mb-6 p-4 sm:p-5 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                {{-- Ícono de advertencia --}}
                 <div class="shrink-0 text-amber-600 mt-0.5">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
                     </svg>
                 </div>
-                <div class="flex-1">
-                    <h4 class="text-sm font-bold text-amber-900">Acceso Restringido o Pago Pendiente</h4>
-                    <p class="text-xs text-amber-700 mt-1 leading-relaxed">
-                        No pudimos procesar el cobro automático de tu suscripción mensual. Mercado Pago reintentará el cobro en las próximas horas. Por favor, verifica el cupo o fondos de tu tarjeta asociada.
+
+                {{-- Contenido textual --}}
+                <div class="flex-1 min-w-0">
+                    <h4 class="text-sm sm:text-base font-bold text-amber-900">
+                        Acceso Restringido: Actualiza tu medio de pago
+                    </h4>
+                    <p class="text-xs sm:text-sm text-amber-700 mt-1 leading-relaxed">
+                        No pudimos procesar el cobro automático de tu suscripción. Si no regularizas tu cuenta en los próximos días, pasarás al Plan Gratuito. Puedes forzar el pago ahora mismo con otra tarjeta.
                     </p>
+                </div>
+
+                {{-- Botón de acción --}}
+                <div class="shrink-0 w-full sm:w-auto">
+                    <form action="{{ route('studios.retry-payment', ['studio' => $studio->id]) }}" method="POST">
+                        @csrf
+                        <button type="submit"
+                                class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl text-sm font-bold bg-amber-600 text-white hover:bg-amber-700 transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 shadow-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/>
+                            </svg>
+                            Pagar con otra tarjeta
+                        </button>
+                    </form>
                 </div>
             </div>
         @endif
@@ -69,18 +88,18 @@
 
             {{-- Selector de País/Moneda --}}
             <div class="mb-8">
-                <label for="country-select" class="block text-sm font-bold text-zinc-900 mb-2">
+                <label for="country-select" class="block text-sm font-bold text-stone-900 mb-2">
                     País de facturación
                 </label>
                 <div class="relative max-w-xs">
                     <select id="country-select"
                             x-model="selectedCountry"
-                            class="appearance-none w-full bg-white border border-zinc-300 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-zinc-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 cursor-pointer">
+                            class="appearance-none w-full bg-white border border-stone-300 rounded-xl px-4 py-3 pr-10 text-sm font-medium text-stone-900 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-stone-900 focus:border-stone-900 cursor-pointer">
                         @foreach($countries as $country)
                             <option value="{{ $country->id }}">{{ $country->name }}</option>
                         @endforeach
                     </select>
-                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-400">
+                    <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-stone-400">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                         </svg>
@@ -102,7 +121,7 @@
                             @if($isCurrentPlan)
                                 border-emerald-400 ring-2 ring-emerald-100 shadow-lg
                             @else
-                                border-zinc-200 hover:border-zinc-400 hover:shadow-md
+                                border-stone-200 hover:border-stone-400 hover:shadow-md
                             @endif">
 
                     {{-- Insignia "Plan Actual" --}}
@@ -113,27 +132,27 @@
                     @endif
 
                     {{-- Cabecera de la Card --}}
-                    <div class="p-6 pb-4 text-center border-b border-zinc-100">
-                        <h3 class="text-lg font-black text-zinc-900 mb-1">{{ $plan->name }}</h3>
+                    <div class="p-6 pb-4 text-center border-b border-stone-100">
+                        <h3 class="text-lg font-black text-stone-900 mb-1">{{ $plan->name }}</h3>
                         @if($plan->features)
-                            <p class="text-xs text-zinc-500 leading-relaxed">{{ $plan->features }}</p>
+                            <p class="text-xs text-stone-500 leading-relaxed">{{ $plan->features }}</p>
                         @endif
                     </div>
 
                     {{-- Precio --}}
                     <div class="p-6 pb-4 text-center">
                         <div class="flex items-baseline justify-center gap-1">
-                            <span class="text-3xl md:text-4xl font-black text-zinc-900">
+                            <span class="text-3xl md:text-4xl font-black text-stone-900">
                                 {{ $priceFormatted }}
                             </span>
-                            <span class="text-sm font-medium text-zinc-400">CLP</span>
+                            <span class="text-sm font-medium text-stone-400">CLP</span>
                         </div>
-                        <p class="text-xs text-zinc-400 mt-1">por mes</p>
+                        <p class="text-xs text-stone-400 mt-1">por mes</p>
                     </div>
 
                     {{-- Detalles del Plan --}}
                     <div class="px-6 pb-2 flex-1">
-                        <ul class="space-y-2 text-sm text-zinc-600">
+                        <ul class="space-y-2 text-sm text-stone-600">
                             @if($plan->platform_fee_percent !== null)
                                 <li class="flex items-start gap-2">
                                     <svg class="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -152,7 +171,7 @@
                         @if($isCurrentPlan)
                             {{-- BOTÓN: PLAN ACTUAL --}}
                             <button type="button" disabled
-                                    class="w-full py-3 px-4 rounded-xl text-sm font-bold bg-zinc-100 text-zinc-400 cursor-not-allowed transition-all duration-200">
+                                    class="w-full py-3 px-4 rounded-xl text-sm font-bold bg-stone-100 text-stone-400 cursor-not-allowed transition-all duration-200">
                                 Plan Actual
                             </button>
 
@@ -175,7 +194,7 @@
                                                @if($isFreePlan)
                                                    bg-zinc-800 text-white hover:bg-zinc-900 focus:ring-zinc-500
                                                @else
-                                                   bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500 shadow-sm
+                                                   bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white focus:ring-red-500 shadow-sm
                                                @endif">
                                     @if($isFreePlan)
                                         Cambiar a Plan Gratuito
@@ -213,7 +232,7 @@
                  aria-hidden="true"></div>
 
             {{-- Panel del Modal --}}
-            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10 border border-zinc-200"
+            <div class="relative bg-white rounded-2xl shadow-xl max-w-md w-full p-6 z-10 border border-stone-200"
                  x-on:click.outside="closeModal()">
 
                 {{-- Ícono de advertencia --}}
@@ -225,25 +244,25 @@
                 </div>
 
                 {{-- Título del plan destino --}}
-                <h3 id="modal-title" class="text-lg font-black text-zinc-900 text-center mb-2">
+                <h3 id="modal-title" class="text-lg font-black text-stone-900 text-center mb-2">
                     Cambiar a <span x-text="selectedPlanName"></span>
                 </h3>
 
                 {{-- Mensaje dinámico según el tipo de cambio --}}
-                <p class="text-sm text-zinc-600 text-center leading-relaxed mb-6"
+                <p class="text-sm text-stone-600 text-center leading-relaxed mb-6"
                    x-text="modalMessage"></p>
 
                 {{-- Acciones --}}
                 <div class="flex flex-col sm:flex-row gap-3">
                     <button type="button"
                             x-on:click="closeModal()"
-                            class="w-full py-3 px-4 rounded-xl text-sm font-bold bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-zinc-500">
+                            class="w-full bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-95">
                         Cancelar
                     </button>
                     <button type="button"
                             x-on:click="confirmChange()"
                             class="w-full py-3 px-4 rounded-xl text-sm font-bold text-white transition-all duration-200 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2"
-                            :class="selectedPlanIsFree ? 'bg-zinc-800 hover:bg-zinc-900 focus:ring-zinc-500' : 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'">
+                            :class="selectedPlanIsFree ? 'bg-zinc-800 hover:bg-zinc-900 focus:ring-zinc-500' : 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 focus:ring-red-500'">
                         Confirmar
                     </button>
                 </div>
@@ -326,11 +345,11 @@
         {{-- Mensaje cuando no hay planes --}}
         @if($activePlans->isEmpty())
             <div class="text-center py-16">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-zinc-100 text-zinc-400 mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-stone-100 text-stone-400 mb-4">
                     <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>
                 </div>
-                <h3 class="text-lg font-bold text-zinc-900 mb-1">No hay planes disponibles</h3>
-                <p class="text-sm text-zinc-500">No hay planes de suscripción activos en este momento. Vuelve más tarde.</p>
+                <h3 class="text-lg font-bold text-stone-900 mb-1">No hay planes disponibles</h3>
+                <p class="text-sm text-stone-500">No hay planes de suscripción activos en este momento. Vuelve más tarde.</p>
             </div>
         @endif
     </div>

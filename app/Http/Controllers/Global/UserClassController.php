@@ -27,18 +27,13 @@ class UserClassController extends Controller
         $monthDate = $month ? Carbon::createFromFormat('Y-m', $month) : Carbon::now();
 
         // ─── PRINCIPIO: "Separar la Identidad de la Tutoría" ─────────────────
-        // El user_id en students es la persona que ASISTE a la clase.
-        // El apoderado gestiona familiares vía user_dependents, NO vía user_id.
-
-        // 1. Mis propias fichas de alumno (yo asisto)
         $ownStudentIds = Student::withoutGlobalScopes()
             ->where('user_id', $user->id)
             ->pluck('id')
             ->toArray();
 
-        // 2. Fichas de mis familiares/dependientes (ellos asisten, yo gestiono)
         $dependentNationalIds = UserDependent::where('user_id', $user->id)
-            ->where('status', 'active') // FILTRO APLICADO
+            ->where('status', 'active')
             ->pluck('national_id')
             ->toArray();
 
@@ -47,7 +42,6 @@ class UserClassController extends Controller
             $dependentStudentIds = Student::withoutGlobalScopes()
                 ->whereIn('national_id', $dependentNationalIds)
                 ->where(function ($q) use ($user) {
-                    // Excluir mis propias fichas (yo puedo ser dependiente de alguien más)
                     $q->whereNull('user_id')
                       ->orWhere('user_id', '!=', $user->id);
                 })
@@ -69,6 +63,7 @@ class UserClassController extends Controller
                 'workshop' => fn($q) => $q->withoutGlobalScopes(), 
                 'workshop.studio', 
                 'workshop.teacher',
+                // Aseguramos cargar los alumnos filtrados (Eloquent cargará el pivot automáticamente)
                 'students' => fn($q) => $q->withoutGlobalScopes()->whereIn('students.id', $allStudentIds)
             ])
             ->whereHas('students', function ($q) use ($allStudentIds) {
@@ -84,13 +79,19 @@ class UserClassController extends Controller
         $exploreService = app(ExploreService::class);
         $sessions = $exploreService->enrichSessionCollection($sessions);
 
-        // Marcar cada sesión con qué estudiantes son familiares (para la vista)
         $dependentStudentIdsFlat = $dependentStudentIds;
+        
         $sessions->each(function ($session) use ($dependentStudentIdsFlat) {
             $session->family_student_ids = $session->students
                 ->filter(fn($st) => in_array($st->id, $dependentStudentIdsFlat))
                 ->pluck('id')
                 ->toArray();
+
+            // 🚀 LÓGICA DE NEGOCIO: Evaluación estricta de deuda multifamiliar
+            // La clase se considera "Pagada" solo si TODOS los alumnos de esta cuenta están solventes.
+            $session->is_paid = $session->students->every(function ($student) {
+                return isset($student->pivot) && $student->pivot->payment_status === 'paid';
+            });
         });
 
         $sessionsByDate = $sessions->groupBy('date');
@@ -219,6 +220,21 @@ class UserClassController extends Controller
                 ? 'remove'
                 : 'add';
 
+            // ─── 🛡️ BLINDAJE DE DEUDA: Prohibir eliminación si ya asistió ───
+            if ($action === 'remove') {
+                $hasAttendance = \App\Models\Attendance::where('class_session_id', $session->id)
+                    ->where('student_id', $student->id)
+                    ->exists();
+
+                if ($hasAttendance) {
+                    return response()->json([
+                        'error'   => true,
+                        'message' => 'No puedes remover esta clase porque ya fuiste marcado como presente. El pago es obligatorio.',
+                        'code'    => 'LOCKED_DEBT'
+                    ], 422);
+                }
+            }
+
             // ─── CAPA 1 ANTI-OVERBOOKING: Verificar cupos antes de agregar ─
             $enrollmentService = app(EnrollmentService::class);
 
@@ -302,6 +318,44 @@ class UserClassController extends Controller
                 }
             }
 
+            // ─── 🛡️ BLINDAJE DE DEUDA BATCH: Pre-validar remociones prohibidas ───
+            $removals = collect($request->enrollments)->where('action', 'remove');
+            if ($removals->isNotEmpty()) {
+                foreach ($removals as $removal) {
+                    // Resolvemos la identidad del alumno igual que en el guardado
+                    $studentId = null;
+                    if (!empty($removal['dependent_id'])) {
+                        $dependent = $user->dependents()->find($removal['dependent_id']);
+                        if ($dependent) {
+                            $studentRecord = \App\Models\Student::withoutGlobalScopes()
+                                ->where('national_id', $dependent->national_id)
+                                ->first();
+                            $studentId = $studentRecord->id ?? null;
+                        }
+                    } else {
+                        $studentRecord = \App\Models\Student::withoutGlobalScopes()
+                            ->where('user_id', $user->id)
+                            ->first();
+                        $studentId = $studentRecord->id ?? null;
+                    }
+
+                    // Si logramos resolver la identidad, revisamos su asistencia
+                    if ($studentId) {
+                        $hasAttendance = \App\Models\Attendance::where('class_session_id', $removal['session_id'])
+                            ->where('student_id', $studentId)
+                            ->exists();
+
+                        if ($hasAttendance) {
+                            return response()->json([
+                                'error'   => true,
+                                'message' => 'Operación cancelada. Intentaste remover una clase en la que ya registras asistencia. El pago es obligatorio.',
+                                'code'    => 'LOCKED_DEBT_BATCH'
+                            ], 422);
+                        }
+                    }
+                }
+            }
+
             DB::beginTransaction();
 
             foreach ($request->enrollments as $enrollment) {
@@ -355,7 +409,7 @@ class UserClassController extends Controller
                 ->toArray();
 
             if (!empty($affectedSessionIds)) {
-                $enrollmentService->notifyCapacityChange($affectedSessionIds, $user->id);
+                $enrollmentService->notifyCapacityChange($affectedSessionIds, $user->id, 'interest');
             }
 
             return response()->json([

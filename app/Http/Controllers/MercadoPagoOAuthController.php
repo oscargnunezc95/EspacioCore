@@ -8,15 +8,14 @@ use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use App\Mail\StudioMercadoPagoLinkedMail;
 
 class MercadoPagoOAuthController extends Controller
 { 
     public function redirect(Request $request)
     {
-        $appId = env('MERCADOPAGO_APP_ID');
-        $redirectUri = env('MERCADOPAGO_REDIRECT_URI');
+        $appId = config('services.mercadopago.app_id');
+        $redirectUri = config('services.mercadopago.redirect_uri');
+        $authBaseUrl = config('services.mercadopago.auth_url');
 
         // Si source=teacher (por ruta o query), el OAuth es para vincular la cuenta del profesor
         $isTeacher = $request->query('source') === 'teacher' || $request->route('source') === 'teacher';
@@ -40,7 +39,9 @@ class MercadoPagoOAuthController extends Controller
             $state = 'studio_' . $studio->id;
         }
 
-        $url = "https://auth.mercadopago.cl/authorization?client_id={$appId}&response_type=code&platform_id=mp&redirect_uri={$redirectUri}&state={$state}";
+        // Scopes necesarios: read (lectura), write (escritura), offline_access (refresh tokens)
+        $scopes = 'read%20write%20offline_access';
+        $url = "{$authBaseUrl}?client_id={$appId}&response_type=code&platform_id=mp&redirect_uri={$redirectUri}&state={$state}&scope={$scopes}";
 
         return redirect()->away($url);
     }
@@ -56,7 +57,10 @@ class MercadoPagoOAuthController extends Controller
         }
 
         try {
-            $response = Http::asForm()->post('https://api.mercadopago.com/oauth/token', [
+            // Base URL de la API también parametrizada
+            $apiBaseUrl = env('MERCADOPAGO_API_URL', 'https://api.mercadopago.com');
+            
+            $response = Http::asForm()->post("{$apiBaseUrl}/oauth/token", [
                 'client_id'     => env('MERCADOPAGO_APP_ID'),
                 'client_secret' => env('MERCADOPAGO_CLIENT_SECRET'),
                 'grant_type'    => 'authorization_code',
@@ -111,6 +115,13 @@ class MercadoPagoOAuthController extends Controller
             'mp_refresh_token' => $data['refresh_token'],
             'mp_user_id'       => $data['user_id'],
         ]);
+
+        // Auto-configurar QR estático (no bloquea el OAuth si falla)
+        try {
+            app(\App\Services\MercadoPagoService::class)->setupStaticQR($studio);
+        } catch (\Exception $e) {
+            Log::warning("Auto static-QR setup falló para el estudio {$studio->id}: " . $e->getMessage());
+        }
 
         $this->notifyStudioOwner($studio);
 
@@ -168,9 +179,9 @@ class MercadoPagoOAuthController extends Controller
     {
         try {
             if ($studio->user) {
-                if ($studio->user->email) {
-                    Mail::to($studio->user->email)->send(new StudioMercadoPagoLinkedMail($studio));
-                }
+                // Se delega exclusivamente al sistema nativo de Notificaciones.
+                // Si el canal ['mail'] está activo en la clase StudioMPLinkedNotification,
+                // Laravel enviará un único correo.
                 $studio->user->notify(new \App\Notifications\StudioMPLinkedNotification($studio));
             }
         } catch (\Exception $e) {

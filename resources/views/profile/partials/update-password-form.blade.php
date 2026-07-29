@@ -1,9 +1,9 @@
 <section>
     <header>
-        <h2 class="text-xl sm:text-2xl font-black text-zinc-900">
+        <h2 class="text-xl sm:text-2xl font-black text-stone-900">
             Actualizar Contraseña
         </h2>
-        <p class="mt-1 text-sm font-medium text-zinc-500">
+        <p class="mt-1 text-sm font-medium text-stone-500">
             Asegúrate de que tu cuenta use una contraseña larga y aleatoria para mantenerte segura.
         </p>
     </header>
@@ -13,28 +13,28 @@
         @method('put')
 
         <div>
-            <label for="update_password_current_password" class="block text-sm font-bold text-zinc-700 mb-1.5">Contraseña Actual</label>
+            <label for="update_password_current_password" class="block text-sm font-bold text-stone-700 mb-1.5">Contraseña Actual</label>
             <input id="update_password_current_password" name="current_password" type="password" autocomplete="current-password"
-                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                   class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none">
             @error('current_password', 'updatePassword') <p class="text-xs text-rose-500 font-bold mt-1.5">{{ $message }}</p> @enderror
         </div>
 
         <div>
-            <label for="update_password_password" class="block text-sm font-bold text-zinc-700 mb-1.5">Nueva Contraseña</label>
+            <label for="update_password_password" class="block text-sm font-bold text-stone-700 mb-1.5">Nueva Contraseña</label>
             <input id="update_password_password" name="password" type="password" autocomplete="new-password"
-                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                   class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none">
             @error('password', 'updatePassword') <p class="text-xs text-rose-500 font-bold mt-1.5">{{ $message }}</p> @enderror
         </div>
 
         <div>
-            <label for="update_password_password_confirmation" class="block text-sm font-bold text-zinc-700 mb-1.5">Confirmar Contraseña</label>
+            <label for="update_password_password_confirmation" class="block text-sm font-bold text-stone-700 mb-1.5">Confirmar Contraseña</label>
             <input id="update_password_password_confirmation" name="password_confirmation" type="password" autocomplete="new-password"
-                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 transition-all outline-none">
+                   class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all outline-none">
             @error('password_confirmation', 'updatePassword') <p class="text-xs text-rose-500 font-bold mt-1.5">{{ $message }}</p> @enderror
         </div>
 
-        <div class="flex items-center gap-4 pt-6 border-t border-zinc-100">
-            <button type="submit" class="w-full sm:w-auto bg-zinc-900 text-white font-bold py-3 px-6 rounded-xl shadow-sm hover:bg-zinc-800 transition-all duration-200 active:scale-95 text-sm">
+        <div class="flex items-center gap-4 pt-6 border-t border-stone-100">
+            <button type="submit" class="w-full sm:w-auto bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm">
                 Guardar Contraseña
             </button>
 

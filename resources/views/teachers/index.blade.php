@@ -10,20 +10,20 @@
         <div class="mt-2 mb-8 p-1">
 
             {{-- Breadcrumbs --}}
-            <div class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
-                <span class="text-zinc-900">Profesores</span>
+            <div class="flex text-xs font-bold text-stone-500 mb-3 gap-2 items-center">
+                <span class="text-amber-600">Profesores</span>
             </div>
 
             {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
             <div class="flex flex-row items-center justify-between gap-4 w-full">
                 
                 {{-- Título --}}
-                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                <h1 class="text-2xl md:text-3xl font-black  truncate flex-1 min-w-0">
                     Directorio del Equipo
                 </h1>
 
                 {{-- Botón Responsivo --}}
-                <button onclick="openTeacherModal()" class="shrink-0 ml-auto bg-zinc-900 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
+                <button onclick="openTeacherModal()" class="shrink-0 ml-auto bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
                     
                     {{-- Icono User-Plus --}}
                     <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,67 +47,67 @@
 
         {{-- CONTROLES SUPERIORES (Tabs + Búsqueda) --}}
         <div class="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div class="flex space-x-1 bg-zinc-100/80 p-1 rounded-xl w-fit border border-zinc-200">
-                <button @click="activeTab = 'activos'" :class="activeTab === 'activos' ? 'bg-white shadow-sm text-zinc-900' : 'text-zinc-500 hover:text-zinc-700'" class="px-6 py-2 rounded-lg font-bold transition-all duration-200 text-sm">
+            <div class="flex space-x-1 bg-stone-100/80 p-1 rounded-xl w-fit border border-stone-200">
+                <button @click="activeTab = 'activos'" :class="activeTab === 'activos' ? 'bg-white shadow-sm text-stone-900' : 'text-stone-500 hover:text-stone-700'" class="px-6 py-2 rounded-lg font-bold transition-all duration-200 text-sm">
                     Activos ({{ $teachers->count() }})
                 </button>
-                <button @click="activeTab = 'inactivos'" :class="activeTab === 'inactivos' ? 'bg-white shadow-sm text-rose-600' : 'text-zinc-500 hover:text-zinc-700'" class="px-6 py-2 rounded-lg font-bold transition-all duration-200 text-sm">
+                <button @click="activeTab = 'inactivos'" :class="activeTab === 'inactivos' ? 'bg-white shadow-sm text-rose-600' : 'text-stone-500 hover:text-stone-700'" class="px-6 py-2 rounded-lg font-bold transition-all duration-200 text-sm">
                     Inactivos ({{ $inactiveTeachers->count() }})
                 </button>
             </div>
 
             <div class="relative w-full md:w-96">
                 <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg class="w-5 h-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <svg class="w-5 h-5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                 </div>
                 <input type="text" id="searchOmni" onkeyup="filterOmni()" placeholder="Buscar por nombre, correo, teléfono o RUT..." 
-                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-zinc-300 bg-white text-zinc-900 text-sm focus:border-zinc-900 focus:ring-2 focus:ring-zinc-900 transition-all outline-none shadow-sm">
+                       class="w-full pl-10 pr-4 py-2.5 rounded-xl border border-stone-300 bg-white text-stone-900 text-sm focus:border-stone-900 focus:ring-2 focus:ring-stone-900 transition-all outline-none shadow-sm">
             </div>
         </div>
 
         {{-- TABLA ACTIVOS --}}
-        <div x-show="activeTab === 'activos'" class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div x-show="activeTab === 'activos'" class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
             <div class="overflow-x-auto hide-scrollbar">
-                <table class="min-w-full divide-y divide-zinc-200">
-                    <thead class="bg-zinc-50">
+                <table class="min-w-full divide-y divide-stone-200">
+                    <thead class="bg-stone-50">
                         <tr>
-                            <th class="hidden lg:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Documento</th>
-                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Profesor</th>
-                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Contacto</th>
-                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-center text-xs font-bold text-zinc-500 uppercase tracking-wider">Estado</th>
-                            <th class="px-4 md:px-6 py-4 text-right text-xs font-bold text-zinc-500 uppercase tracking-wider">Acciones</th>
+                            <th class="hidden lg:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Documento</th>
+                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Profesor</th>
+                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Contacto</th>
+                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-center text-xs font-bold text-stone-500 uppercase tracking-wider">Estado</th>
+                            <th class="px-4 md:px-6 py-4 text-right text-xs font-bold text-stone-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-100">
+                    <tbody class="divide-y divide-stone-100">
                         @forelse($teachers as $teacher)
                             @php
-                                $statusDot = $teacher->user_id ? 'bg-emerald-500' : 'bg-zinc-400';
-                                $statusBadge = $teacher->user_id ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-zinc-100 border-zinc-200 text-zinc-600';
+                                $statusDot = $teacher->user_id ? 'bg-emerald-500' : 'bg-stone-400';
+                                $statusBadge = $teacher->user_id ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-stone-100 border-stone-200 text-stone-600';
                                 $statusText = $teacher->user_id ? 'Vinculado' : 'Local';
                                 $rut = $teacher->formatted_national_id ?? ($teacher->national_id ?: '—');
                             @endphp
-                            <tr class="teacher-row hover:bg-zinc-50/80 transition-colors duration-200 group">
+                            <tr class="teacher-row hover:bg-stone-50/80 transition-colors duration-200 group">
                                 
                                 {{-- RUT (Solo Desktop lg+) --}}
-                                <td class="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-zinc-500 font-medium">
+                                <td class="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-stone-500 font-medium">
                                     {{ $rut }}
                                 </td>
                                 
                                 {{-- Profesor (Múltiples Breakpoints) --}}
                                 <td class="px-4 md:px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-bold text-zinc-900">
+                                    <div class="text-sm font-bold text-stone-900">
                                         <span class="capitalize">{{ $teacher->first_name }}</span> 
                                         <span class="uppercase">{{ $teacher->last_name }}</span>
                                     </div>
                                     <div class="flex flex-col gap-0.5 mt-1">
                                         {{-- RUT Inyectado: Se muestra de lg hacia abajo (lg:hidden) --}}
-                                        <div class="lg:hidden flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
+                                        <div class="lg:hidden flex items-center gap-1.5 text-xs text-stone-500 font-medium">
                                             {{-- Punto de estado reubicado (Solo celular: sm:hidden) --}}
                                             <span class="sm:hidden w-1.5 h-1.5 rounded-full shrink-0 {{ $statusDot }}"></span>
                                             {{ $rut }}
                                         </div>
                                         {{-- Contacto Apilado: Se muestra de sm hacia abajo (sm:hidden) --}}
-                                        <div class="sm:hidden mt-1 text-xs text-zinc-500 font-medium whitespace-normal break-all">
+                                        <div class="sm:hidden mt-1 text-xs text-stone-500 font-medium whitespace-normal break-all">
                                             {{ $teacher->email ?: ($teacher->phone ?: 'Sin contacto') }}
                                         </div>
                                     </div>
@@ -115,8 +115,8 @@
                                 
                                 {{-- Contacto Normal (Solo Desktop y Tablet sm+) --}}
                                 <td class="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-zinc-600">{{ $teacher->email ?: '—' }}</div>
-                                    <div class="text-xs text-zinc-400 mt-0.5">{{ $teacher->phone ?: 'Sin teléfono' }}</div>
+                                    <div class="text-sm font-medium text-stone-600">{{ $teacher->email ?: '—' }}</div>
+                                    <div class="text-xs text-stone-400 mt-0.5">{{ $teacher->phone ?: 'Sin teléfono' }}</div>
                                 </td>
                                 
                                 {{-- Estado Normal (Desaparece texto en md, desaparece completo en sm) --}}
@@ -131,12 +131,12 @@
                                 {{-- Acciones --}}
                                 <td class="px-4 md:px-6 py-4 text-right space-x-2 md:space-x-3 whitespace-nowrap">
                                     <a href="{{ route('teachers.payroll.show', ['subdomain' => request()->route('subdomain'), 'teacher' => $teacher->id]) }}" 
-                                       class="inline-flex items-center gap-1.5 text-xs md:text-sm font-bold text-indigo-600 hover:text-indigo-800 transition-colors align-middle"
+                                       class="inline-flex items-center gap-1.5 text-xs md:text-sm font-bold text-red-600 hover:text-red-800 transition-colors align-middle"
                                        title="Ver liquidación">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                                         <span class="hidden lg:inline">Nómina</span>
                                     </a>
-                                    <button type="button" onclick='openEditTeacherModal(@json($teacher))' class="inline-block align-middle text-xs md:text-sm font-bold text-zinc-400 hover:text-zinc-900 transition-colors">
+                                    <button type="button" onclick='openEditTeacherModal(@json($teacher))' class="inline-block align-middle text-xs md:text-sm font-bold text-stone-400 hover:text-stone-900 transition-colors">
                                         Editar
                                     </button>
                                     <form action="{{ route('teachers.destroy', ['subdomain' => request()->route('subdomain'), 'teacher' => $teacher->id]) }}" method="POST" class="inline-block align-middle m-0">
@@ -150,7 +150,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-zinc-500 font-medium text-sm">No hay profesores activos en el equipo.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-stone-500 font-medium text-sm">No hay profesores activos en el equipo.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -158,9 +158,9 @@
         </div>
 
         {{-- TABLA INACTIVOS --}}
-        <div x-show="activeTab === 'inactivos'" x-cloak class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div x-show="activeTab === 'inactivos'" x-cloak class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
             <div class="overflow-x-auto hide-scrollbar">
-                <table class="min-w-full divide-y divide-zinc-200">
+                <table class="min-w-full divide-y divide-stone-200">
                     <thead class="bg-rose-50/50">
                         <tr>
                             <th class="hidden lg:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-rose-600 uppercase tracking-wider">Documento</th>
@@ -170,36 +170,36 @@
                             <th class="px-4 md:px-6 py-4 text-right text-xs font-bold text-rose-600 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-100 opacity-70 hover:opacity-100 transition-opacity duration-300">
+                    <tbody class="divide-y divide-stone-100 opacity-70 hover:opacity-100 transition-opacity duration-300">
                         @forelse($inactiveTeachers as $teacher)
                             @php
                                 $rut = $teacher->formatted_national_id ?? ($teacher->national_id ?: '—');
                             @endphp
-                            <tr class="teacher-row hover:bg-zinc-50/80 transition-colors duration-200 group">
+                            <tr class="teacher-row hover:bg-stone-50/80 transition-colors duration-200 group">
                                 
-                                <td class="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-zinc-500 font-medium">
+                                <td class="hidden lg:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-sm text-stone-500 font-medium">
                                     {{ $rut }}
                                 </td>
                                 
                                 <td class="px-4 md:px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-bold text-zinc-700">
+                                    <div class="text-sm font-bold text-stone-700">
                                         <span class="capitalize">{{ $teacher->first_name }}</span> 
                                         <span class="uppercase">{{ $teacher->last_name }}</span>
                                     </div>
                                     <div class="flex flex-col gap-0.5 mt-1">
-                                        <div class="lg:hidden flex items-center gap-1.5 text-xs text-zinc-500 font-medium">
+                                        <div class="lg:hidden flex items-center gap-1.5 text-xs text-stone-500 font-medium">
                                             <span class="sm:hidden w-1.5 h-1.5 rounded-full shrink-0 bg-rose-500"></span>
                                             {{ $rut }}
                                         </div>
-                                        <div class="sm:hidden mt-1 text-xs text-zinc-500 font-medium whitespace-normal break-all">
+                                        <div class="sm:hidden mt-1 text-xs text-stone-500 font-medium whitespace-normal break-all">
                                             {{ $teacher->email ?: ($teacher->phone ?: 'Sin contacto') }}
                                         </div>
                                     </div>
                                 </td>
                                 
                                 <td class="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap">
-                                    <div class="text-sm font-medium text-zinc-500">{{ $teacher->email ?: '—' }}</div>
-                                    <div class="text-xs text-zinc-400 mt-0.5">{{ $teacher->phone ?: 'Sin teléfono' }}</div>
+                                    <div class="text-sm font-medium text-stone-500">{{ $teacher->email ?: '—' }}</div>
+                                    <div class="text-xs text-stone-400 mt-0.5">{{ $teacher->phone ?: 'Sin teléfono' }}</div>
                                 </td>
                                 
                                 <td class="hidden sm:table-cell px-4 md:px-6 py-4 whitespace-nowrap text-center">
@@ -227,7 +227,7 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-zinc-500 font-medium">La papelera está vacía.</td></tr>
+                            <tr><td colspan="5" class="px-6 py-8 text-center text-sm text-stone-500 font-medium">La papelera está vacía.</td></tr>
                         @endforelse
                     </tbody>
                 </table>
@@ -237,13 +237,13 @@
 
     {{-- MODAL --}}
     <div id="teacherModal" class="fixed inset-0 z-50 hidden flex items-start justify-center p-4 sm:p-6 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto transition-opacity">
-        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-xl border border-zinc-100 my-auto transform transition-all relative">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-lg w-full shadow-xl border border-stone-100 my-auto transform transition-all relative">
             
             <div class="flex justify-between items-start mb-6">
                 <div>
-                    <h3 class="text-xl font-bold text-zinc-900 tracking-tight" id="modalTitle">Nuevo Profesor</h3>
+                    <h3 class="text-xl font-bold text-stone-900 tracking-tight" id="modalTitle">Nuevo Profesor</h3>
                 </div>
-                <button type="button" onclick="closeTeacherModal()" class="text-zinc-400 hover:text-zinc-600 transition-colors">
+                <button type="button" onclick="closeTeacherModal()" class="text-stone-400 hover:text-stone-600 transition-colors">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -264,15 +264,15 @@
                     {{-- Nombres --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre *</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Nombre *</label>
                             <input type="text" name="first_name" id="t_first_name" value="{{ old('first_name') }}" placeholder="Ej: Diego" required 
-                                   class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('first_name') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-zinc-300' }}">
+                                   class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all {{ $errors->has('first_name') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-stone-300' }}">
                             @error('first_name') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Apellido <span class="text-zinc-400 font-normal">(Opcional)</span></label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Apellido <span class="text-stone-400 font-normal">(Opcional)</span></label>
                             <input type="text" name="last_name" id="t_last_name" value="{{ old('last_name') }}" placeholder="Ej: Silva" 
-                                   class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('last_name') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-zinc-300' }}">
+                                   class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all {{ $errors->has('last_name') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-stone-300' }}">
                             @error('last_name') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -280,8 +280,8 @@
                     {{-- País y RUT/Documento en Grid --}}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">País del Documento *</label>
-                            <select name="country_id" id="t_country_id" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none cursor-pointer {{ $errors->has('country_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">País del Documento *</label>
+                            <select name="country_id" id="t_country_id" required class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none cursor-pointer {{ $errors->has('country_id') ? 'border-rose-500 ring-1 ring-rose-500' : '' }}">
                                 <option value="">Selecciona un país...</option>
                                 @foreach($countries as $country)
                                     <option value="{{ $country->id }}" {{ old('country_id', 1) == $country->id ? 'selected' : '' }}>
@@ -292,33 +292,33 @@
                             @error('country_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">N° de Documento <span class="text-rose-500">*</span></label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">N° de Documento <span class="text-rose-500">*</span></label>
                             <input type="text" name="national_id" id="t_national_id" value="{{ old('national_id') }}" placeholder="Ej: 19.123.456-7" required
-                                   class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('national_id') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-zinc-300' }}">
+                                   class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all {{ $errors->has('national_id') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-stone-300' }}">
                             @error('national_id') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
                     {{-- Correo --}}
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Correo Electrónico *</label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Correo Electrónico *</label>
                         <input type="email" name="email" id="t_email" value="{{ old('email') }}" required 
-                               class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('email') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-zinc-300' }}">
+                               class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all {{ $errors->has('email') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-stone-300' }}">
                         @error('email') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
                     
                     {{-- Teléfono --}}
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Teléfono <span class="text-zinc-400 font-normal">(Opcional)</span></label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Teléfono <span class="text-stone-400 font-normal">(Opcional)</span></label>
                         <input type="text" name="phone" id="t_phone" value="{{ old('phone') }}" placeholder="+56 9..."
-                               class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all {{ $errors->has('phone') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-zinc-300' }}">
+                               class="w-full rounded-xl border px-4 py-3 text-sm focus:ring-2 focus:ring-stone-900 focus:border-stone-900 outline-none transition-all {{ $errors->has('phone') ? 'border-rose-500 ring-1 ring-rose-500' : 'border-stone-300' }}">
                         @error('phone') <p class="text-xs text-rose-600 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
                 </div>
 
-                <div class="mt-8 flex gap-3 pt-4 border-t border-zinc-100">
-                    <button type="button" onclick="closeTeacherModal()" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors duration-200 text-sm">Cancelar</button>
-                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 transition-all duration-200 active:scale-95 text-sm">Guardar</button>
+                <div class="mt-8 flex gap-3 pt-4 border-t border-stone-100">
+                    <button type="button" onclick="closeTeacherModal()" class="w-full font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 border border-stone-200 py-2.5 px-4 rounded-xl transition-all duration-200 text-sm">Cancelar</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm">Guardar</button>
                 </div>
             </form>
         </div>

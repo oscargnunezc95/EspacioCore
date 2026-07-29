@@ -1,42 +1,30 @@
 <x-app-layout>
-    
-    {{-- 1. NAVEGACIÓN DEL ESTUDIO (Libre de paddings, pegado arriba) --}}
+    {{-- 1. NAVEGACIÓN DEL ESTUDIO --}}
     <x-studio-tabs />
 
-    {{-- 2. EL RESTO DEL CONTENIDO (Contenedor maestro acoplado a la nueva arquitectura) --}}
-    <div class="pt-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    {{-- 2. CONTENIDO PRINCIPAL --}}
+    <div class="pt-6 pb-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
         {{-- Cabecera Unificada de Talleres --}}
         <div class="mt-2 mb-8 p-1">
-
-            {{-- Breadcrumbs --}}
-            <div class="flex text-xs font-bold text-zinc-500 mb-3 gap-2 items-center">
-                <span class="text-zinc-900">Talleres</span>
+            <div class="flex text-xs font-bold text-stone-500 mb-3 gap-2 items-center">
+                <span class="text-amber-600">Talleres</span>
             </div>
 
-            {{-- Contenedor del Título y el Botón (Flex horizontal estricto) --}}
             <div class="flex flex-row items-center justify-between gap-4 w-full">
-                
-                {{-- Título --}}
-                <h1 class="text-2xl md:text-3xl font-black text-zinc-900 truncate flex-1 min-w-0">
+                <h1 class="text-2xl md:text-3xl font-black truncate flex-1 min-w-0">
                     Talleres
                 </h1>
 
-                {{-- Botón Responsivo --}}
-                <button onclick="openWorkshopModal()" class="shrink-0 ml-auto bg-zinc-900 text-white px-3 sm:px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-zinc-800 focus:ring-2 focus:ring-zinc-900 focus:ring-offset-2 transition-all duration-200 shadow-sm active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2">
-                    
-                    {{-- Icono de Carpeta con (+) --}}
+                <button type="button" onclick="openWorkshopModal()" class="shrink-0 ml-auto bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 flex items-center justify-center gap-1.5 sm:gap-2 text-sm cursor-pointer">
                     <svg class="w-5 h-5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
                     </svg>
-                    
-                    {{-- Texto oculto en móviles --}}
                     <span class="hidden sm:inline">Nuevo Taller</span>
                 </button>
             </div>
         </div>
 
-        {{-- A partir de aquí sigue intacto el resto de tu código (lista de talleres, modales, etc.) --}}
         @if (session('success'))
             <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
@@ -45,14 +33,14 @@
         @endif
         
         {{-- FILTROS EN TIEMPO REAL --}}
-        <div class="mb-6 bg-white p-5 rounded-2xl border border-zinc-200 shadow-sm">
-            <h4 class="text-sm font-bold text-zinc-700 mb-3 flex items-center gap-2">
-                <svg class="w-4 h-4 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
+        <div class="mb-6 bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+            <h4 class="text-sm font-bold text-stone-700 mb-3 flex items-center gap-2">
+                <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                 Filtros de Búsqueda
             </h4>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <div>
-                    <select id="filter_teacher" onchange="applyFilters()" class="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                    <select id="filter_teacher" onchange="applyFilters()" class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none cursor-pointer">
                         <option value="">Todos los profesores</option>
                         <option value="unassigned">Sin profesor asignado</option>
                         @foreach($teachers as $teacher)
@@ -61,7 +49,7 @@
                     </select>
                 </div>
                 <div>
-                    <select id="filter_area" onchange="updateFilterDisciplines(); applyFilters()" class="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer">
+                    <select id="filter_area" onchange="updateFilterDisciplines(); applyFilters()" class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none cursor-pointer">
                         <option value="">Todas las áreas</option>
                         @foreach($existingAreas as $area)
                             <option value="{{ $area }}">{{ $area }}</option>
@@ -69,12 +57,12 @@
                     </select>
                 </div>
                 <div>
-                    <select id="filter_discipline" onchange="applyFilters()" disabled class="w-full rounded-xl border border-zinc-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none disabled:bg-zinc-100 disabled:text-zinc-400 cursor-pointer">
+                    <select id="filter_discipline" onchange="applyFilters()" disabled class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none disabled:bg-stone-100 disabled:text-stone-400 cursor-pointer">
                         <option value="">Todas las disciplinas</option>
                     </select>
                 </div>
                 <div class="flex items-center">
-                    <button onclick="clearFilters()" class="text-sm text-zinc-500 hover:text-zinc-900 font-medium transition-colors border border-transparent hover:border-zinc-200 px-3 py-2 rounded-lg">
+                    <button type="button" onclick="clearFilters()" class="text-sm text-stone-500 hover:text-stone-900 font-medium transition-colors border border-transparent hover:border-stone-200 px-3 py-2 rounded-lg">
                         Limpiar filtros
                     </button>
                 </div>
@@ -82,19 +70,18 @@
         </div>
 
         {{-- TABLA DE TALLERES --}}
-        <div class="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
             <div class="overflow-x-auto hide-scrollbar">
-                <table class="min-w-full divide-y divide-zinc-200" id="workshops_table">
-                    <thead class="bg-zinc-50">
+                <table class="min-w-full divide-y divide-stone-200" id="workshops_table">
+                    <thead class="bg-stone-50">
                         <tr>
-                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Taller / Profesor</th>
-                            {{-- Se oculta en móviles --}}
-                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Área y Disciplina</th>
-                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-zinc-500 uppercase tracking-wider">Horario / Fecha</th>
-                            <th class="px-4 md:px-6 py-4 text-right text-xs font-bold text-zinc-500 uppercase tracking-wider">Acciones</th>
+                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Taller / Profesor</th>
+                            <th class="hidden sm:table-cell px-4 md:px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Área y Disciplina</th>
+                            <th class="px-4 md:px-6 py-4 text-left text-xs font-bold text-stone-500 uppercase tracking-wider">Horario / Fecha</th>
+                            <th class="px-4 md:px-6 py-4 text-right text-xs font-bold text-stone-500 uppercase tracking-wider">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-zinc-100">
+                    <tbody class="divide-y divide-stone-100">
                         @forelse($workshops as $workshop)
                             @php 
                                 $borderColor = match($workshop->color) {
@@ -104,45 +91,38 @@
                                     default => 'border-blue-500',
                                 };
                                 
-                                // Generamos la imagen para la tabla
                                 $imageUrl = $workshop->image_path 
                                     ? asset('storage/' . $workshop->image_path) 
                                     : 'https://ui-avatars.com/api/?name='.urlencode($workshop->name).'&color=4f46e5&background=e0e7ff&size=128';
                             @endphp
                             
-                            <tr class="workshop-row hover:bg-zinc-50/80 transition-colors duration-200 group"
+                            <tr class="workshop-row hover:bg-stone-50/80 transition-colors duration-200 group"
                                 data-teacher-id="{{ $workshop->teacher_id ?? 'unassigned' }}"
                                 data-area-name="{{ $workshop->discipline->area->name ?? '' }}"
                                 data-discipline-name="{{ $workshop->discipline->name ?? '' }}">
                                 
-                                {{-- Columna 1: Taller (con Imagen) y Profesor --}}
+                                {{-- Columna 1: Taller --}}
                                 <td class="px-4 md:px-6 py-4 border-l-4 {{ $borderColor }}">
                                     <div class="flex items-center gap-3">
-                                        {{-- Miniatura del Taller --}}
-                                        <img src="{{ $imageUrl }}" class="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover border border-zinc-200 shadow-sm shrink-0">
-                                        
+                                        <img src="{{ $imageUrl }}" class="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover border border-stone-200 shadow-sm shrink-0">
                                         <div class="min-w-0">
-                                            <div class="font-bold text-zinc-900 flex flex-wrap items-center gap-1.5 md:gap-2 text-sm">
+                                            <div class="font-bold text-stone-900 flex flex-wrap items-center gap-1.5 md:gap-2 text-sm">
                                                 <span class="truncate max-w-[150px] sm:max-w-none">{{ $workshop->name }}</span>
                                                 @if($workshop->is_single_class) 
-                                                    <span class="bg-zinc-100 text-zinc-600 border border-zinc-200 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest font-black shrink-0">Clase Única</span> 
-                                                    @if($workshop->max_students) 
-                                                        <span class="bg-zinc-50 text-zinc-500 border border-zinc-200 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1 shrink-0" title="Cupo Máximo">
-                                                            <svg class="w-3 h-3 hidden md:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg> 
-                                                            Max {{ $workshop->max_students }}
-                                                        </span> 
-                                                    @endif
+                                                    <span class="bg-stone-100 text-stone-600 border border-stone-200 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest font-black shrink-0">Clase Única</span> 
+                                                @endif
+                                                @if($workshop->max_students) 
+                                                    <span class="bg-stone-50 text-stone-500 border border-stone-200 text-[9px] md:text-[10px] px-1.5 md:px-2 py-0.5 rounded uppercase tracking-widest font-bold flex items-center gap-1 shrink-0" title="Cupo Máximo">
+                                                        Max {{ $workshop->max_students }}
+                                                    </span> 
                                                 @endif
                                             </div>
-                                            <div class="text-xs text-zinc-500 mt-1 md:mt-1.5 flex items-center gap-1.5 font-medium">
-                                                <svg class="w-3.5 h-3.5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                                            <div class="text-xs text-stone-500 mt-1 md:mt-1.5 flex items-center gap-1.5 font-medium">
                                                 <span class="truncate max-w-[130px] sm:max-w-none">{{ $workshop->teacher ? $workshop->teacher->first_name . ' ' . $workshop->teacher->last_name : 'Sin profesor' }}</span>
                                             </div>
-                                            
-                                            {{-- Disciplina inyectada SOLO en móviles --}}
                                             @if($workshop->discipline)
                                                 <div class="sm:hidden mt-1.5">
-                                                    <span class="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">
+                                                    <span class="text-[9px] font-black text-red-500 uppercase tracking-widest bg-red-50 px-1.5 py-0.5 rounded border border-red-100">
                                                         {{ $workshop->discipline->name }}
                                                     </span>
                                                 </div>
@@ -151,40 +131,40 @@
                                     </div>
                                 </td>
 
-                                {{-- Columna 2: Área y Disciplina (Se oculta en móviles sm) --}}
+                                {{-- Columna 2: Área y Disciplina --}}
                                 <td class="hidden sm:table-cell px-4 md:px-6 py-4">
                                     @if($workshop->discipline)
                                         <div class="inline-flex flex-col items-start">
-                                            <span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 mb-1">
+                                            <span class="text-[10px] font-black text-red-500 uppercase tracking-widest bg-red-50 px-2 py-0.5 rounded border border-red-100 mb-1">
                                                 {{ $workshop->discipline->area->name ?? 'Sin Área' }}
                                             </span>
-                                            <span class="text-sm font-bold text-zinc-700">
+                                            <span class="text-sm font-bold text-stone-700">
                                                 {{ $workshop->discipline->name }}
                                             </span>
                                         </div>
                                     @else
-                                        <span class="text-xs text-zinc-400 italic">No configurado</span>
+                                        <span class="text-xs text-stone-400 italic">No configurado</span>
                                     @endif
                                 </td>
 
                                 {{-- Columna 3: Horario --}}
-                                <td class="px-4 md:px-6 py-4 text-sm font-bold text-zinc-700">
+                                <td class="px-4 md:px-6 py-4 text-sm font-bold text-stone-700">
                                     @if($workshop->is_single_class && $workshop->specific_date)
-                                        <span class="text-zinc-900 whitespace-nowrap">{{ \Carbon\Carbon::parse($workshop->specific_date)->translatedFormat('d \d\e F') }}</span> 
-                                        <div class="text-xs text-zinc-500 font-medium mt-0.5">
-                                            a las <span class="text-zinc-900 font-bold">{{ \Carbon\Carbon::parse($workshop->start_time)->format('H:i') }}</span>
+                                        <span class="text-stone-900 whitespace-nowrap">{{ \Carbon\Carbon::parse($workshop->specific_date)->translatedFormat('d \d\e F') }}</span> 
+                                        <div class="text-xs text-stone-500 font-medium mt-0.5">
+                                            a las <span class="text-stone-900 font-bold">{{ \Carbon\Carbon::parse($workshop->start_time)->format('H:i') }}</span>
                                         </div>
                                     @else
                                         @if($workshop->schedules && $workshop->schedules->count() > 0)
                                             <div class="space-y-1.5">
                                                 @foreach($workshop->schedules->sortBy('day_of_week') as $schedule)
                                                     <div class="flex items-center gap-2">
-                                                        <span class="bg-zinc-100 text-zinc-700 px-1.5 py-0.5 rounded text-[10px] border border-zinc-200 uppercase font-black w-9 md:w-10 text-center shrink-0">
+                                                        <span class="bg-stone-100 text-stone-700 px-1.5 py-0.5 rounded text-[10px] border border-stone-200 uppercase font-black w-9 md:w-10 text-center shrink-0">
                                                             {{ ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][$schedule->day_of_week] ?? '' }}
                                                         </span>
-                                                        <span class="text-zinc-900 font-bold text-xs">{{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }}</span>
+                                                        <span class="text-stone-900 font-bold text-xs">{{ \Carbon\Carbon::parse($schedule->start_time)->format('H:i') }}</span>
                                                         @if($schedule->max_students)
-                                                            <span class="hidden md:inline text-[10px] text-zinc-500 font-medium">(Cupo: {{ $schedule->max_students }})</span>
+                                                            <span class="hidden md:inline text-[10px] text-stone-500 font-medium">(Cupo: {{ $schedule->max_students }})</span>
                                                         @endif
                                                     </div>
                                                 @endforeach
@@ -195,15 +175,15 @@
                                     @endif
                                 </td>
 
-                                {{-- Columna 4: Acciones (Apiladas/Iconos en móvil) --}}
+                                {{-- Columna 4: Acciones --}}
                                 <td class="px-4 md:px-6 py-4 text-right space-x-2 md:space-x-3 whitespace-nowrap">
-                                    <button type="button" data-workshop="{{ $workshop->toJson() }}" onclick="openEditWorkshopModal(this)" class="inline-block align-middle text-xs md:text-sm font-bold text-zinc-500 hover:text-zinc-900 bg-zinc-50 border border-zinc-200 px-2.5 md:px-3 py-1.5 rounded-lg transition-colors duration-200" title="Editar">
+                                    <button type="button" data-workshop="{{ $workshop->toJson() }}" onclick="openEditWorkshopModal(this)" class="inline-block align-middle text-xs md:text-sm font-bold text-stone-500 hover:text-stone-900 bg-stone-50 border border-stone-200 px-2.5 md:px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer" title="Editar">
                                         <span class="hidden lg:inline">Editar</span>
                                         <svg class="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                                     </button>
                                     <form action="{{ route('workshops.destroy', ['subdomain' => request()->route('subdomain'), 'workshop' => $workshop->id]) }}" method="POST" class="inline-block align-middle m-0">
                                         @csrf @method('DELETE')
-                                        <button type="submit" onclick="return confirm('¿Eliminar este taller permanentemente?')" class="text-xs md:text-sm font-bold text-rose-500 hover:text-white bg-white hover:bg-rose-500 border border-rose-200 hover:border-rose-500 px-2.5 md:px-3 py-1.5 rounded-lg transition-colors duration-200" title="Eliminar">
+                                        <button type="submit" onclick="return confirm('¿Eliminar este taller permanentemente?')" class="text-xs md:text-sm font-bold text-rose-500 hover:text-white bg-white hover:bg-rose-500 border border-rose-200 hover:border-rose-500 px-2.5 md:px-3 py-1.5 rounded-lg transition-colors duration-200 cursor-pointer" title="Eliminar">
                                             <span class="hidden lg:inline">Eliminar</span>
                                             <svg class="w-4 h-4 lg:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                         </button>
@@ -211,22 +191,22 @@
                                 </td>
                             </tr>
                         @empty
-                            <tr><td colspan="4" class="px-6 py-8 text-center text-sm font-bold text-zinc-400">No hay talleres configurados</td></tr>
+                            <tr><td colspan="4" class="px-6 py-8 text-center text-sm font-bold text-stone-400">No hay talleres configurados</td></tr>
                         @endforelse
-                        <tr id="no_results_row" style="display: none;"><td colspan="4" class="px-6 py-8 text-center text-sm font-bold text-zinc-400">No hay talleres que coincidan con los filtros</td></tr>
+                        <tr id="no_results_row" style="display: none;"><td colspan="4" class="px-6 py-8 text-center text-sm font-bold text-stone-400">No hay talleres que coincidan con los filtros</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
 
-    {{-- MODAL DEL TALLER --}}
-    <div id="workshopModal" class="fixed inset-0 z-50 hidden flex items-start justify-center p-4 sm:p-6 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto transition-opacity custom-scrollbar">
-        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-3xl w-full shadow-xl border border-zinc-100 my-auto transform transition-all">
+    {{-- 🚀 BLINDAJE QA: MODAL CON z-[9999] FUERA DE TODO CONTENEDOR ANIDADO --}}
+    <div id="workshopModal" class="fixed inset-0 z-[9999] hidden flex items-start justify-center p-4 sm:p-6 bg-zinc-900/60 backdrop-blur-sm overflow-y-auto transition-opacity custom-scrollbar">
+        <div class="bg-white rounded-2xl p-6 md:p-8 max-w-3xl w-full shadow-xl border border-stone-100 my-auto transform transition-all relative z-10">
             
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold text-zinc-900 tracking-tight" id="modalWorkshopTitle">Configurar Taller</h3>
-                <button type="button" onclick="closeWorkshopModal()" class="text-zinc-400 hover:text-zinc-600 bg-zinc-50 hover:bg-zinc-100 p-2 rounded-full transition-colors">
+                <h3 class="text-xl font-bold text-stone-900 tracking-tight" id="modalWorkshopTitle">Configurar Taller</h3>
+                <button type="button" onclick="closeWorkshopModal()" class="text-stone-400 hover:text-stone-600 bg-stone-50 hover:bg-stone-100 p-2 rounded-full transition-colors cursor-pointer">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -234,7 +214,7 @@
             @if ($errors->any())
                 <div class="mb-6 p-4 bg-rose-50 text-rose-700 rounded-xl text-sm font-bold border border-rose-200 flex items-center gap-2">
                     <svg class="w-5 h-5 text-rose-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span>Hay errores en el formulario. Por favor revisa los campos en rojo.</span>
+                    <span>Hay errors en el formulario. Por favor revisa los campos en rojo.</span>
                 </div>
             @endif
 
@@ -247,70 +227,69 @@
                     
                     {{-- Nombre --}}
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Nombre del Taller *</label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Nombre del Taller *</label>
                         <input type="text" name="name" id="w_name" value="{{ old('name') }}" placeholder="Ej: Telas Principiante" 
-                            class="w-full rounded-xl border {{ $errors->has('name') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white" required>
+                            class="w-full rounded-xl border {{ $errors->has('name') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-stone-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none transition-all bg-stone-50 focus:bg-white" required>
                         @error('name') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- NUEVO: Descripción --}}
+                    {{-- Descripción --}}
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Descripción de la Clase <span class="text-zinc-400 font-normal">(Opcional)</span></label>
-                        <textarea name="description" id="w_description" rows="3" placeholder="Cuéntale a tus alumnos de qué trata esta clase, qué aprenderán o qué necesitan llevar..." 
-                            class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none bg-zinc-50 focus:bg-white">{{ old('description') }}</textarea>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Descripción de la Clase <span class="text-stone-400 font-normal">(Opcional)</span></label>
+                        <textarea name="description" id="w_description" rows="3" placeholder="Cuéntale a tus alumnos de qué trata esta clase..." 
+                            class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 transition-all outline-none bg-stone-50 focus:bg-white">{{ old('description') }}</textarea>
                         @error('description') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- NUEVO: Video Promocional --}}
+                    {{-- Video Promocional --}}
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Video Promocional <span class="text-zinc-400 font-normal">(YouTube o Instagram)</span></label>
-                        <input type="url" name="promo_video_url" id="w_promo_video_url" value="{{ old('promo_video_url') }}" placeholder="Ej: https://www.instagram.com/reel/xyz/ o https://www.youtube.com/watch?v=..." 
-                            class="w-full rounded-xl border {{ $errors->has('promo_video_url') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white">
-                        <p class="text-xs text-zinc-500 mt-1.5">Pega el link directo. El sistema lo adaptará automáticamente para mostrarlo a los alumnos.</p>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Video Promocional <span class="text-stone-400 font-normal">(YouTube o Instagram)</span></label>
+                        <input type="url" name="promo_video_url" id="w_promo_video_url" value="{{ old('promo_video_url') }}" placeholder="Ej: https://www.instagram.com/reel/xyz/" 
+                            class="w-full rounded-xl border {{ $errors->has('promo_video_url') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-stone-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none transition-all bg-stone-50 focus:bg-white">
                         @error('promo_video_url') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
                     
                     {{-- Subida de Imagen --}}
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Imagen del Taller <span class="text-zinc-400 font-normal">(Opcional, máx 12MB)</span></label>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Imagen del Taller <span class="text-stone-400 font-normal">(Opcional, máx 12MB)</span></label>
                         <input type="file" name="image" id="w_image" accept="image/jpeg,image/png,image/jpg,image/webp"
-                            class="w-full rounded-xl border {{ $errors->has('image') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} px-3 py-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-zinc-100 file:text-zinc-700 hover:file:bg-zinc-200 cursor-pointer bg-white">
+                            class="w-full rounded-xl border {{ $errors->has('image') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-stone-300' }} px-3 py-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-stone-100 file:text-stone-700 hover:file:bg-stone-200 cursor-pointer bg-white">
                         @error('image') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
                     {{-- Área y Disciplina --}}
                     <div class="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="relative">
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Área General *</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Área General *</label>
                             <div class="relative">
                                 <input type="text" name="area" id="w_area" value="{{ old('area') }}" placeholder="Ej: Circo, Baile..." required autocomplete="off"
-                                    class="w-full rounded-xl border {{ $errors->has('area') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} py-3 pl-4 pr-10 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-zinc-500">
+                                    class="w-full rounded-xl border {{ $errors->has('area') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-stone-300' }} py-3 pl-4 pr-10 text-sm focus:ring-2 focus:ring-red-600 outline-none bg-white">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-stone-500">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
-                            <ul id="custom_area_list" class="absolute z-50 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden py-1 custom-scrollbar"></ul>
+                            <ul id="custom_area_list" class="absolute z-50 w-full mt-1 bg-white border border-stone-200 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden py-1 custom-scrollbar"></ul>
                             @error('area') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="relative">
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Disciplina Específica *</label>
+                            <label class="block text-sm font-bold text-stone-700 mb-1.5">Disciplina Específica *</label>
                             <div class="relative">
                                 <input type="text" name="discipline" id="w_discipline" value="{{ old('discipline') }}" placeholder="Primero selecciona un Área..." required autocomplete="off"
-                                    class="w-full rounded-xl border {{ $errors->has('discipline') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-zinc-300' }} py-3 pl-4 pr-10 text-sm focus:ring-2 focus:ring-zinc-900 outline-none disabled:bg-zinc-100 disabled:text-zinc-400 disabled:cursor-not-allowed bg-white">
-                                <div class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-zinc-500">
+                                    class="w-full rounded-xl border {{ $errors->has('discipline') ? 'border-rose-300 ring-1 ring-rose-300' : 'border-stone-300' }} py-3 pl-4 pr-10 text-sm focus:ring-2 focus:ring-red-600 outline-none disabled:bg-stone-100 disabled:text-stone-400 disabled:cursor-not-allowed bg-white">
+                                <div class="absolute inset-y-0 right-0 flex items-center pr-3.5 pointer-events-none text-stone-500">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                 </div>
                             </div>
-                            <ul id="custom_discipline_list" class="absolute z-50 w-full mt-1 bg-white border border-zinc-200 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden py-1 custom-scrollbar"></ul>
+                            <ul id="custom_discipline_list" class="absolute z-50 w-full mt-1 bg-white border border-stone-200 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden py-1 custom-scrollbar"></ul>
                             @error('discipline') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
 
                     {{-- Público Objetivo --}}
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Público Objetivo *</label>
-                        <select name="target_audience" id="w_target_audience" required class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 transition-all outline-none cursor-pointer bg-zinc-50 focus:bg-white">
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Público Objetivo *</label>
+                        <select name="target_audience" id="w_target_audience" required class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 transition-all outline-none cursor-pointer bg-stone-50 focus:bg-white">
                             <option value="all" {{ old('target_audience') == 'all' ? 'selected' : '' }}>Todas las edades</option>
                             <option value="kids" {{ old('target_audience') == 'kids' ? 'selected' : '' }}>Niñas/os (hasta 12 años)</option>
                             <option value="teens" {{ old('target_audience') == 'teens' ? 'selected' : '' }}>Adolescentes (13 - 17 años)</option>
@@ -321,8 +300,8 @@
 
                     {{-- Entrenador --}}
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Entrenador(a) Principal</label>
-                        <select name="teacher_id" id="w_teacher_id" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-zinc-50 focus:bg-white">
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Entrenador(a) Principal</label>
+                        <select name="teacher_id" id="w_teacher_id" class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none cursor-pointer bg-stone-50 focus:bg-white">
                             <option value="">-- Sin profesor asignado --</option>
                             @foreach($teachers as $teacher)
                                 <option value="{{ $teacher->id }}" {{ old('teacher_id') == $teacher->id ? 'selected' : '' }}>
@@ -333,38 +312,54 @@
                         @error('teacher_id') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    {{-- UBICACIÓN --}}
-                    <div class="col-span-1 md:col-span-2 bg-zinc-50 p-5 rounded-xl border border-zinc-200 mt-2">
-                        <label class="block text-[11px] font-black text-zinc-400 mb-3 uppercase tracking-widest">Lugar de Clases</label>
+                    {{-- 🚀 CORREGIDO: CHECKBOX PRESENTE + MAPA E INPUT SE MUESTRAN O OCULTAN JUNTOS --}}
+                    <div class="col-span-1 md:col-span-2 bg-stone-50 p-5 rounded-xl border border-stone-200 mt-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                            <label class="block text-[11px] font-black text-stone-400 uppercase tracking-widest">Lugar de Clases</label>
+                        </div>
                         
                         <label class="flex items-center gap-2 cursor-pointer group mb-4">
                             <input type="hidden" name="use_main_location" value="0">
-                            <input type="checkbox" name="use_main_location" id="w_use_main_location" value="1" onchange="toggleLocationFields()" class="w-4 h-4 text-zinc-900 border-zinc-300 rounded focus:ring-zinc-900" {{ old('use_main_location', '1') == '1' ? 'checked' : '' }}>
-                            <span class="text-sm font-bold text-zinc-700 group-hover:text-zinc-900">Usar la sede principal del Estudio</span>
+                            <input type="checkbox" name="use_main_location" id="w_use_main_location" value="1" onchange="toggleLocationFields()" class="w-4 h-4 text-stone-900 border-stone-300 rounded focus:ring-red-600 cursor-pointer" {{ old('use_main_location', '1') == '1' ? 'checked' : '' }}>
+                            <span class="text-sm font-bold text-stone-700 group-hover:text-stone-900">Usar la sede principal del Estudio</span>
                         </label>
 
-                        <div id="container_custom_location" class="hidden pt-4 border-t border-zinc-200/60">
-                            <label class="block text-sm font-bold text-zinc-700 mb-1.5">Dirección Específica <span class="text-zinc-400 font-normal">(Para el Mapa)</span></label>
-                            <input type="text" name="address" id="w_address" value="{{ old('address') }}" placeholder="Empieza a escribir la dirección..." 
-                                   class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
+                        {{-- Contenedor que agrupa el input de dirección Y el mapa --}}
+                        <div id="container_custom_location" class="hidden pt-4 border-t border-stone-200/60">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <label class="block text-sm font-bold text-stone-700">Dirección Específica <span class="text-stone-400 font-normal">(Para el Mapa)</span></label>
+                                @if(isset($studio) && $studio->address)
+                                <button type="button" onclick="copyStudioLocation()" class="text-[11px] font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer">
+                                    <span>📍 Copiar de sede principal</span>
+                                </button>
+                                @endif
+                            </div>
+                            <p class="text-xs text-stone-500 mb-3">Escribe la dirección o arrastra el marcador rojo en el mapa para ajustar la posición milimétrica.</p>
                             
+                            <div class="relative mb-3">
+                                <input type="text" name="address" id="w_address" value="{{ old('address') }}" placeholder="Ej: Pasaje 46, Población René Schneider, Puerto Montt..." autocomplete="off"
+                                       class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none bg-white relative z-10">
+                                <ul id="w_address_results" class="absolute z-50 w-full mt-1 bg-white border border-stone-200 rounded-xl shadow-xl max-h-48 overflow-y-auto hidden py-1 custom-scrollbar"></ul>
+                            </div>
+
                             <input type="hidden" name="latitude" id="w_latitude" value="{{ old('latitude') }}">
                             <input type="hidden" name="longitude" id="w_longitude" value="{{ old('longitude') }}">
                             <input type="hidden" name="city" id="w_city" value="{{ old('city') }}">
                             <input type="hidden" name="region" id="w_region" value="{{ old('region') }}">
                             <input type="hidden" name="country" id="w_country" value="{{ old('country') }}">
-                            
-                            <div id="map" class="w-full h-64 mt-3 rounded-xl border border-zinc-300 shadow-inner bg-zinc-100 hidden relative z-0"></div>
+
+                            {{-- MAPA: Visible inmediatamente al abrir container_custom_location --}}
+                            <div id="map" class="w-full h-64 rounded-xl border border-stone-300 shadow-inner bg-stone-100 relative z-0"></div>
                         </div>
 
-                        <input type="text" name="room_location" id="w_room_location" value="{{ old('room_location') }}" placeholder="Detalle extra (Ej: Sala 2, Piso 4...)" 
-                               class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none mt-4 bg-white shadow-sm">
+                        <input type="text" name="room_location" id="w_room_location" value="{{ old('room_location') }}" placeholder="Detalle extra del salón (Ej: Sala 2, Piso 4, Cancha Techada...)" 
+                               class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none mt-4 bg-white shadow-sm">
                     </div>
 
                     {{-- Color --}}
                     <div class="col-span-1 md:col-span-2">
-                        <label class="block text-sm font-bold text-zinc-700 mb-1.5">Color (Calendario) *</label>
-                        <select name="color" id="w_color" class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-zinc-50 focus:bg-white" required>
+                        <label class="block text-sm font-bold text-stone-700 mb-1.5">Color (Calendario) *</label>
+                        <select name="color" id="w_color" class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none cursor-pointer bg-stone-50 focus:bg-white" required>
                             @foreach(['blue'=>'Azul Intenso','emerald'=>'Verde Esmeralda','teal'=>'Turquesa','cyan'=>'Celeste','indigo'=>'Índigo','purple'=>'Púrpura','fuchsia'=>'Fucsia','rose'=>'Rosa / Rojo','amber'=>'Ámbar / Naranja','slate'=>'Gris Oscuro'] as $val => $label)
                                 <option value="{{ $val }}" {{ old('color') == $val ? 'selected' : '' }}>{{ $label }}</option>
                             @endforeach
@@ -372,28 +367,30 @@
                         @error('color') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                     </div>
 
+
+
                     {{-- TIPO DE CLASE Y HORARIOS --}}
-                    <div class="col-span-1 md:col-span-2 bg-zinc-50 p-5 rounded-xl border border-zinc-200 mt-2">
-                        <label class="block text-[11px] font-black text-zinc-400 mb-3 uppercase tracking-widest">Frecuencia del Taller</label>
+                    <div class="col-span-1 md:col-span-2 bg-stone-50 p-5 rounded-xl border border-stone-200 mt-2">
+                        <label class="block text-[11px] font-black text-stone-400 mb-3 uppercase tracking-widest">Frecuencia del Taller</label>
                         <div class="flex flex-col sm:flex-row gap-6 mb-4">
                             <label class="flex items-center gap-2 cursor-pointer group">
-                                <input type="radio" name="is_single_class" value="0" id="type_monthly" onchange="toggleDateFields()" class="w-4 h-4 text-zinc-900 border-zinc-300 focus:ring-zinc-900" {{ old('is_single_class', '0') == '0' ? 'checked' : '' }}>
-                                <span class="text-sm font-bold text-zinc-700 group-hover:text-zinc-900">Mensual (Repetitivo)</span>
+                                <input type="radio" name="is_single_class" value="0" id="type_monthly" onchange="toggleDateFields()" class="w-4 h-4 text-stone-900 border-stone-300 focus:ring-red-600" {{ old('is_single_class', '0') == '0' ? 'checked' : '' }}>
+                                <span class="text-sm font-bold text-stone-700 group-hover:text-stone-900">Mensual (Repetitivo)</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer group">
-                                <input type="radio" name="is_single_class" value="1" id="type_single" onchange="toggleDateFields()" class="w-4 h-4 text-zinc-900 border-zinc-300 focus:ring-zinc-900" {{ old('is_single_class') == '1' ? 'checked' : '' }}>
-                                <span class="text-sm font-bold text-zinc-700 group-hover:text-zinc-900">Clase Única (Masterclass)</span>
+                                <input type="radio" name="is_single_class" value="1" id="type_single" onchange="toggleDateFields()" class="w-4 h-4 text-stone-900 border-stone-300 focus:ring-red-600" {{ old('is_single_class') == '1' ? 'checked' : '' }}>
+                                <span class="text-sm font-bold text-stone-700 group-hover:text-stone-900">Clase Única (Masterclass)</span>
                             </label>
                         </div>
 
-                        {{-- Contenedor Horarios Múltiples (Mensual) --}}
-                        <div id="container_schedules" class="mt-2 border-t border-zinc-200/60 pt-4">
+                        {{-- Contenedor Horarios Múltiples --}}
+                        <div id="container_schedules" class="mt-2 border-t border-stone-200/60 pt-4">
                             <div class="flex justify-between items-center mb-4">
                                 <div>
-                                    <h4 class="text-sm font-bold text-zinc-900">Horarios Semanales</h4>
-                                    <p class="text-xs text-zinc-500">Agrega todos los bloques que necesites para este taller.</p>
+                                    <h4 class="text-sm font-bold text-stone-900">Horarios Semanales</h4>
+                                    <p class="text-xs text-stone-500">Agrega todos los bloques que necesites para este taller.</p>
                                 </div>
-                                <button type="button" onclick="addScheduleRow()" class="text-xs font-bold bg-white text-zinc-900 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-100 transition-colors shadow-sm">
+                                <button type="button" onclick="addScheduleRow()" class="text-xs font-bold bg-white text-stone-900 border border-stone-200 px-3 py-2 rounded-lg hover:bg-stone-100 transition-colors shadow-sm cursor-pointer">
                                     + Agregar Horario
                                 </button>
                             </div>
@@ -401,55 +398,78 @@
                             @error('schedules') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                         </div>
 
-                        {{-- Contenedor Clase Única (Masterclass) --}}
-                        <div id="container_single_class_details" class="hidden mt-2 border-t border-zinc-200/60 pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                        {{-- Contenedor Clase Única --}}
+                        <div id="container_single_class_details" class="hidden mt-2 border-t border-stone-200/60 pt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                             <div>
-                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Fecha Exacta *</label>
+                                <label class="block text-sm font-bold text-stone-700 mb-1.5">Fecha Exacta *</label>
                                 <input type="date" name="specific_date" id="w_specific_date" value="{{ old('specific_date') }}" onclick="try { this.showPicker(); } catch(e) {}"
-                                    class="w-full rounded-xl border {{ $errors->has('specific_date') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-white">
+                                    class="w-full rounded-xl border {{ $errors->has('specific_date') ? 'border-rose-300' : 'border-stone-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none cursor-pointer bg-white">
                                 @error('specific_date') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Hora de Inicio *</label>
+                                <label class="block text-sm font-bold text-stone-700 mb-1.5">Hora de Inicio *</label>
                                 <input type="time" name="start_time" id="w_start_time" value="{{ old('start_time') }}" onclick="try { this.showPicker(); } catch(e) {}"
-                                    class="w-full rounded-xl border {{ $errors->has('start_time') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none cursor-pointer bg-white">
+                                    class="w-full rounded-xl border {{ $errors->has('start_time') ? 'border-rose-300' : 'border-stone-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none cursor-pointer bg-white">
                                 @error('start_time') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Cupo Máximo <span class="text-zinc-400 font-normal">(Opc.)</span></label>
+                                <label class="block text-sm font-bold text-stone-700 mb-1.5">Cupo Máximo <span class="text-stone-400 font-normal">(Opc.)</span></label>
                                 <input type="number" name="max_students" id="w_max_students" value="{{ old('max_students') }}" placeholder="Ej: 15" min="1"
-                                    class="w-full rounded-xl border border-zinc-300 px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
+                                    class="w-full rounded-xl border border-stone-300 px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none bg-white">
                             </div>
                             <div>
-                                <label class="block text-sm font-bold text-zinc-700 mb-1.5">Precio (CLP) *</label>
+                                <label class="block text-sm font-bold text-stone-700 mb-1.5">Precio (CLP) *</label>
                                 <input type="number" name="single_class_price" id="w_single_price" value="{{ old('single_class_price') }}" placeholder="Ej: 15000" min="0"
-                                    class="w-full rounded-xl border {{ $errors->has('single_class_price') ? 'border-rose-300' : 'border-zinc-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-zinc-900 outline-none bg-white">
+                                    class="w-full rounded-xl border {{ $errors->has('single_class_price') ? 'border-rose-300' : 'border-stone-300' }} px-4 py-3 text-sm focus:ring-2 focus:ring-red-600 outline-none bg-white">
                                 @error('single_class_price') <p class="text-xs text-rose-500 font-bold mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                     </div>
-                    
-                    {{-- PLANES DE PRECIOS (solo talleres recurrentes) --}}
-                    <div id="container_prices" class="col-span-1 md:col-span-2 border-t border-zinc-200 pt-5 mt-2">
+
+                    {{-- PLANES DE PRECIOS (Time-Bound Packs) --}}
+                    <div id="container_prices" class="col-span-1 md:col-span-2 border-t border-stone-200 pt-5 mt-2">
                         <div class="flex justify-between items-center mb-4">
                             <div>
-                                <h4 class="text-sm font-bold text-zinc-900">Planes de Precios</h4>
-                                <p class="text-xs text-zinc-500">Configura los paquetes estándar y los descuentos de bienvenida.</p>
+                                <h4 class="text-sm font-bold text-stone-900">Planes de Precios</h4>
+                                <p class="text-xs text-stone-500">Configura los paquetes estándar y los descuentos de bienvenida.</p>
                             </div>
-                            <button type="button" onclick="addPriceRow()" class="text-xs font-bold bg-zinc-100 text-zinc-900 border border-zinc-200 px-3 py-2 rounded-lg hover:bg-zinc-200 transition-colors shadow-sm">
+                            <button type="button" onclick="addPriceRow()" class="text-xs font-bold bg-stone-100 text-stone-900 border border-stone-200 px-3 py-2 rounded-lg hover:bg-stone-200 transition-colors shadow-sm cursor-pointer">
                                 + Agregar Plan
                             </button>
                         </div>
                         <div id="prices_container" class="space-y-4"></div>
-                        @error('prices') <p class="text-xs text-rose-500 font-bold mt-1">Error en la configuración de precios.</p> @enderror
-                        @error('prices.*.introductory_price') <p class="text-xs text-rose-500 font-bold mt-1">Revisa el precio promocional. Debe ser un número válido.</p> @enderror
+
+                        {{-- Errores de validación de precios — se muestran como banner agrupado --}}
+                        @php
+                            $priceErrors = [];
+                            foreach ($errors->getMessages() as $field => $msgs) {
+                                if (str_starts_with($field, 'prices.')) {
+                                    $priceErrors[$field] = $msgs;
+                                }
+                            }
+                        @endphp
+                        @if(!empty($priceErrors))
+                            <div class="mt-4 p-4 bg-rose-50 border border-rose-200 rounded-xl">
+                                <p class="text-sm font-bold text-rose-700 mb-2 flex items-center gap-1.5">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                                    Revisa los precios:
+                                </p>
+                                <ul class="space-y-1">
+                                    @foreach($priceErrors as $field => $msgs)
+                                        @foreach($msgs as $msg)
+                                            <li class="text-xs text-rose-600 font-medium pl-5">• {{ $msg }}</li>
+                                        @endforeach
+                                    @endforeach
+                                </ul>
+                            </div>
+                        @endif
                     </div>
 
                 </div>
 
-                <div class="mt-8 flex gap-3 pt-4 border-t border-zinc-100">
-                    <button type="button" onclick="closeWorkshopModal()" class="w-full font-bold text-zinc-600 bg-zinc-100 hover:bg-zinc-200 py-3 rounded-xl transition-colors text-sm">Cancelar</button>
-                    <button type="submit" class="w-full bg-zinc-900 text-white font-bold py-3 rounded-xl shadow-sm hover:bg-zinc-800 transition-all active:scale-95 text-sm">Guardar Taller</button>
+                <div class="mt-8 flex gap-3 pt-4 border-t border-stone-100">
+                    <button type="button" onclick="closeWorkshopModal()" class="w-full bg-stone-100 text-stone-700 hover:bg-stone-200 border border-stone-200 font-bold py-2.5 px-4 rounded-xl transition-all duration-200 active:scale-95 text-sm cursor-pointer">Cancelar</button>
+                    <button type="submit" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm cursor-pointer">Guardar Taller</button>
                 </div>
             </form>
         </div>
@@ -461,12 +481,26 @@
         .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #e4e4e7; border-radius: 20px; }
     </style>
 
+    @php
+        // Extraemos errores de precios para pasarlos al JS (los campos se generan dinámicamente)
+        $priceErrors = [];
+        foreach ($errors->getMessages() as $field => $msgs) {
+            if (str_starts_with($field, 'prices.')) {
+                $priceErrors[$field] = $msgs;
+            }
+        }
+    @endphp
     <script>
         const categoryTree = @json($categoryTree ?? []);
+        const studioMasterData = @json($studio ?? null);
         let priceIndex = 0;
         let scheduleIndex = 0;
-        let map;
-        let marker;
+
+        // Errores de validación de precios (para resaltar campos en rojo tras submit fallido)
+        window.PriceErrors = @json($priceErrors);
+
+        let map = null;
+        let marker = null;
 
         const areaInput = document.getElementById('w_area');
         const areaList = document.getElementById('custom_area_list');
@@ -474,15 +508,16 @@
         const disciplineList = document.getElementById('custom_discipline_list');
 
         function renderDropdown(input, listEl, dataArray, callback) {
+            if (!listEl || !input) return;
             listEl.innerHTML = '';
             listEl.classList.remove('hidden');
             
             const filter = input.value.toLowerCase().trim();
-            const filtered = dataArray.filter(item => item.toLowerCase().includes(filter));
+            const filtered = (dataArray || []).filter(item => item.toLowerCase().includes(filter));
 
             if (filtered.length === 0) {
                 const li = document.createElement('li');
-                li.className = 'px-4 py-2.5 text-zinc-400 italic text-sm cursor-default';
+                li.className = 'px-4 py-2.5 text-stone-400 italic text-sm cursor-default';
                 li.textContent = filter ? `Se creará: "${input.value}"` : 'Sin opciones';
                 listEl.appendChild(li);
                 return;
@@ -490,7 +525,7 @@
 
             filtered.forEach(item => {
                 const li = document.createElement('li');
-                li.className = 'px-4 py-2.5 hover:bg-zinc-100 cursor-pointer text-zinc-700 text-sm transition-colors';
+                li.className = 'px-4 py-2.5 hover:bg-stone-100 cursor-pointer text-stone-700 text-sm transition-colors';
                 li.textContent = item;
                 li.onmousedown = (e) => { 
                     e.preventDefault(); 
@@ -503,6 +538,7 @@
         }
 
         function updateDisciplines() {
+            if (!areaInput || !disciplineInput) return;
             const areaVal = areaInput.value.trim();
             if (areaVal === '') {
                 disciplineInput.disabled = true;
@@ -514,33 +550,39 @@
             }
         }
 
-        areaInput.addEventListener('focus', () => renderDropdown(areaInput, areaList, Object.keys(categoryTree), updateDisciplines));
-        areaInput.addEventListener('input', () => {
-            renderDropdown(areaInput, areaList, Object.keys(categoryTree), updateDisciplines);
-            updateDisciplines();
-        });
-        areaInput.addEventListener('blur', () => setTimeout(() => areaList.classList.add('hidden'), 150));
+        if (areaInput) {
+            areaInput.addEventListener('focus', () => renderDropdown(areaInput, areaList, Object.keys(categoryTree || {}), updateDisciplines));
+            areaInput.addEventListener('input', () => {
+                renderDropdown(areaInput, areaList, Object.keys(categoryTree || {}), updateDisciplines);
+                updateDisciplines();
+            });
+            areaInput.addEventListener('blur', () => setTimeout(() => areaList?.classList.add('hidden'), 150));
+        }
 
-        disciplineInput.addEventListener('focus', () => {
-            const areaKey = Object.keys(categoryTree).find(key => key.toLowerCase() === areaInput.value.trim().toLowerCase());
-            const disciplines = areaKey ? categoryTree[areaKey] : [];
-            renderDropdown(disciplineInput, disciplineList, disciplines, null);
-        });
-        disciplineInput.addEventListener('input', () => {
-            const areaKey = Object.keys(categoryTree).find(key => key.toLowerCase() === areaInput.value.trim().toLowerCase());
-            const disciplines = areaKey ? categoryTree[areaKey] : [];
-            renderDropdown(disciplineInput, disciplineList, disciplines, null);
-        });
-        disciplineInput.addEventListener('blur', () => setTimeout(() => disciplineList.classList.add('hidden'), 150));
+        if (disciplineInput) {
+            disciplineInput.addEventListener('focus', () => {
+                const areaKey = Object.keys(categoryTree || {}).find(key => key.toLowerCase() === (areaInput?.value || '').trim().toLowerCase());
+                const disciplines = areaKey ? categoryTree[areaKey] : [];
+                renderDropdown(disciplineInput, disciplineList, disciplines, null);
+            });
+            disciplineInput.addEventListener('input', () => {
+                const areaKey = Object.keys(categoryTree || {}).find(key => key.toLowerCase() === (areaInput?.value || '').trim().toLowerCase());
+                const disciplines = areaKey ? categoryTree[areaKey] : [];
+                renderDropdown(disciplineInput, disciplineList, disciplines, null);
+            });
+            disciplineInput.addEventListener('blur', () => setTimeout(() => disciplineList?.classList.add('hidden'), 150));
+        }
 
         function updateFilterDisciplines() {
-            const areaVal = document.getElementById('filter_area').value;
+            const areaVal = document.getElementById('filter_area')?.value;
             const discSelect = document.getElementById('filter_discipline');
+            if (!discSelect) return;
+            
             discSelect.innerHTML = '<option value="">Todas las disciplinas</option>';
             if (!areaVal) { discSelect.disabled = true; return; }
             discSelect.disabled = false;
             
-            const areaKey = Object.keys(categoryTree).find(key => key === areaVal);
+            const areaKey = Object.keys(categoryTree || {}).find(key => key === areaVal);
             if (areaKey && categoryTree[areaKey]) {
                 categoryTree[areaKey].forEach(disc => {
                     const opt = document.createElement('option');
@@ -552,15 +594,15 @@
         }
 
         function applyFilters() {
-            const t = document.getElementById('filter_teacher').value;
-            const a = document.getElementById('filter_area').value.toLowerCase();
-            const d = document.getElementById('filter_discipline').value.toLowerCase();
+            const t = document.getElementById('filter_teacher')?.value || '';
+            const a = (document.getElementById('filter_area')?.value || '').toLowerCase();
+            const d = (document.getElementById('filter_discipline')?.value || '').toLowerCase();
             let visibleCount = 0;
             
             document.querySelectorAll('.workshop-row').forEach(row => {
                 const rowT = row.getAttribute('data-teacher-id');
-                const rowA = row.getAttribute('data-area-name').toLowerCase();
-                const rowD = row.getAttribute('data-discipline-name').toLowerCase();
+                const rowA = (row.getAttribute('data-area-name') || '').toLowerCase();
+                const rowD = (row.getAttribute('data-discipline-name') || '').toLowerCase();
                 const matchT = (t === '') || (t === rowT);
                 const matchA = (a === '') || (a === rowA);
                 const matchD = (d === '') || (d === rowD);
@@ -572,12 +614,13 @@
                     row.style.display = 'none';
                 }
             });
-            document.getElementById('no_results_row').style.display = (visibleCount === 0) ? '' : 'none';
+            const noResults = document.getElementById('no_results_row');
+            if (noResults) noResults.style.display = (visibleCount === 0) ? '' : 'none';
         }
 
         function clearFilters() {
-            document.getElementById('filter_teacher').value = '';
-            document.getElementById('filter_area').value = '';
+            if (document.getElementById('filter_teacher')) document.getElementById('filter_teacher').value = '';
+            if (document.getElementById('filter_area')) document.getElementById('filter_area').value = '';
             updateFilterDisciplines();
             applyFilters();
         }
@@ -585,6 +628,8 @@
         function toggleIntroPrice(checkbox, index) {
             const container = document.getElementById(`intro_container_${index}`);
             const input = document.getElementById(`intro_input_${index}`);
+            if (!container || !input) return;
+            
             if(checkbox.checked) {
                 container.classList.remove('hidden');
                 input.setAttribute('required', 'required');
@@ -595,47 +640,97 @@
             }
         }
 
-        function addPriceRow(count = '', price = '', isMonthly = false, introPrice = '', isIntroActive = false) {
+        function addPriceRow(count = '', price = '', validityMonths = '1', validityType = 'calendar', allowsRetroactive = true, introPrice = '', isIntroActive = false) {
             const container = document.getElementById('prices_container');
-            const html = `
-                <div class="p-5 bg-white border border-zinc-200 rounded-xl relative group transition-all hover:border-zinc-300 shadow-sm">
-                    <div class="flex flex-col sm:flex-row items-end gap-4">
-                        <div class="w-full sm:w-1/4">
-                            <label class="block text-xs font-bold text-zinc-600 mb-1.5">N° Clases</label>
-                            <input type="number" name="prices[${priceIndex}][class_count]" value="${count}" placeholder="Ej: 4" min="1" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white">
-                        </div>
-                        <div class="w-full sm:w-1/3">
-                            <label class="block text-xs font-bold text-zinc-600 mb-1.5">Precio Regular ($)</label>
-                            <input type="number" name="prices[${priceIndex}][price]" value="${price}" placeholder="Ej: 25000" min="0" required class="w-full rounded-lg border border-zinc-300 p-2.5 text-sm focus:ring-2 focus:ring-zinc-900 outline-none transition-all bg-zinc-50 focus:bg-white">
-                        </div>
-                        <div class="w-full sm:w-1/3 pb-3 pl-1">
-                            <label class="flex items-center gap-2 cursor-pointer group/check">
-                                <input type="checkbox" name="prices[${priceIndex}][is_monthly]" value="1" ${isMonthly ? 'checked' : ''} class="w-4 h-4 text-zinc-900 rounded border-zinc-300 focus:ring-zinc-900 transition-all">
-                                <span class="text-xs font-bold text-zinc-700 group-hover/check:text-zinc-900">Aplica regla Mensual</span>
-                            </label>
-                        </div>
-                    </div>
+            if (!container) return;
 
-                    <div class="mt-4 pt-4 border-t border-zinc-100 flex flex-col sm:flex-row gap-4 items-center bg-emerald-50/50 p-4 rounded-lg border border-emerald-100/50">
-                        <div class="w-full sm:w-1/2 flex items-center gap-2">
-                            <input type="checkbox" name="prices[${priceIndex}][is_introductory_active]" value="1" ${isIntroActive ? 'checked' : ''} onchange="toggleIntroPrice(this, ${priceIndex})" class="w-4 h-4 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-600 cursor-pointer">
-                            <label class="text-xs font-bold text-emerald-800 cursor-pointer" onclick="this.previousElementSibling.click()">Ofrecer Promo "Alumno Nuevo"</label>
+            const idx = priceIndex; // capturamos el índice actual
+            const errPrice = window.PriceErrors?.[`prices.${idx}.price`];
+            const errIntro = window.PriceErrors?.[`prices.${idx}.introductory_price`];
+            const hasErrPrice = Array.isArray(errPrice) && errPrice.length > 0;
+            const hasErrIntro = Array.isArray(errIntro) && errIntro.length > 0;
+
+            const retroChecked = allowsRetroactive ? 'checked' : '';
+            const calendarChecked = validityType === 'calendar' ? 'checked' : '';
+            const rollingChecked = validityType === 'rolling' ? 'checked' : '';
+
+            const html = `
+                <div class="p-5 bg-white border ${hasErrPrice || hasErrIntro ? 'border-rose-300 bg-rose-50/30' : 'border-stone-200'} rounded-xl relative group transition-all duration-200 hover:border-stone-300 shadow-sm">
+                    {{-- Fila 1: Clases, Precio, Vigencia --}}
+                    <div class="flex flex-col sm:flex-row items-end gap-4">
+                        <div class="w-full sm:w-1/5">
+                            <label class="block text-xs font-bold text-stone-600 mb-1.5">N° Clases</label>
+                            <input type="number" name="prices[${priceIndex}][class_count]" value="${count}" placeholder="Ej: 4" min="1" required class="w-full rounded-lg border border-stone-300 p-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none transition-all duration-200 bg-stone-50 focus:bg-white">
                         </div>
-                        <div class="w-full sm:w-1/2 ${isIntroActive ? '' : 'hidden'}" id="intro_container_${priceIndex}">
-                            <div class="flex items-center gap-3">
-                                <label class="text-xs font-bold text-emerald-700 whitespace-nowrap">Precio Descuento ($)</label>
-                                <input type="number" name="prices[${priceIndex}][introductory_price]" id="intro_input_${priceIndex}" value="${introPrice}" placeholder="Ej: 15000" min="0" class="w-full rounded-lg border border-emerald-200 p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-white">
+                        <div class="w-full sm:w-1/5">
+                            <label class="block text-xs font-bold text-stone-600 mb-1.5">Precio Regular ($)</label>
+                            <input type="number" name="prices[${priceIndex}][price]" value="${price}" placeholder="Ej: 25000" min="0" required class="w-full rounded-lg border ${hasErrPrice ? 'border-rose-400 bg-rose-50' : 'border-stone-300'} p-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none transition-all duration-200 bg-stone-50 focus:bg-white">
+                            ${hasErrPrice ? `<p class="text-[11px] text-rose-500 font-bold mt-1">${errPrice[0]}</p>` : ''}
+                        </div>
+                        <div class="w-full sm:w-1/5">
+                            <label class="block text-xs font-bold text-stone-600 mb-1.5">Vigencia del Pack</label>
+                            <select name="prices[${priceIndex}][validity_months]" class="w-full rounded-lg border border-stone-300 p-2.5 text-sm focus:ring-2 focus:ring-red-600 outline-none transition-all duration-200 bg-stone-50 focus:bg-white cursor-pointer">
+                                <option value="1" ${validityMonths == '1' ? 'selected' : ''}>1 Mes</option>
+                                <option value="3" ${validityMonths == '3' ? 'selected' : ''}>3 Meses</option>
+                                <option value="6" ${validityMonths == '6' ? 'selected' : ''}>6 Meses</option>
+                                <option value="12" ${validityMonths == '12' ? 'selected' : ''}>12 Meses (Anual)</option>
+                                <option value="0" ${validityMonths == '0' ? 'selected' : ''}>0 (Sin Límite / Vitalicio)</option>
+                            </select>
+                        </div>
+                        <div class="w-full sm:w-2/5">
+                            <label class="block text-xs font-bold text-stone-600 mb-1.5">Modo de Vigencia</label>
+                            <div class="flex gap-2">
+                                <label class="flex-1 relative flex items-start gap-2 p-2.5 rounded-lg border ${validityType === 'calendar' ? 'border-red-300 bg-red-50 ring-1 ring-red-200' : 'border-stone-200 bg-stone-50 hover:border-stone-300'} cursor-pointer transition-all duration-200">
+                                    <input type="radio" name="prices[${priceIndex}][validity_type]" value="calendar" ${calendarChecked} class="w-3.5 h-3.5 text-red-600 border-stone-300 focus:ring-red-600 cursor-pointer mt-0.5 shrink-0">
+                                    <div>
+                                        <span class="text-xs font-bold text-stone-700">Calendario</span>
+                                        <p class="text-[9px] text-stone-400 mt-0.5 leading-tight">Estricto por mes (1 al 31). Ideal para cuotas escolares.</p>
+                                    </div>
+                                </label>
+                                <label class="flex-1 relative flex items-start gap-2 p-2.5 rounded-lg border ${validityType === 'rolling' ? 'border-red-300 bg-red-50 ring-1 ring-red-200' : 'border-stone-200 bg-stone-50 hover:border-stone-300'} cursor-pointer transition-all duration-200">
+                                    <input type="radio" name="prices[${priceIndex}][validity_type]" value="rolling" ${rollingChecked} class="w-3.5 h-3.5 text-red-600 border-stone-300 focus:ring-red-600 cursor-pointer mt-0.5 shrink-0">
+                                    <div>
+                                        <span class="text-xs font-bold text-stone-700">Continuo</span>
+                                        <p class="text-[9px] text-stone-400 mt-0.5 leading-tight">Ventana flotante por días. Ideal para fitness o yoga.</p>
+                                    </div>
+                                </label>
                             </div>
                         </div>
                     </div>
 
-                    <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-8 h-8 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all z-10" title="Eliminar Plan">
+                    {{-- Fila 2: Retroactivo --}}
+                    <div class="mt-4 pt-4 border-t border-stone-100">
+                        <label class="flex items-start gap-2 cursor-pointer group/check transition-all duration-200">
+                            <input type="checkbox" name="prices[${priceIndex}][allows_retroactive]" value="1" ${retroChecked} class="w-4 h-4 text-stone-900 rounded border-stone-300 focus:ring-red-600 transition-all duration-200 mt-0.5 shrink-0">
+                            <div>
+                                <span class="text-xs font-bold text-stone-700 group-hover/check:text-stone-900">Upgrade Retroactivo</span>
+                                <p class="text-[10px] text-stone-400 mt-0.5 leading-tight">Descuenta lo ya pagado dentro de la misma ventana de vigencia.</p>
+                            </div>
+                        </label>
+                    </div>
+
+                    {{-- Fila 3: Precio Introductorio --}}
+                    <div class="mt-4 pt-4 border-t border-stone-100 flex flex-col sm:flex-row gap-4 items-center bg-emerald-50/50 p-4 rounded-lg border border-emerald-100/50">
+                        <div class="w-full sm:w-1/2 flex items-center gap-2">
+                            <input type="checkbox" name="prices[${priceIndex}][is_introductory_active]" value="1" ${isIntroActive ? 'checked' : ''} onchange="toggleIntroPrice(this, ${priceIndex})" class="w-4 h-4 text-emerald-600 rounded border-emerald-300 focus:ring-emerald-600 cursor-pointer transition-all duration-200">
+                            <label class="text-xs font-bold text-emerald-800 cursor-pointer transition-all duration-200" onclick="this.previousElementSibling.click()">Ofrecer Promo "Alumno Nuevo"</label>
+                        </div>
+                        <div class="w-full sm:w-1/2 ${isIntroActive ? '' : 'hidden'}" id="intro_container_${priceIndex}">
+                            <div class="flex items-center gap-3">
+                                <label class="text-xs font-bold text-emerald-700 whitespace-nowrap">Precio Descuento ($)</label>
+                                <input type="number" name="prices[${priceIndex}][introductory_price]" id="intro_input_${priceIndex}" value="${introPrice}" placeholder="Ej: 15000" min="0" class="w-full rounded-lg border ${hasErrIntro ? 'border-rose-400 bg-rose-50' : 'border-emerald-200'} p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none transition-all duration-200 bg-white">
+                                ${hasErrIntro ? `<p class="text-[11px] text-rose-500 font-bold mt-1">${errIntro[0]}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="this.parentElement.remove()" class="absolute -top-3 -right-3 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-8 h-8 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all duration-200 z-10" title="Eliminar Plan">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', html);
-            if(isIntroActive) {
+            if(isIntroActive && document.getElementById(`intro_input_${priceIndex}`)) {
                 document.getElementById(`intro_input_${priceIndex}`).setAttribute('required', 'required');
             }
             priceIndex++;
@@ -643,23 +738,24 @@
 
         function addScheduleRow(day = '', time = '', maxStudents = '') {
             const container = document.getElementById('schedules_container');
+            if (!container) return;
             const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
             
             let options = days.map((name, index) => `<option value="${index}" ${day !== '' && day == index ? 'selected' : ''}>${name}</option>`).join('');
 
             const html = `
-                <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-zinc-200 group relative transition-all hover:border-zinc-300 shadow-sm">
+                <div class="flex items-center gap-3 bg-white p-3 rounded-xl border border-stone-200 group relative transition-all hover:border-stone-300 shadow-sm">
                     <div class="w-1/3">
-                        <select name="schedules[${scheduleIndex}][day]" required class="w-full rounded-lg border-zinc-300 text-sm focus:ring-zinc-900 cursor-pointer">
+                        <select name="schedules[${scheduleIndex}][day]" required class="w-full rounded-lg border-stone-300 text-sm focus:ring-red-600 cursor-pointer">
                             <option value="">Día...</option>
                             ${options}
                         </select>
                     </div>
                     <div class="w-1/3">
-                        <input type="time" name="schedules[${scheduleIndex}][time]" value="${time}" required class="w-full rounded-lg border-zinc-300 text-sm focus:ring-zinc-900 cursor-pointer" onclick="try { this.showPicker(); } catch(e) {}">
+                        <input type="time" name="schedules[${scheduleIndex}][time]" value="${time}" required class="w-full rounded-lg border-stone-300 text-sm focus:ring-red-600 cursor-pointer" onclick="try { this.showPicker(); } catch(e) {}">
                     </div>
                     <div class="w-1/3">
-                        <input type="number" name="schedules[${scheduleIndex}][max_students]" value="${maxStudents}" placeholder="Cupos (Opc.)" min="1" class="w-full rounded-lg border-zinc-300 text-sm focus:ring-zinc-900 bg-zinc-50 focus:bg-white">
+                        <input type="number" name="schedules[${scheduleIndex}][max_students]" value="${maxStudents}" placeholder="Cupos (Opc.)" min="1" class="w-full rounded-lg border-stone-300 text-sm focus:ring-red-600 bg-stone-50 focus:bg-white">
                     </div>
                     <button type="button" onclick="this.parentElement.remove()" class="absolute -right-2 -top-2 bg-white border border-rose-200 text-rose-500 hover:bg-rose-50 hover:text-rose-700 w-6 h-6 rounded-full flex items-center justify-center shadow-sm opacity-0 group-hover:opacity-100 transition-all z-10" title="Eliminar Horario">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
@@ -671,7 +767,7 @@
         }
 
         function toggleDateFields() {
-            const isSingle = document.getElementById('type_single').checked;
+            const isSingle = document.getElementById('type_single')?.checked;
             const containerSchedules = document.getElementById('container_schedules');
             const containerSingle = document.getElementById('container_single_class_details');
             const containerPrices = document.getElementById('container_prices');
@@ -679,311 +775,447 @@
             const inputTime = document.getElementById('w_start_time');
             const inputPrice = document.getElementById('w_single_price');
 
+            if (!containerSchedules || !containerSingle || !containerPrices) return;
+
             if (isSingle) {
                 containerSchedules.classList.add('hidden');
                 containerSingle.classList.remove('hidden');
                 containerPrices.classList.add('hidden');
-                inputDate.setAttribute('required', 'required');
-                inputTime.setAttribute('required', 'required');
-                inputPrice.setAttribute('required', 'required');
-                // Deshabilitar inputs de horarios para que el navegador no los valide
+                if (inputDate) inputDate.setAttribute('required', 'required');
+                if (inputTime) inputTime.setAttribute('required', 'required');
+                if (inputPrice) inputPrice.setAttribute('required', 'required');
                 containerSchedules.querySelectorAll('input, select').forEach(el => el.disabled = true);
-                // Deshabilitar inputs de planes de precios también
                 containerPrices.querySelectorAll('input, select').forEach(el => el.disabled = true);
             } else {
                 containerSchedules.classList.remove('hidden');
                 containerSingle.classList.add('hidden');
                 containerPrices.classList.remove('hidden');
-                inputDate.removeAttribute('required');
-                inputTime.removeAttribute('required');
-                inputPrice.removeAttribute('required');
-                // Re-habilitar inputs de horarios
+                if (inputDate) inputDate.removeAttribute('required');
+                if (inputTime) inputTime.removeAttribute('required');
+                if (inputPrice) inputPrice.removeAttribute('required');
                 containerSchedules.querySelectorAll('input, select').forEach(el => el.disabled = false);
-                // Re-habilitar inputs de planes de precios
                 containerPrices.querySelectorAll('input, select').forEach(el => el.disabled = false);
             }
         }
 
+        // 🚀 LÓGICA CORREGIDA: Al desmarcar el check, aparece la dirección y el mapa al mismo tiempo
         function toggleLocationFields() {
             const checkbox = document.getElementById('w_use_main_location');
             const container = document.getElementById('container_custom_location');
+            if (!checkbox || !container) return;
             
             if (checkbox.checked) {
                 container.classList.add('hidden');
             } else {
                 container.classList.remove('hidden');
-                if (typeof map !== 'undefined' && map) {
+                // Al mostrarse el contenedor, redimensionamos Leaflet inmediatamente para no mostrar cuadros grises
+                if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
                     setTimeout(() => {
-                        google.maps.event.trigger(map, 'resize');
-                        if (marker && marker.getPosition()) {
-                            map.setCenter(marker.getPosition());
-                        }
-                    }, 50);
+                        try {
+                            map.invalidateSize();
+                            if (marker && marker.getLatLng()) {
+                                map.setView(marker.getLatLng(), map.getZoom() || 15);
+                            } else if (studioMasterData && studioMasterData.latitude && studioMasterData.longitude && marker) {
+                                const pos = [parseFloat(studioMasterData.latitude), parseFloat(studioMasterData.longitude)];
+                                marker.setLatLng(pos);
+                                map.setView(pos, 15);
+                            }
+                        } catch(e) {}
+                    }, 150);
                 }
             }
         }
 
-        // ==========================================
-        // CONTROL DE CIERRE SEGURO DEL MODAL
-        // ==========================================
+        function copyStudioLocation() {
+            if (!studioMasterData) return;
+            if (document.getElementById('w_address')) document.getElementById('w_address').value = studioMasterData.address || '';
+            if (document.getElementById('w_latitude')) document.getElementById('w_latitude').value = studioMasterData.latitude || '';
+            if (document.getElementById('w_longitude')) document.getElementById('w_longitude').value = studioMasterData.longitude || '';
+            if (document.getElementById('w_city')) document.getElementById('w_city').value = studioMasterData.city || '';
+            if (document.getElementById('w_region')) document.getElementById('w_region').value = studioMasterData.region || '';
+            if (document.getElementById('w_country')) document.getElementById('w_country').value = studioMasterData.country || '';
+
+            if (studioMasterData.latitude && studioMasterData.longitude && typeof marker !== 'undefined' && marker && typeof map !== 'undefined' && map) {
+                const pos = [parseFloat(studioMasterData.latitude), parseFloat(studioMasterData.longitude)];
+                try {
+                    marker.setLatLng(pos);
+                    map.setView(pos, 17);
+                } catch(e) {}
+            }
+        }
+
         const modalBackdrop = document.getElementById('workshopModal');
         let isMouseDownOnBackdrop = false;
 
-        modalBackdrop.addEventListener('mousedown', function(e) {
-            isMouseDownOnBackdrop = (e.target === modalBackdrop);
-        });
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('mousedown', function(e) {
+                isMouseDownOnBackdrop = (e.target === modalBackdrop);
+            });
 
-        modalBackdrop.addEventListener('mouseup', function(e) {
-            if (isMouseDownOnBackdrop && e.target === modalBackdrop) {
-                closeWorkshopModal();
-            }
-            isMouseDownOnBackdrop = false;
-        });
+            modalBackdrop.addEventListener('mouseup', function(e) {
+                if (isMouseDownOnBackdrop && e.target === modalBackdrop) {
+                    closeWorkshopModal();
+                }
+                isMouseDownOnBackdrop = false;
+            });
+        }
 
         function openWorkshopModal() {
-            document.getElementById('workshopForm').action = "{{ route('workshops.store', ['subdomain' => request()->route('subdomain')]) }}";
-            document.getElementById('workshopMethod').innerHTML = "";
-            document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
-            document.getElementById('w_id').value = '';
+            const form = document.getElementById('workshopForm');
+            if (!form) return;
+            
+            form.action = "{{ route('workshops.store', ['subdomain' => request()->route('subdomain')]) }}";
+            if (document.getElementById('workshopMethod')) document.getElementById('workshopMethod').innerHTML = "";
+            if (document.getElementById('modalWorkshopTitle')) document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
+            if (document.getElementById('w_id')) document.getElementById('w_id').value = '';
             
             @if(!$errors->any() || old('workshop_id')) 
-                document.getElementById('workshopForm').reset(); 
-                document.getElementById('w_image').value = ''; 
-                document.getElementById('w_teacher_id').value = ''; 
-                document.getElementById('type_monthly').checked = true;
+                form.reset(); 
+                if (document.getElementById('w_image')) document.getElementById('w_image').value = ''; 
+                if (document.getElementById('w_teacher_id')) document.getElementById('w_teacher_id').value = ''; 
+                if (document.getElementById('type_monthly')) document.getElementById('type_monthly').checked = true;
                 
-                document.getElementById('w_area').value = '';
-                document.getElementById('w_discipline').value = '';
+                if (document.getElementById('w_area')) document.getElementById('w_area').value = '';
+                if (document.getElementById('w_discipline')) document.getElementById('w_discipline').value = '';
                 updateDisciplines();
-                document.getElementById('w_target_audience').value = 'adults';
+                if (document.getElementById('w_target_audience')) document.getElementById('w_target_audience').value = 'adults';
                 
-                document.getElementById('w_use_main_location').checked = true;
-                document.getElementById('w_address').value = '';
-                document.getElementById('w_latitude').value = '';
-                document.getElementById('w_longitude').value = '';
-                document.getElementById('w_city').value = '';
-                document.getElementById('w_region').value = '';
-                document.getElementById('w_country').value = '';
-                document.getElementById('w_room_location').value = '';
-                document.getElementById('w_description').value = '';
-                document.getElementById('w_promo_video_url').value = '';
+                if (document.getElementById('w_use_main_location')) document.getElementById('w_use_main_location').checked = true;
+                if (document.getElementById('w_address')) document.getElementById('w_address').value = '';
+                if (document.getElementById('w_latitude')) document.getElementById('w_latitude').value = '';
+                if (document.getElementById('w_longitude')) document.getElementById('w_longitude').value = '';
+                if (document.getElementById('w_city')) document.getElementById('w_city').value = '';
+                if (document.getElementById('w_region')) document.getElementById('w_region').value = '';
+                if (document.getElementById('w_country')) document.getElementById('w_country').value = '';
+                if (document.getElementById('w_room_location')) document.getElementById('w_room_location').value = '';
+                if (document.getElementById('w_description')) document.getElementById('w_description').value = '';
+                if (document.getElementById('w_promo_video_url')) document.getElementById('w_promo_video_url').value = '';
                 toggleLocationFields();
                 
-                // Reiniciar Masterclass
-                document.getElementById('w_specific_date').value = '';
-                document.getElementById('w_start_time').value = '';
-                document.getElementById('w_max_students').value = '';
-                document.getElementById('w_single_price').value = '';
+                if (document.getElementById('w_specific_date')) document.getElementById('w_specific_date').value = '';
+                if (document.getElementById('w_start_time')) document.getElementById('w_start_time').value = '';
+                if (document.getElementById('w_max_students')) document.getElementById('w_max_students').value = '';
+                if (document.getElementById('w_single_price')) document.getElementById('w_single_price').value = '';
 
-                // Reiniciar Horarios Multiples
-                document.getElementById('schedules_container').innerHTML = '';
+                if (document.getElementById('schedules_container')) document.getElementById('schedules_container').innerHTML = '';
                 scheduleIndex = 0;
                 addScheduleRow();
 
-                document.getElementById('prices_container').innerHTML = '';
+                if (document.getElementById('prices_container')) document.getElementById('prices_container').innerHTML = '';
                 priceIndex = 0;
-                addPriceRow(); 
-                
+                addPriceRow();
+
                 toggleDateFields();
             @endif
             
             document.body.style.overflow = 'hidden';
-            document.getElementById('workshopModal').classList.remove('hidden');
+            if (modalBackdrop) modalBackdrop.classList.remove('hidden');
         }
 
         function openEditWorkshopModal(buttonElement) {
-            const w = JSON.parse(buttonElement.getAttribute('data-workshop'));
+            if (!buttonElement) return;
+            const w = JSON.parse(buttonElement.getAttribute('data-workshop') || '{}');
+            const form = document.getElementById('workshopForm');
+            if (!form || !w.id) return;
             
             let updateUrl = "{{ route('workshops.update', ['subdomain' => request()->route('subdomain'), 'workshop' => ':id']) }}";
-            document.getElementById('workshopForm').action = updateUrl.replace(':id', w.id);
-            document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
-            document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
-            document.getElementById('w_id').value = w.id;
-            document.getElementById('w_image').value = ''; 
+            form.action = updateUrl.replace(':id', w.id);
+            if (document.getElementById('workshopMethod')) document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
+            if (document.getElementById('modalWorkshopTitle')) document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
+            if (document.getElementById('w_id')) document.getElementById('w_id').value = w.id;
+            if (document.getElementById('w_image')) document.getElementById('w_image').value = ''; 
             
-            document.getElementById('w_name').value = w.name;
-            document.getElementById('w_color').value = w.color || 'blue';
-            document.getElementById('w_teacher_id').value = w.teacher_id || '';
-            document.getElementById('w_target_audience').value = w.target_audience || 'adults';
-            document.getElementById('w_description').value = w.description || '';
-            document.getElementById('w_promo_video_url').value = w.promo_video_url || '';
+            if (document.getElementById('w_name')) document.getElementById('w_name').value = w.name || '';
+            if (document.getElementById('w_color')) document.getElementById('w_color').value = w.color || 'blue';
+            if (document.getElementById('w_teacher_id')) document.getElementById('w_teacher_id').value = w.teacher_id || '';
+            if (document.getElementById('w_target_audience')) document.getElementById('w_target_audience').value = w.target_audience || 'adults';
+            if (document.getElementById('w_description')) document.getElementById('w_description').value = w.description || '';
+            if (document.getElementById('w_promo_video_url')) document.getElementById('w_promo_video_url').value = w.promo_video_url || '';
             
             if (w.discipline) {
-                document.getElementById('w_area').value = w.discipline.area ? w.discipline.area.name : '';
+                if (document.getElementById('w_area')) document.getElementById('w_area').value = w.discipline.area ? w.discipline.area.name : '';
                 updateDisciplines(); 
-                document.getElementById('w_discipline').value = w.discipline.name;
+                if (document.getElementById('w_discipline')) document.getElementById('w_discipline').value = w.discipline.name;
             } else {
-                document.getElementById('w_area').value = '';
+                if (document.getElementById('w_area')) document.getElementById('w_area').value = '';
                 updateDisciplines(); 
-                document.getElementById('w_discipline').value = '';
+                if (document.getElementById('w_discipline')) document.getElementById('w_discipline').value = '';
             }
 
-            document.getElementById('w_use_main_location').checked = !!w.use_main_location;
-            document.getElementById('w_address').value = w.address || '';
-            document.getElementById('w_latitude').value = w.latitude || '';
-            document.getElementById('w_longitude').value = w.longitude || '';
-            document.getElementById('w_city').value = w.city || '';
-            document.getElementById('w_region').value = w.region || '';
-            document.getElementById('w_country').value = w.country || '';
-            document.getElementById('w_room_location').value = w.room_location || '';
+            if (document.getElementById('w_use_main_location')) document.getElementById('w_use_main_location').checked = !!w.use_main_location;
+            if (document.getElementById('w_address')) document.getElementById('w_address').value = w.address || '';
+            if (document.getElementById('w_latitude')) document.getElementById('w_latitude').value = w.latitude || '';
+            if (document.getElementById('w_longitude')) document.getElementById('w_longitude').value = w.longitude || '';
+            if (document.getElementById('w_city')) document.getElementById('w_city').value = w.city || '';
+            if (document.getElementById('w_region')) document.getElementById('w_region').value = w.region || '';
+            if (document.getElementById('w_country')) document.getElementById('w_country').value = w.country || '';
+            if (document.getElementById('w_room_location')) document.getElementById('w_room_location').value = w.room_location || '';
             toggleLocationFields();
 
-            if (!w.use_main_location && w.latitude && w.longitude && marker && map) {
-                const pos = { lat: parseFloat(w.latitude), lng: parseFloat(w.longitude) };
-                marker.setPosition(pos);
-                map.setCenter(pos);
-                document.getElementById('map').classList.remove('hidden');
-                setTimeout(() => google.maps.event.trigger(map, 'resize'), 50);
+            if (!w.use_main_location && w.latitude && w.longitude && typeof marker !== 'undefined' && marker && typeof map !== 'undefined' && map) {
+                const pos = [parseFloat(w.latitude), parseFloat(w.longitude)];
+                try {
+                    marker.setLatLng(pos);
+                    map.setView(pos, 17);
+                } catch(e) {}
             }
 
-            // Lógica Masterclass
-            document.getElementById('w_specific_date').value = w.specific_date || '';
-            document.getElementById('w_start_time').value = w.start_time || '';
-            document.getElementById('w_max_students').value = w.max_students || '';
+            if (document.getElementById('w_specific_date')) document.getElementById('w_specific_date').value = w.specific_date || '';
+            if (document.getElementById('w_start_time')) document.getElementById('w_start_time').value = w.start_time || '';
+            if (document.getElementById('w_max_students')) document.getElementById('w_max_students').value = w.max_students || '';
 
-            // Lógica Horarios Dinámicos
-            document.getElementById('schedules_container').innerHTML = '';
-            scheduleIndex = 0;
-            if (!w.is_single_class && w.schedules && w.schedules.length > 0) {
-                w.schedules.forEach(sch => {
-                    addScheduleRow(sch.day_of_week, sch.start_time, sch.max_students || '');
-                });
-            } else {
-                addScheduleRow();
+            const schedCont = document.getElementById('schedules_container');
+            if (schedCont) {
+                schedCont.innerHTML = '';
+                scheduleIndex = 0;
+                if (!w.is_single_class && w.schedules && w.schedules.length > 0) {
+                    w.schedules.forEach(sch => {
+                        addScheduleRow(sch.day_of_week, sch.start_time, sch.max_students || '');
+                    });
+                } else {
+                    addScheduleRow();
+                }
             }
 
             if (w.is_single_class) {
-                document.getElementById('type_single').checked = true;
-                // Popular precio de clase única desde el primer price con class_count=1
+                if (document.getElementById('type_single')) document.getElementById('type_single').checked = true;
                 const singlePrice = w.prices?.find(p => p.class_count == 1);
-                document.getElementById('w_single_price').value = singlePrice ? singlePrice.price : '';
+                if (document.getElementById('w_single_price')) document.getElementById('w_single_price').value = singlePrice ? singlePrice.price : '';
             } else {
-                document.getElementById('type_monthly').checked = true;
+                if (document.getElementById('type_monthly')) document.getElementById('type_monthly').checked = true;
             }
             toggleDateFields();
 
-            // Precios
-            document.getElementById('prices_container').innerHTML = '';
-            priceIndex = 0;
-            if (w.prices && w.prices.length > 0) {
-                w.prices.forEach(p => addPriceRow(p.class_count, p.price, p.is_monthly, p.introductory_price, p.is_introductory_active));
-            } else {
-                addPriceRow();
+            const pricesCont = document.getElementById('prices_container');
+            if (pricesCont) {
+                pricesCont.innerHTML = '';
+                priceIndex = 0;
+                if (w.prices && w.prices.length > 0) {
+                    w.prices.forEach(p => addPriceRow(p.class_count, p.price, p.validity_months ?? 1, p.validity_type ?? 'calendar', p.allows_retroactive ?? true, p.introductory_price, p.is_introductory_active));
+                } else {
+                    addPriceRow();
+                }
             }
-            
+
             document.body.style.overflow = 'hidden';
-            document.getElementById('workshopModal').classList.remove('hidden');
+            if (modalBackdrop) modalBackdrop.classList.remove('hidden');
         }
 
         function closeWorkshopModal() { 
             document.body.style.overflow = '';
-            document.getElementById('workshopModal').classList.add('hidden'); 
+            if (modalBackdrop) modalBackdrop.classList.add('hidden'); 
         }
     
         @if($errors->any())
             document.addEventListener("DOMContentLoaded", function() {
                 const oldId = "{{ old('workshop_id') }}";
+                const form = document.getElementById('workshopForm');
+                if (!form) return;
+
                 if (oldId) {
                     let errorUrl = "{{ route('workshops.update', ['subdomain' => request()->route('subdomain'), 'workshop' => ':id']) }}";
-                    document.getElementById('workshopForm').action = errorUrl.replace(':id', oldId);
-                    document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
-                    document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
+                    form.action = errorUrl.replace(':id', oldId);
+                    if (document.getElementById('workshopMethod')) document.getElementById('workshopMethod').innerHTML = '@method("PUT")';
+                    if (document.getElementById('modalWorkshopTitle')) document.getElementById('modalWorkshopTitle').innerText = 'Editar Taller';
                 } else {
-                    document.getElementById('workshopForm').action = "{{ route('workshops.store', ['subdomain' => request()->route('subdomain')]) }}";
-                    document.getElementById('workshopMethod').innerHTML = "";
-                    document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
+                    form.action = "{{ route('workshops.store', ['subdomain' => request()->route('subdomain')]) }}";
+                    if (document.getElementById('workshopMethod')) document.getElementById('workshopMethod').innerHTML = "";
+                    if (document.getElementById('modalWorkshopTitle')) document.getElementById('modalWorkshopTitle').innerText = 'Nuevo Taller';
                 }
 
-                // Recuperar Horarios Dinamicos con error
                 const oldSchedules = @json(old('schedules', []));
-                document.getElementById('schedules_container').innerHTML = '';
-                scheduleIndex = 0;
-                if(oldSchedules && Object.keys(oldSchedules).length > 0) {
-                    Object.values(oldSchedules).forEach(sch => {
-                        addScheduleRow(sch.day, sch.time, sch.max_students || '');
-                    });
-                } else {
-                    addScheduleRow();
+                const schedCont = document.getElementById('schedules_container');
+                if (schedCont) {
+                    schedCont.innerHTML = '';
+                    scheduleIndex = 0;
+                    if(oldSchedules && Object.keys(oldSchedules).length > 0) {
+                        Object.values(oldSchedules).forEach(sch => {
+                            addScheduleRow(sch.day, sch.time, sch.max_students || '');
+                        });
+                    } else {
+                        addScheduleRow();
+                    }
                 }
 
-                // Recuperar Precios con error
                 const oldPrices = @json(old('prices', []));
-                document.getElementById('prices_container').innerHTML = '';
-                priceIndex = 0;
-                if(oldPrices && Object.keys(oldPrices).length > 0) {
-                    Object.values(oldPrices).forEach(p => {
-                        addPriceRow(
-                            p.class_count, 
-                            p.price, 
-                            p.is_monthly, 
-                            p.introductory_price, 
-                            p.is_introductory_active
-                        );
-                    });
-                } else {
-                    addPriceRow();
+                const pricesCont = document.getElementById('prices_container');
+                if (pricesCont) {
+                    pricesCont.innerHTML = '';
+                    priceIndex = 0;
+                    if(oldPrices && Object.keys(oldPrices).length > 0) {
+                        Object.values(oldPrices).forEach(p => {
+                            addPriceRow(
+                                p.class_count,
+                                p.price,
+                                p.validity_months ?? 1,
+                                p.validity_type ?? 'calendar',
+                                p.allows_retroactive ?? true,
+                                p.introductory_price,
+                                p.is_introductory_active
+                            );
+                        });
+                    } else {
+                        addPriceRow();
+                    }
                 }
 
                 updateDisciplines();
                 toggleDateFields();
                 toggleLocationFields();
-                document.getElementById('workshopModal').classList.remove('hidden');
+                if (modalBackdrop) modalBackdrop.classList.remove('hidden');
             });
         @endif
 
-        function initMapAutocomplete() {
-            const addressInput = document.getElementById('w_address');
-            const mapContainer = document.getElementById('map');
-            if(!addressInput) return;
+        // ==========================================
+        // MAPAS BIDIRECCIONALES: Leaflet + Nominatim
+        // ==========================================
+        let nominatimTimeout = null;
+        const addressInput = document.getElementById('w_address');
+        const addressResults = document.getElementById('w_address_results');
+        const mapContainer = document.getElementById('map');
 
-            const defaultPos = { lat: -33.4489, lng: -70.6693 };
-            map = new google.maps.Map(mapContainer, {
-                center: defaultPos, zoom: 15, mapTypeControl: false, streetViewControl: false, fullscreenControl: true
+        async function searchNominatim(query) {
+            if (!query || query.length < 3) return [];
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=cl&q=${encodeURIComponent(query)}`
+                );
+                return await res.json();
+            } catch (e) {
+                return [];
+            }
+        }
+
+        async function nominatimReverse(lat, lng) {
+            try {
+                const res = await fetch(
+                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
+                );
+                return await res.json();
+            } catch (e) { return null; }
+        }
+
+        function showAddressDropdown(results) {
+            if (!addressResults) return;
+            addressResults.innerHTML = '';
+            if (!results || results.length === 0) {
+                addressResults.classList.add('hidden');
+                return;
+            }
+            results.forEach((place) => {
+                const li = document.createElement('li');
+                li.className = 'px-4 py-2.5 hover:bg-stone-100 cursor-pointer text-stone-700 text-sm transition-colors border-b border-stone-100 last:border-0';
+                li.textContent = place.display_name;
+                li.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    selectNominatimPlace(place);
+                });
+                addressResults.appendChild(li);
             });
-            marker = new google.maps.Marker({
-                map: map, position: defaultPos, draggable: true, animation: google.maps.Animation.DROP
-            });
+            addressResults.classList.remove('hidden');
+        }
 
-            const autocomplete = new google.maps.places.Autocomplete(addressInput, {
-                componentRestrictions: { country: "cl" },
-                fields: ["formatted_address", "geometry", "name", "address_components"],
-                types: ["geocode", "establishment"]
-            });
+        function selectNominatimPlace(place) {
+            if (!addressInput || !addressResults) return;
+            addressInput.value = place.display_name;
+            addressResults.classList.add('hidden');
 
-            autocomplete.addListener('place_changed', function() {
-                const place = autocomplete.getPlace();
-                if (!place.geometry) { mapContainer.classList.add('hidden'); return; }
+            const lat = parseFloat(place.lat);
+            const lng = parseFloat(place.lon);
+            const pos = [lat, lng];
 
-                mapContainer.classList.remove('hidden');
-                google.maps.event.trigger(map, 'resize');
-                map.setCenter(place.geometry.location);
-                map.setZoom(17);
-                marker.setPosition(place.geometry.location);
+            if (document.getElementById('w_latitude')) document.getElementById('w_latitude').value = lat.toFixed(8);
+            if (document.getElementById('w_longitude')) document.getElementById('w_longitude').value = lng.toFixed(8);
 
-                document.getElementById('w_latitude').value = place.geometry.location.lat();
-                document.getElementById('w_longitude').value = place.geometry.location.lng();
+            const addr = place.address || {};
+            if (document.getElementById('w_city')) document.getElementById('w_city').value = addr.city || addr.town || addr.village || addr.municipality || '';
+            if (document.getElementById('w_region')) document.getElementById('w_region').value = addr.state || '';
+            if (document.getElementById('w_country')) document.getElementById('w_country').value = addr.country || '';
 
-                let city = '', region = '', country = '';
-                if(place.address_components) {
-                    for (const component of place.address_components) {
-                        const type = component.types[0];
-                        if(type === "locality") city = component.long_name;
-                        if(type === "administrative_area_level_1") region = component.long_name;
-                        if(type === "country") country = component.long_name;
-                    }
+            if (typeof map !== 'undefined' && map && typeof map.invalidateSize === 'function') {
+                try {
+                    map.invalidateSize();
+                    map.setView(pos, 17);
+                    if (marker) marker.setLatLng(pos);
+                } catch(e) {}
+            }
+        }
+
+        if (addressInput) {
+            addressInput.addEventListener('input', function () {
+                clearTimeout(nominatimTimeout);
+                const query = this.value.trim();
+                if (query.length < 3) {
+                    if (addressResults) addressResults.classList.add('hidden');
+                    return;
                 }
-                document.getElementById('w_city').value = city;
-                document.getElementById('w_region').value = region;
-                document.getElementById('w_country').value = country;
-                addressInput.value = place.formatted_address;
+                nominatimTimeout = setTimeout(async () => {
+                    const results = await searchNominatim(query);
+                    showAddressDropdown(results);
+                }, 350);
             });
 
-            marker.addListener('dragend', function() {
-                const newPos = marker.getPosition();
-                document.getElementById('w_latitude').value = newPos.lat();
-                document.getElementById('w_longitude').value = newPos.lng();
+            addressInput.addEventListener('blur', () => {
+                setTimeout(() => addressResults?.classList.add('hidden'), 200);
             });
         }
+
+        function initLeafletMap() {
+            if (!mapContainer || typeof L === 'undefined') return;
+
+            const defaultPos = [-41.4693, -72.9424];
+            map = L.map(mapContainer, {
+                center: defaultPos,
+                zoom: 14,
+                zoomControl: true,
+                attributionControl: true
+            });
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            const customIcon = L.divIcon({
+                className: 'custom-map-pin',
+                html: `<div class="w-8 h-8 bg-red-600 border-2 border-white rounded-full shadow-md flex items-center justify-center text-white cursor-pointer hover:scale-110 transition-transform">
+                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                       </div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 32]
+            });
+
+            marker = L.marker(defaultPos, { icon: customIcon, draggable: true }).addTo(map);
+
+            async function syncCoordsToAddress(pos) {
+                if (document.getElementById('w_latitude')) document.getElementById('w_latitude').value = pos.lat.toFixed(8);
+                if (document.getElementById('w_longitude')) document.getElementById('w_longitude').value = pos.lng.toFixed(8);
+                
+                if (addressInput) {
+                    addressInput.value = "Obteniendo dirección exacta...";
+                    const place = await nominatimReverse(pos.lat, pos.lng);
+                    if (place && place.display_name) {
+                        addressInput.value = place.display_name;
+                        const addr = place.address || {};
+                        if (document.getElementById('w_city')) document.getElementById('w_city').value = addr.city || addr.town || addr.village || '';
+                        if (document.getElementById('w_region')) document.getElementById('w_region').value = addr.state || '';
+                        if (document.getElementById('w_country')) document.getElementById('w_country').value = addr.country || '';
+                    } else {
+                        addressInput.value = `${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}`;
+                    }
+                }
+            }
+
+            marker.on('dragend', function () {
+                syncCoordsToAddress(marker.getLatLng());
+            });
+
+            map.on('click', function (e) {
+                marker.setLatLng(e.latlng);
+                syncCoordsToAddress(e.latlng);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initLeafletMap);
     </script>
-    <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google.key') }}&libraries=places&callback=initMapAutocomplete"></script>
 </x-app-layout>

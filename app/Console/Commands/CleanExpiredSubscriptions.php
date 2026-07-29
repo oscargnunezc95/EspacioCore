@@ -2,67 +2,28 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Studio;
 use Illuminate\Console\Command;
 
+/**
+ * @deprecated El sistema de suscripciones SaaS fue reemplazado por Facturación
+ *             Mensual por Uso (Floor-Capped Usage Pricing) en julio 2026.
+ *             Este comando se conserva como no-op para evitar fallos en
+ *             cron jobs existentes. Las facturas ahora se gestionan con
+ *             `billing:generate` y el bloqueo por deuda con el middleware
+ *             CheckStudioDebt.
+ */
 class CleanExpiredSubscriptions extends Command
 {
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
     protected $signature = 'saas:clean-subscriptions';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Procesa expiraciones y bloqueos por morosidad de más de 5 días de forma masiva.';
+    protected $description = '[DEPRECATED] Procesa expiraciones de suscripción. Migrado a billing:generate.';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(): void
     {
-        // Buscamos todos los estudios evaluables:
-        // - Aquellos en estado 'past_due' (posible bloqueo por morosidad)
-        // - Aquellos cuya suscripción ya expiró y no son 'free'
-        $studios = Studio::where('subscription_status', 'past_due')
-            ->orWhere(function ($q) {
-                $q->where('subscription_expires_at', '<=', now())
-                  ->where('subscription_status', '!=', 'free');
-            })
-            ->get();
-
-        if ($studios->isEmpty()) {
-            $this->info('No se encontraron estudios que requieran limpieza de suscripción.');
-            return;
-        }
-
-        $this->info("Procesando {$studios->count()} estudio(s)...");
-
-        $processed = 0;
-
-        foreach ($studios as $studio) {
-            $estadoAnterior = $studio->subscription_status;
-            $planAnterior    = $studio->subscription_plan_id;
-
-            $studio->checkAndManageLifecycle();
-
-            // Refrescamos para ver si hubo cambios
-            $studio->refresh();
-
-            if ($estadoAnterior !== $studio->subscription_status || $planAnterior !== $studio->subscription_plan_id) {
-                $processed++;
-                $this->line(
-                    " ✓ Estudio #{$studio->id} «{$studio->name}»: " .
-                    "{$estadoAnterior} → {$studio->subscription_status}"
-                );
-            }
-        }
-
-        $this->info("Limpieza completada. {$processed} estudio(s) actualizado(s).");
+        $this->warn('⚠️  saas:clean-subscriptions está deprecado.');
+        $this->line('   El sistema de suscripciones SaaS fue reemplazado por Facturación por Uso.');
+        $this->line('   Usa `php artisan billing:generate` para generar las facturas mensuales.');
+        $this->line('   El bloqueo por morosidad ahora lo maneja el middleware CheckStudioDebt.');
+        $this->line('   Este comando no realiza ninguna acción.');
     }
 }

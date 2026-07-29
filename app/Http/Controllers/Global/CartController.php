@@ -18,7 +18,7 @@ class CartController extends Controller
         $groupedSessions = collect();
         $promotions = collect();
         $packs = collect();
-        $activeDependents = collect(); // Inicializamos la colección para la vista
+        $activeDependents = collect();
 
         if (Auth::check()) {
             $user = Auth::user();
@@ -32,7 +32,6 @@ class CartController extends Controller
                 ->pluck('id')
                 ->toArray();
 
-            // Usamos la misma relación filtrada para obtener los RUTs seguros
             $dependentNationalIds = $activeDependents->pluck('national_id')->toArray();
 
             $dependentStudentIds = [];
@@ -50,6 +49,7 @@ class CartController extends Controller
             $allStudentIds = array_unique(array_merge($ownStudentIds, $dependentStudentIds));
 
             if (!empty($allStudentIds)) {
+                // ─── CAPA 1: Eager Loading Optimizado (Incluyendo Asistencias) ───
                 $dbSessions = ClassSession::withoutGlobalScopes()
                     ->with([
                         'workshop' => fn($q) => $q->withoutGlobalScopes(), 
@@ -59,6 +59,10 @@ class CartController extends Controller
                             $q->withoutGlobalScopes()
                               ->whereIn('students.id', $allStudentIds)
                               ->where('class_session_student.payment_status', 'pending');
+                        },
+                        // 🚀 EVITAMOS N+1: Cargamos las asistencias exactas de este grupo
+                        'attendances' => function ($q) use ($allStudentIds) {
+                            $q->whereIn('student_id', $allStudentIds);
                         }
                     ])
                     ->whereHas('students', function ($query) use ($allStudentIds) {
@@ -66,7 +70,9 @@ class CartController extends Controller
                               ->whereIn('students.id', $allStudentIds)
                               ->where('class_session_student.payment_status', 'pending'); 
                     })
-                    ->where('date', '>=', now()->toDateString())
+                    // 🚀 CORRECCIÓN DE NEGOCIO:
+                    // Eliminamos ->where('date', '>=', now()->toDateString())
+                    // Si el pago está 'pending', se muestra en el carrito sea futura o deuda pasada.
                     ->orderBy('date', 'asc')
                     ->orderBy('start_time', 'asc')
                     ->get();
@@ -77,7 +83,7 @@ class CartController extends Controller
 
                 [$promotions, $packs] = $this->loadPromoData($groupedSessions->keys()->toArray());
 
-                // ─── CAPA 2 ANTI-OVERBOOKING: Enriquecer con capacidad ─────────
+                // ─── CAPA 2: Enriquecimiento de Stock y Deudas Ineludibles ───
                 $sessionIds = $dbSessions->pluck('id')->toArray();
                 $enrollmentService = app(EnrollmentService::class);
                 $capacityInfo = !empty($sessionIds)
@@ -96,6 +102,26 @@ class CartController extends Controller
                     $session->max_students = $cap['max_students'];
                     $session->pending_user_count = $pendingForUser;
 
+                    // Extraemos un mapa rápido de IDs de alumnos que ya fueron marcados presentes
+                    $attendedStudentIds = $session->attendances->pluck('student_id')->toArray();
+
+                    // 🚀 ENRIQUECIMIENTO PARA LA VISTA (Deuda Consumida vs Reserva Opcional)
+                    $sessionHasLockedDebt = false;
+                    foreach ($session->students as $student) {
+                        $isPresent = in_array($student->id, $attendedStudentIds);
+                        
+                        // Asignamos banderas dinámicas para que la vista y JS sepan qué bloquear
+                        $student->has_attendance = $isPresent;
+                        $student->is_locked_debt = $isPresent;
+
+                        if ($isPresent) {
+                            $sessionHasLockedDebt = true;
+                        }
+                    }
+                    
+                    // Bandera a nivel de sesión completa por si tu UI agrupa por clase general
+                    $session->is_locked_debt = $sessionHasLockedDebt;
+
                     $sessionCapacity[$sid] = [
                         'available' => $cap['available_spots'],
                         'max'       => $cap['max_students'],
@@ -109,9 +135,9 @@ class CartController extends Controller
             }
         }
 
-        // Enviamos $activeDependents a la vista
         $sessionCapacity = $sessionCapacity ?? [];
         $hasStockIssues = $hasStockIssues ?? false;
+        
         return view('cart.index', compact('groupedSessions', 'promotions', 'packs', 'activeDependents', 'hasStockIssues', 'sessionCapacity'));
     }
 
@@ -182,30 +208,10 @@ class CartController extends Controller
                 }
             }
 
-            // 3. Renderizamos el HTML del carrito final
-            $html = '';
-            if (empty($aggregatedBreakdown)) {
-                $html = "<span class='text-zinc-400'>0 clases seleccionadas</span>";
-            } else {
-                foreach ($aggregatedBreakdown as $item) {
-                    $badgesHtml = '';
-                    foreach ($item['badges'] as $index => $badge) {
-                        // Si es el último badge (el nombre de la persona), lo pintamos de índigo para que resalte
-                        $isNameBadge = ($index === count($item['badges']) - 1);
-                        $colorClass = $isNameBadge ? 'bg-indigo-100 text-indigo-700' : 'bg-emerald-100 text-emerald-700';
-                        $badgesHtml .= "<span class='{$colorClass} text-[10px] px-1.5 py-0.5 rounded ml-2 font-black uppercase'>{$badge}</span>";
-                    }
-
-                    $formattedSubtotal = '$' . number_format($item['subtotal'], 0, ',', '.');
-                    
-                    $html .= "
-                        <div class='flex justify-between items-center mt-2 text-sm border-b border-zinc-100 pb-2 last:border-0'>
-                            <span class='text-zinc-600 font-medium'>{$item['name']} {$badgesHtml}</span>
-                            <span class='font-black text-zinc-900'>{$formattedSubtotal}</span>
-                        </div>
-                    ";
-                }
-            }
+            // 3. Renderizamos el HTML utilizando una vista parcial limpia
+            $html = view('cart.partials.breakdown', [
+                'breakdown' => $aggregatedBreakdown
+            ])->render();
 
             return response()->json([
                 'total_raw' => $grandTotal,

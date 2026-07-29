@@ -14,13 +14,16 @@ class WorkshopPrice extends Model
         'workshop_id',
         'class_count',
         'price',
-        'is_monthly',
+        'validity_months',
+        'validity_type',
+        'allows_retroactive',
         'introductory_price',
         'is_introductory_active',
     ];
 
     protected $casts = [
-        'is_monthly' => 'boolean',
+        'validity_months' => 'integer',
+        'allows_retroactive' => 'boolean',
         'is_introductory_active' => 'boolean',
     ];
 
