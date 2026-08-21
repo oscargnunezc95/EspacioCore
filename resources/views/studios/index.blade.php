@@ -11,10 +11,18 @@
             <p class="mt-3 text-stone-500 font-medium text-base md:text-lg">Selecciona el estudio que deseas administrar o registra una nueva sucursal.</p>
         </div>
 
+        {{-- ALERTAS DE ÉXITO Y ERROR --}}
         @if (session('success'))
             <div class="mb-8 p-4 bg-emerald-50 text-emerald-700 rounded-xl font-medium border border-emerald-200 text-center flex items-center justify-center gap-2">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 {{ session('success') }}
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="mb-8 p-4 bg-rose-50 text-rose-700 rounded-xl font-medium border border-rose-200 text-center flex items-center justify-center gap-2">
+                <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                {{ session('error') }}
             </div>
         @endif
 
@@ -27,6 +35,10 @@
                     $fullStudioUrl = $protocol . $studio->subdomain . '.' . $domain;
                     $googleMapsUrl = "https://www.google.com/maps/search/?api=1&query=" . urlencode($studio->address . ' ' . $studio->city);
                     $bgImage = $studio->cover_path ?? $studio->logo_path;
+                    
+                    // Cálculo de Deuda para Seguridad
+                    $hasDebt = $studio->hasUnpaidPlatformInvoices() || $studio->currentMonthPendingDebt() > 0;
+                    $debtAmount = $studio->currentMonthPendingDebt();
                 @endphp
 
                 <div class="group bg-white rounded-3xl border border-stone-200 shadow-sm hover:shadow-xl hover:border-stone-300 hover:-translate-y-1.5 transition-all duration-300 flex flex-col overflow-hidden min-h-[280px] relative">                    
@@ -50,7 +62,8 @@
                                 class="bg-white/90 backdrop-blur-sm text-stone-500 hover:text-emerald-600 p-2.5 rounded-full shadow-sm transition-all" title="Compartir Enlace">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186 9.566-5.314m-9.566 7.5 9.566 5.314m0 0a2.25 2.25 0 1 0 3.935 2.186 2.25 2.25 0 0 0-3.935-2.186Zm0-12.814a2.25 2.25 0 1 0 3.933-2.185 2.25 2.25 0 0 0-3.933 2.185Z"></path></svg>
                         </button>
-                        <button onclick="openEditStudioModal({{ json_encode($studio) }})" class="bg-white/90 backdrop-blur-sm text-stone-500 hover:text-red-600 p-2.5 rounded-full shadow-sm transition-all" title="Editar Estudio">
+                        
+                        <button onclick='openEditStudioModal(@json($studio), {{ $hasDebt ? "true" : "false" }}, {{ $debtAmount }})' class="bg-white/90 backdrop-blur-sm text-stone-500 hover:text-red-600 p-2.5 rounded-full shadow-sm transition-all" title="Editar Estudio">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 1 1 3.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                         </button>
                     </div>
@@ -354,10 +367,40 @@
                     <button type="submit" class="w-2/3 bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all duration-300 active:scale-95 text-sm">Guardar Cambios</button>
                 </div>
             </form>
+
+            {{-- ========================================== --}}
+            {{-- ZONA DE PELIGRO (Fuera del form de edición)--}}
+            {{-- ========================================== --}}
+            <div class="mt-8 pt-6 border-t border-rose-100">
+                <h4 class="text-xs font-black uppercase tracking-wider text-rose-600 mb-4">Zona de Peligro</h4>
+                
+                {{-- Alerta de Deuda (Oculta por defecto) --}}
+                <div id="e_danger_debt" class="hidden p-4 bg-rose-50 border border-rose-200 rounded-xl mb-4 text-sm text-rose-700">
+                    <p class="font-bold flex items-center gap-1">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        No puedes eliminar este espacio.
+                    </p>
+                    <p class="mt-1">Tienes una deuda pendiente de <span id="e_debt_amount" class="font-black"></span> por el uso de la plataforma. Paga tu saldo para habilitar el cierre de cuenta.</p>
+                </div>
+
+                {{-- Formulario de Eliminación --}}
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                    <p class="text-xs text-stone-500 max-w-sm">Al eliminar el estudio, este se ocultará de la plataforma pero mantendrá su historial financiero de forma segura.</p>
+                    
+                    <form id="deleteStudioForm" method="POST" onsubmit="return confirm('¿Estás absolutamente seguro de que deseas cerrar este espacio? Esta acción ocultará el estudio y no podrás acceder a su panel.');">
+                        @csrf
+                        @method('DELETE')
+                        <button type="submit" id="e_delete_btn" class="w-full sm:w-auto px-4 py-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white font-bold rounded-xl transition-colors text-sm shrink-0">
+                            Eliminar Espacio
+                        </button>
+                    </form>
+                </div>
+            </div>
+
         </div>
     </div>
 
-    {{-- SCRIPTS DE GEOLOCALIZACIÓN BIDIRECCIONAL --}}
+    {{-- SCRIPTS DE GEOLOCALIZACIÓN BIDIRECCIONAL Y MODALES --}}
     <script>
         @if($errors->any() && !old('_method'))
             document.addEventListener("DOMContentLoaded", function() {
@@ -384,28 +427,22 @@
         // ==========================================
         let cMap, cMarker, eMap, eMarker;
 
-        // Búsqueda de autocompletado (Forward Geocoding)
         async function nominatimSearch(query) {
             if (!query || query.length < 3) return [];
             try {
-                const res = await fetch(
-                    `https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=cl&q=${encodeURIComponent(query)}`
-                );
+                const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=5&countrycodes=cl&q=${encodeURIComponent(query)}`);
                 return await res.json();
             } catch (e) { return []; }
         }
 
-        // Consulta inversa al soltar el pin (Reverse Geocoding)
         async function nominatimReverse(lat, lng) {
             try {
-                const res = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`
-                );
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
                 return await res.json();
             } catch (e) { return null; }
         }
 
-        function showDropdown(listEl, results, onSelect) {
+        function showDropdown(listEl, results, onSelect) { 
             listEl.innerHTML = '';
             if (!results || results.length === 0) {
                 listEl.classList.add('hidden');
@@ -448,7 +485,7 @@
 
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                attribution: '&copy; OpenStreetMap'
             }).addTo(map);
 
             const icon = L.divIcon({
@@ -472,7 +509,6 @@
 
             let timeout = null;
 
-            // 1. FORWARD: Al escribir en el input, busca y mueve el pin
             input.addEventListener('input', function () {
                 clearTimeout(timeout);
                 const query = this.value.trim();
@@ -508,7 +544,6 @@
                 setTimeout(() => listEl.classList.add('hidden'), 200);
             });
 
-            // 2. REVERSE: Al arrastrar el pin o hacer clic, actualiza el texto y las coordenadas
             async function syncCoordsToAddress(pos) {
                 document.getElementById(latId).value = pos.lat.toFixed(8);
                 document.getElementById(lngId).value = pos.lng.toFixed(8);
@@ -551,21 +586,40 @@
             }
         });
 
-        function openEditStudioModal(studio) {
+        // 🚀 NUEVA LÓGICA DE EDICIÓN Y SEGURIDAD FINANCIERA
+        function openEditStudioModal(studio, hasDebt, debtAmount) {
             let updateUrl = "{{ route('studios.update', ':id') }}";
             updateUrl = updateUrl.replace(':id', studio.id);
             document.getElementById('editStudioForm').action = updateUrl;
 
+            // Ruta para eliminar
+            let deleteUrl = "{{ route('studios.destroy', ':id') }}";
+            document.getElementById('deleteStudioForm').action = deleteUrl.replace(':id', studio.id);
+
+            const debtContainer = document.getElementById('e_danger_debt');
+            const deleteBtn = document.getElementById('e_delete_btn');
+
+            if (hasDebt) {
+                debtContainer.classList.remove('hidden');
+                document.getElementById('e_debt_amount').innerText = '$' + Math.round(debtAmount).toLocaleString('es-CL');
+                
+                deleteBtn.disabled = true;
+                deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                deleteBtn.classList.remove('hover:bg-rose-600', 'hover:text-white');
+            } else {
+                debtContainer.classList.add('hidden');
+                deleteBtn.disabled = false;
+                deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                deleteBtn.classList.add('hover:bg-rose-600', 'hover:text-white');
+            }
+
             document.getElementById('e_name').value = studio.name;
             document.getElementById('e_description').value = studio.description || '';
-            
             document.getElementById('e_instagram_url').value = studio.instagram_url || '';
             document.getElementById('e_tiktok_url').value = studio.tiktok_url || '';
             document.getElementById('e_youtube_url').value = studio.youtube_url || '';
-
             document.getElementById('e_email').value = studio.email || '';
             document.getElementById('e_whatsapp').value = studio.whatsapp || '';
-            
             document.getElementById('e_address').value = studio.address || '';
             document.getElementById('e_latitude').value = studio.latitude || '';
             document.getElementById('e_longitude').value = studio.longitude || '';

@@ -213,7 +213,7 @@ class StudioController extends Controller
     }
 
     /**
-     * Elimina el estudio y sus archivos asociados.
+     * Da de baja el estudio (Soft Delete) verificando deudas pendientes.
      */
     public function destroy(Studio $studio)
     {
@@ -221,12 +221,27 @@ class StudioController extends Controller
             abort(403, 'No tienes permiso para eliminar este espacio.');
         }
 
-        if ($studio->logo_path) Storage::disk('public')->delete($studio->logo_path);
-        if ($studio->icon_path) Storage::disk('public')->delete($studio->icon_path);
-        if ($studio->cover_path) Storage::disk('public')->delete($studio->cover_path);
+        // 1. BARRERA DE UX (Validación Financiera)
+        // Evitamos que intente borrar si sabemos que tiene deuda, dándole un mensaje claro.
+        if (method_exists($studio, 'currentMonthPendingDebt') && $studio->currentMonthPendingDebt() > 0) {
+            return back()->with('error', 'Operación denegada: Tienes una deuda pendiente con la plataforma por las transacciones de este mes. Debes saldarla antes de cerrar el espacio.');
+        }
 
-        $studio->delete();
+        try {
+            // 2. ELIMINACIÓN DE SEGURIDAD (Soft Delete)
+            // ¡ATENCIÓN! Ya NO borramos los archivos con Storage::delete().
+            // Los archivos deben conservarse en el disco para mantener la integridad visual 
+            // de las boletas históricas o reportes vinculados a este estudio.
+            
+            $studio->delete();
 
-        return back()->with('success', 'Espacio eliminado permanentemente.');
+            return back()->with('success', 'Tu espacio ha sido cerrado y ocultado exitosamente. El historial financiero se mantendrá resguardado por ley.');
+            
+        } catch (\Exception $e) {
+            // 3. CAPTURA DEL ESCUDO DEL MODELO
+            // Si pusiste la validación en el evento "deleting" del Modelo Studio, 
+            // capturamos la excepción aquí para que la pantalla no explote con un error 500.
+            return back()->with('error', $e->getMessage());
+        }
     }
 }

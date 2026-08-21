@@ -1,14 +1,14 @@
 <x-app-layout>
-    <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+    <div class="py-8 md:py-8 w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 mb-24 transition-all">
         
-        <div class="text-center mb-10 md:mb-14">
+        <div class="text-center mb-10 md:mb-14 max-w-4xl mx-auto">
             <h1 class="text-3xl md:text-4xl font-black tracking-tight">Mi Portal de Pagos</h1>
             <p class="mt-3 text-stone-500 font-medium text-base md:text-lg">Selecciona las clases que deseas confirmar. La promoción o pack generará el descuento automáticamente al seleccionar las clases. Haz click en Ver Ofertas para ver las promociones.</p>
         </div>
 
         {{-- CAPA 2: BANNER DE ALERTA DE CUPOS --}}
         @if(($hasStockIssues ?? false) && Auth::check())
-        <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-start gap-3 max-w-7xl mx-auto">
+        <div class="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 flex items-start gap-3 w-full mx-auto">
             <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
             </svg>
@@ -23,9 +23,9 @@
         <div id="classes-container">
             @auth
                 @if($groupedSessions->isEmpty())
-                    <div class="py-8 text-center border-2 border-dashed border-stone-200 rounded-3xl">
-                        <p class="text-stone-500 font-medium">No tienes clases pendientes de pago.</p>
-                        <a href="{{ route('explore') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline">Explorar Catálogo</a>
+                    <div class="py-12 text-center border-2 border-dashed border-stone-200 rounded-3xl max-w-4xl mx-auto">
+                        <p class="text-stone-500 font-medium text-lg">No tienes clases pendientes de pago.</p>
+                        <a href="{{ route('explore') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline text-lg">Explorar Catálogo</a>
                     </div>
                 @else
                     @include('cart.partials.studio-groups', ['groupedSessions' => $groupedSessions])
@@ -130,9 +130,9 @@
 
             if (cartIds.length === 0) {
                 container.innerHTML = `
-                    <div class="py-8 text-center border-2 border-dashed border-stone-200 rounded-3xl">
-                        <p class="text-stone-500 font-medium">Tu carrito está vacío.</p>
-                        <a href="/explorar" class="inline-block mt-4 text-red-600 font-bold hover:underline">Explorar Catálogo</a>
+                    <div class="py-12 text-center border-2 border-dashed border-stone-200 rounded-3xl max-w-4xl mx-auto">
+                        <p class="text-stone-500 font-medium text-lg">Tu carrito está vacío.</p>
+                        <a href="/explorar" class="inline-block mt-4 text-red-600 font-bold hover:underline text-lg">Explorar Catálogo</a>
                     </div>`;
                 return;
             }
@@ -204,7 +204,6 @@
                     btnElement.innerHTML = originalHtml;
                     btnElement.disabled = false;
                 } else {
-                    // Animación de salida solo de la fila del estudiante
                     const label = btnElement.closest('label');
                     const li = label.closest('li');
                     const ul = li.closest('ul');
@@ -213,24 +212,19 @@
                     label.style.opacity = '0';
                     setTimeout(() => {
                         label.remove();
-                        // Si no quedan labels, eliminamos el <li> entero de la clase
                         if (li.querySelectorAll('label').length === 0) li.remove();
-                        // Si no quedan <li>, eliminamos el grupo del estudio
                         if (ul.querySelectorAll('li').length === 0) group.remove();
                         
-                        // Si no quedan grupos en todo el contenedor, mostramos estado vacío
                         if (document.querySelectorAll('.studio-cart-group').length === 0) {
                             document.getElementById('classes-container').innerHTML = `
-                                <div class="py-8 text-center border-2 border-dashed border-stone-200 rounded-3xl animate-fade-in">
-                                    <p class="text-stone-500 font-medium">No tienes clases pendientes de pago.</p>
-                                    <a href="{{ route('explore') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline">Explorar Catálogo</a>
+                                <div class="py-12 text-center border-2 border-dashed border-stone-200 rounded-3xl animate-fade-in max-w-4xl mx-auto">
+                                    <p class="text-stone-500 font-medium text-lg">No tienes clases pendientes de pago.</p>
+                                    <a href="{{ route('explore') }}" class="inline-block mt-4 text-red-600 font-bold hover:underline text-lg">Explorar Catálogo</a>
                                 </div>`;
                         }
 
-                        // Recalcular precios
                         calculateCart();
                         
-                        // Refrescar el badge global del menú
                         if (data.cart_count !== undefined) {
                             const badge = document.getElementById('portal-badge');
                             if (badge) {
@@ -279,22 +273,20 @@
                 const totalEl = document.getElementById(`total-${studioId}`);
                 const breakdownEl = document.getElementById(`breakdown-${studioId}`);
 
-                // Si el estudio no tiene MercadoPago, no existe botón de pago; saltamos
                 if (!btnPay) return;
 
                 if (checkedBoxes.length === 0) {
                     btnPay.disabled = true;
                     btnPay.innerHTML = `Pagar Selección`;
                     totalEl.innerText = "$0";
-                    breakdownEl.innerHTML = "<span class='text-stone-400'>0 clases seleccionadas</span>";
+                    breakdownEl.innerHTML = "<span class='text-stone-400 block text-center mt-4'>0 clases seleccionadas</span>";
                     return;
                 }
 
                 btnPay.disabled = true; 
                 btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
-                totalEl.innerHTML = `<span class="animate-pulse text-stone-400 text-lg">Calculando...</span>`;
+                totalEl.innerHTML = `<span class="animate-pulse text-stone-400 text-lg">...</span>`;
 
-                // Desarmamos el string "14-5" (session_id-student_id)
                 const selections = Array.from(checkedBoxes).map(cb => {
                     const parts = cb.value.split('-');
                     return { session_id: parseInt(parts[0]), student_id: parseInt(parts[1]) };
@@ -317,7 +309,7 @@
                     if (data.error || data.message) {
                         showCartToast(data.error || data.message || "Error de servidor: No se pudo calcular el precio.", 'error');
                         totalEl.innerText = "$0";
-                        breakdownEl.innerHTML = "<span class='text-rose-500 font-bold'>Error de cálculo</span>";
+                        breakdownEl.innerHTML = "<span class='text-rose-500 font-bold block text-center mt-4'>Error de cálculo</span>";
                         btnPay.innerHTML = `Pagar Selección`;
                     } else {
                         breakdownEl.innerHTML = data.breakdown_html;
@@ -353,7 +345,7 @@
                 .catch(err => {
                     console.error("Error al calcular:", err);
                     totalEl.innerText = "Error";
-                    breakdownEl.innerHTML = "<span class='text-rose-500 font-bold'>Error de conexión</span>";
+                    breakdownEl.innerHTML = "<span class='text-rose-500 font-bold block text-center mt-4'>Error de conexión</span>";
                     btnPay.innerHTML = `Pagar Selección`;
                 });
             });
@@ -397,7 +389,6 @@
 
             if (selections.length === 0) return;
 
-            // ─── CAPA 2: Client-side stock check antes de checkout ─────────
             const capacityMap = window.SessionCapacityMap || {};
             const selectedBySession = {};
             selections.forEach(s => {
@@ -410,7 +401,6 @@
                 }
             }
 
-            // Lógica para Invitados (Abre el Modal)
             if (!window.AppConfig.isLoggedIn) {
                 document.getElementById('guest_studio_id').value = studioId;
                 const uniqueSessionIds = Array.from(new Set(selections.map(s => s.session_id)));
@@ -419,9 +409,7 @@
                 return;
             }
 
-            // Lógica para Alumnos Logueados (Conexión a Mercado Pago)
             const btnPay = document.getElementById(`btn-pay-${studioId}`);
-
             btnPay.disabled = true;
             btnPay.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> <span class="ml-2">Conectando...</span>`;
 
@@ -458,7 +446,6 @@
                     return;
                 }
 
-                // 🆕 Checkout gratuito: total $0, redirigir a éxito sin MercadoPago
                 if (data.free_checkout) {
                     window.location.href = data.redirect_url;
                     return;

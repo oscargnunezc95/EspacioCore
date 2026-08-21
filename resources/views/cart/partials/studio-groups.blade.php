@@ -14,268 +14,271 @@
         $fullStudioUrl = $protocol . $studio->subdomain . '.' . $domain;
         
         $hasMercadoPago = !empty($studio->mp_access_token);
+        
+        $isSingleStudent = $activeDependents->isEmpty();
     @endphp
     
-    <div class="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden mb-8 studio-cart-group" data-studio-id="{{ $studio->id }}">
+    {{-- WRAPPER PRINCIPAL DEL ESTUDIO (Maneja la lógica JS y el Layout) --}}
+    <div class="mb-14 studio-cart-group" data-studio-id="{{ $studio->id }}">
         
-        {{-- Cabecera del Estudio --}}
-        <div class="bg-stone-50 border-b border-stone-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div class="flex items-center gap-4">
-                <img src="{{ $studioAvatar }}" alt="{{ $studio->name }}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover shrink-0 border border-stone-200 shadow-sm bg-white">
-                <div class="flex flex-col">
-                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
-                        <h2 class="text-lg sm:text-xl font-black text-stone-900 leading-none">{{ $studio->name }}</h2>
-                        <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="hidden sm:flex text-[10px] font-bold text-teal-700 bg-white border border-teal-200 shadow-sm px-2.5 py-1 rounded-md hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 active:scale-95 items-center gap-1 uppercase tracking-widest leading-none mt-0.5">
-                            <svg class="w-3 h-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v1m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            Ver Ofertas
-                        </button>
-                    </div>
-                    <a href="{{ $fullStudioUrl }}" target="_blank" class="group/link flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-red-600 transition-colors w-fit mt-1">
-                        <svg class="w-3.5 h-3.5 text-stone-400 group-hover/link:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-                        <span class="underline decoration-transparent group-hover/link:decoration-red-200 transition-all">{{ $studio->subdomain }}.{{ $domain }}</span>
-                    </a>
-                </div>
-            </div>
+        <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start {{ !$hasMercadoPago ? 'opacity-75 grayscale-[20%]' : '' }}">
             
-            <label class="flex items-center gap-2 cursor-pointer hover:bg-stone-200/50 p-2 rounded-lg transition-colors w-fit sm:w-auto">
-                <span class="text-sm font-bold text-stone-700">Seleccionar Todo</span>
-                <input type="checkbox" onchange="toggleStudioSelection(this, {{ $studio->id }})" class="w-5 h-5 text-stone-900 border-stone-300 rounded focus:ring-red-600 cursor-pointer" {{ !$hasMercadoPago ? 'disabled' : 'checked' }}>
-            </label>
-        </div>
-
-        <div class="sm:hidden bg-stone-50/80 px-4 py-3 border-b border-stone-200">
-            <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="w-full bg-white border border-teal-200 shadow-sm text-xs font-bold text-teal-700 py-2.5 rounded-xl hover:bg-teal-50 transition-all active:scale-95 flex justify-center items-center gap-1.5 uppercase tracking-widest">
-                <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                Toca aquí para ver Ofertas y Packs
-            </button>
-        </div>
-
-        @if(!$hasMercadoPago)
-            <div class="bg-amber-50 border-b border-amber-100 px-6 py-3 flex items-start sm:items-center gap-3">
-                <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
-                <p class="text-sm font-medium text-amber-800 leading-snug">
-                    Este espacio aún no habilita los pagos online. Comunícate directamente con <span class="font-bold">{{ $studio->name }}</span> para coordinar.
-                </p>
-            </div>
-        @endif
-
-        {{-- CAPA DE LOGICA UI: Identificar si es Alumno Único o Grupo Familiar --}}
-        @php
-            $isSingleStudent = $activeDependents->isEmpty();
-        @endphp
-
-        {{-- Lista Agrupada por Taller y luego por Fechas --}}
-        <ul class="divide-y divide-stone-100 px-6 py-2 {{ !$hasMercadoPago ? 'opacity-75 grayscale-[20%]' : '' }}">
-            
-            {{-- 1. AGRUPACIÓN POR TALLER (WORKSHOP) --}}
-            @foreach($sessions->groupBy('workshop_id') as $workshopId => $workshopSessions)
-                @php
-                    $firstSession = $workshopSessions->first();
-                    $workshop = $firstSession->workshop;
-                    $basePrice = $workshop->prices->where('class_count', 1)->first()->price ?? 0;
-                    $workshopImg = $workshop->image_path ?? null;
-                    $workshopAvatar = $workshopImg 
-                        ? asset('storage/' . $workshopImg) 
-                        : 'https://ui-avatars.com/api/?name='.urlencode($workshop->name).'&color=4f46e5&background=e0e7ff';
-                    
-                    // Extraer nombre del titular para el badge compacto
-                    $titularName = $firstSession->students->first()->first_name ?? auth()->user()->name ?? 'Estudiante';
-                @endphp
-
-                <li class="py-5 flex flex-col group">
-                    {{-- Cabecera Única del Taller --}}
-                    <div class="flex items-start sm:items-center justify-between gap-4 mb-3 bg-stone-50/60 p-3 rounded-2xl border border-stone-100">
-                        <div class="flex items-center gap-3.5">
-                            <img src="{{ $workshopAvatar }}" alt="Taller" class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border border-stone-200 shrink-0 shadow-sm bg-white">
-                            <div>
-                                <p class="font-black text-stone-900 text-base sm:text-lg leading-tight">{{ $workshop->name }}</p>
-                                
-                                {{-- BADGE INTELIGENTE DE IDENTIDAD (Ahorro de espacio) --}}
-                                @if($isSingleStudent)
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-700 border border-indigo-100/80 px-2 py-0.5 rounded-md mt-1 shadow-2xs">
-                                        <svg class="w-2.5 h-2.5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
-                                        Alumno: {{ $titularName }}
-                                    </span>
-                                @else
-                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-stone-200/70 text-stone-600 px-2 py-0.5 rounded-md mt-1">
-                                        👥 Selección Familiar
-                                    </span>
-                                @endif
+            {{-- ==================================================== --}}
+            {{-- CONTENEDOR IZQUIERDO: Cabecera y Lista de Clases --}}
+            {{-- ==================================================== --}}
+            <div class="w-full lg:flex-1 bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden">
+                
+                {{-- Cabecera del Estudio --}}
+                <div class="bg-stone-50 border-b border-stone-200 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <img src="{{ $studioAvatar }}" alt="{{ $studio->name }}" class="w-12 h-12 sm:w-14 sm:h-14 rounded-xl object-cover shrink-0 border border-stone-200 shadow-sm bg-white">
+                        <div class="flex flex-col">
+                            <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+                                <h2 class="text-lg sm:text-xl font-black text-stone-900 leading-none">{{ $studio->name }}</h2>
+                                <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="hidden sm:flex text-[10px] font-bold text-teal-700 bg-white border border-teal-200 shadow-sm px-2.5 py-1 rounded-md hover:bg-teal-50 hover:border-teal-300 transition-all duration-200 active:scale-95 items-center gap-1 uppercase tracking-widest leading-none mt-0.5">
+                                    <svg class="w-3 h-3 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v1m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    Ver Ofertas
+                                </button>
                             </div>
+                            <a href="{{ $fullStudioUrl }}" target="_blank" class="group/link flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-red-600 transition-colors w-fit mt-1">
+                                <svg class="w-3.5 h-3.5 text-stone-400 group-hover/link:text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
+                                <span class="underline decoration-transparent group-hover/link:decoration-red-200 transition-all">{{ $studio->subdomain }}.{{ $domain }}</span>
+                            </a>
                         </div>
-                        <span class="text-xs font-bold text-stone-400 uppercase tracking-wider hidden sm:block">
-                            {{ $workshopSessions->count() }} {{ $workshopSessions->count() === 1 ? 'fecha reservada' : 'fechas reservadas' }}
-                        </span>
                     </div>
+                    
+                    <label class="flex items-center gap-2 cursor-pointer hover:bg-stone-200/50 p-2 rounded-lg transition-colors w-fit sm:w-auto shrink-0">
+                        <span class="text-sm font-bold text-stone-700">Seleccionar Todo</span>
+                        <input type="checkbox" onchange="toggleStudioSelection(this, {{ $studio->id }})" class="w-5 h-5 text-stone-900 border-stone-300 rounded focus:ring-red-600 cursor-pointer" {{ !$hasMercadoPago ? 'disabled' : 'checked' }}>
+                    </label>
+                </div>
 
-                    {{-- 2. LISTA DE FECHAS DE ESTE TALLER --}}
-                    <div class="mt-1 sm:ml-14 space-y-2 border-l-2 border-stone-100 pl-3 sm:pl-4">
-                        @foreach($workshopSessions as $session)
-                            @php
-                                $sessionAvailable = $session->available_spots ?? 99;
-                                $pendingForUser = $session->pending_user_count ?? 0;
-                                $isOverbooked = $pendingForUser > $sessionAvailable;
-                                $isLowStock = $sessionAvailable <= 2 && $sessionAvailable > 0 && !$isOverbooked;
-                            @endphp
+                {{-- Botón Ofertas Mobile --}}
+                <div class="sm:hidden bg-stone-50/80 px-4 py-3 border-b border-stone-200">
+                    <button type="button" onclick="openPromoModal('promo-modal-{{ $studio->id }}')" class="w-full bg-white border border-teal-200 shadow-sm text-xs font-bold text-teal-700 py-2.5 rounded-xl hover:bg-teal-50 transition-all active:scale-95 flex justify-center items-center gap-1.5 uppercase tracking-widest">
+                        <svg class="w-4 h-4 text-teal-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Toca aquí para ver Ofertas y Packs
+                    </button>
+                </div>
 
-                            {{-- MODO A: ALUMNO ÚNICO (Diseño ultra-compacto por fecha) --}}
-                            @if($isSingleStudent)
-                                @php
-                                    $st = $session->students->first();
-                                    if(!$st) continue;
-                                    $depId = 'null';
-                                @endphp
+                {{-- Alerta sin MP --}}
+                @if(!$hasMercadoPago)
+                    <div class="bg-amber-50 border-b border-amber-100 px-6 py-3 flex items-start sm:items-center gap-3">
+                        <svg class="w-5 h-5 text-amber-500 shrink-0 mt-0.5 sm:mt-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        <p class="text-sm font-medium text-amber-800 leading-snug">
+                            Este espacio aún no habilita los pagos online. Comunícate directamente con <span class="font-bold">{{ $studio->name }}</span> para coordinar.
+                        </p>
+                    </div>
+                @endif
 
-                                <label class="flex items-center justify-between p-2.5 hover:bg-stone-50 rounded-xl transition-all duration-200 group/chk border border-transparent hover:border-stone-200 cursor-pointer">
-                                    <div class="flex items-center gap-3">
-                                        <input type="checkbox" 
-                                            value="{{ $session->id }}-{{ $st->id }}" 
-                                            data-studio-id="{{ $studio->id }}"
-                                            onchange="calculateCart()"
-                                            class="session-checkbox w-5 h-5 text-red-600 border-stone-300 rounded focus:ring-red-600 cursor-pointer transition-all duration-200 disabled:bg-stone-100 disabled:cursor-not-allowed"
-                                            {{ !$hasMercadoPago ? 'disabled' : '' }}
-                                            checked>
+                {{-- Lista de Clases --}}
+                <ul class="divide-y divide-stone-100 px-6 py-4">
+                    @foreach($sessions->groupBy('workshop_id') as $workshopId => $workshopSessions)
+                        @php
+                            $firstSession = $workshopSessions->first();
+                            $workshop = $firstSession->workshop;
+                            $basePrice = $workshop->prices->where('class_count', 1)->first()->price ?? 0;
+                            $workshopImg = $workshop->image_path ?? null;
+                            $workshopAvatar = $workshopImg 
+                                ? asset('storage/' . $workshopImg) 
+                                : 'https://ui-avatars.com/api/?name='.urlencode($workshop->name).'&color=4f46e5&background=e0e7ff';
+                            
+                            $titularName = $firstSession->students->first()->first_name ?? auth()->user()->name ?? 'Estudiante';
+                        @endphp
+
+                        <li class="py-5 flex flex-col group">
+                            <div class="flex items-start sm:items-center justify-between gap-4 mb-3 bg-stone-50/60 p-3 rounded-2xl border border-stone-100">
+                                <div class="flex items-center gap-3.5">
+                                    <img src="{{ $workshopAvatar }}" alt="Taller" class="w-11 h-11 sm:w-12 sm:h-12 rounded-xl object-cover border border-stone-200 shrink-0 shadow-sm bg-white">
+                                    <div>
+                                        <p class="font-black text-stone-900 text-base sm:text-lg leading-tight">{{ $workshop->name }}</p>
                                         
-                                        <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                                            <span class="text-sm font-bold text-stone-800 group-hover/chk:text-red-600 transition-colors capitalize">
-                                                📅 {{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d M') }}
-                                            </span>
-                                            <span class="text-stone-300 font-light hidden sm:inline">|</span>
-                                            <span class="text-xs font-semibold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
-                                                🕒 {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs
-                                            </span>
-
-                                            {{-- Badges de Stock inline --}}
-                                            @if($isOverbooked)
-                                                <span class="text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded">
-                                                    ⚠️ Solo {{ $sessionAvailable }} cupo(s)
-                                                </span>
-                                            @elseif($isLowStock)
-                                                <span class="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded">
-                                                    🔥 Quedan {{ $sessionAvailable }}
-                                                </span>
-                                            @endif
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="flex items-center gap-4 shrink-0">
-                                        <span class="text-sm font-black text-stone-900">${{ number_format($basePrice, 0, ',', '.') }}</span>
-                                        
-                                        @if($st->is_locked_debt)
-                                            <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 cursor-help"
-                                                title="Asististe a esta clase. El pago es obligatorio para saldar tu deuda con el estudio.">
-                                                <svg class="w-3 h-3 mr-1 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-                                                Deuda
+                                        @if($isSingleStudent)
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-widest bg-indigo-50 text-indigo-700 border border-indigo-100/80 px-2 py-0.5 rounded-md mt-1 shadow-2xs">
+                                                <svg class="w-2.5 h-2.5 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+                                                Alumno: {{ $titularName }}
                                             </span>
                                         @else
-                                            <button type="button" onclick="removeCartItem({{ $session->id }}, {{ $depId }}, this)" class="p-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-100 rounded-lg transition-colors focus:outline-none" title="Remover reserva">
-                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </label>
-
-                            {{-- MODO B: GRUPO FAMILIAR (Desglose por fecha y luego por hermano/hijo) --}}
-                            @else
-                                <div class="p-3 bg-stone-50/50 rounded-2xl border border-stone-100 space-y-2">
-                                    {{-- Mini cabecera de la Fecha --}}
-                                    <div class="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-stone-200/60">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-xs font-black text-stone-800 capitalize">
-                                                📅 {{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d M') }}
-                                            </span>
-                                            <span class="text-xs font-semibold text-stone-500 bg-white border border-stone-200 px-1.5 py-0.5 rounded">
-                                                🕒 {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs
-                                            </span>
-                                        </div>
-
-                                        @if($isOverbooked)
-                                            <span class="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                                                ⚠️ Solo {{ $sessionAvailable }} cupo(s) disponible(s)
-                                            </span>
-                                        @elseif($isLowStock)
-                                            <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                                                🔥 Quedan {{ $sessionAvailable }} cupos
+                                            <span class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest bg-stone-200/70 text-stone-600 px-2 py-0.5 rounded-md mt-1">
+                                                👥 Selección Familiar
                                             </span>
                                         @endif
-                                    </div>
-
-                                    {{-- Checkboxes por cada familiar en esta fecha --}}
-                                    <div class="space-y-1 pl-1">
-                                        @foreach($session->students as $st)
-                                            @php
-                                                $isTitular = ($st->user_id === auth()->id());
-                                                $depId = 'null';
-                                                if (!$isTitular) {
-                                                    $dep = auth()->user()->dependents->where('national_id', $st->national_id)->first();
-                                                    $depId = $dep ? $dep->id : 'null';
-                                                }
-                                            @endphp
-
-                                            <label class="flex items-center justify-between p-1.5 hover:bg-white rounded-xl transition-colors group/chk cursor-pointer">
-                                                <div class="flex items-center gap-3">
-                                                    <input type="checkbox" 
-                                                        value="{{ $session->id }}-{{ $st->id }}" 
-                                                        data-studio-id="{{ $studio->id }}"
-                                                        onchange="calculateCart()"
-                                                        class="session-checkbox w-4 h-4 text-red-600 border-stone-300 rounded focus:ring-red-600 cursor-pointer transition-all duration-200 disabled:bg-stone-100"
-                                                        {{ !$hasMercadoPago ? 'disabled' : '' }}
-                                                        checked>
-                                                    <span class="text-sm font-bold text-stone-700 group-hover/chk:text-red-600 transition-colors">
-                                                        {{ $st->first_name }} {{ $st->last_name }}
-                                                        @if($isTitular) <span class="text-[9px] bg-indigo-100 text-indigo-700 font-black px-1.5 py-0.5 rounded uppercase tracking-widest ml-1">Titular</span> @endif
-                                                    </span>
-                                                </div>
-                                                
-                                                <div class="flex items-center gap-3">
-                                                    <span class="text-xs font-black text-stone-900">${{ number_format($basePrice, 0, ',', '.') }}</span>
-                                                    @if($st->is_locked_debt)
-                                                        <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-50 text-rose-700 border border-rose-200">Deuda</span>
-                                                    @else
-                                                        <button type="button" onclick="removeCartItem({{ $session->id }}, {{ $depId }}, this)" class="p-1 text-stone-400 hover:text-rose-500 rounded transition-colors focus:outline-none" title="Remover">
-                                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                                                        </button>
-                                                    @endif
-                                                </div>
-                                            </label>
-                                        @endforeach
                                     </div>
                                 </div>
-                            @endif
+                                <span class="text-xs font-bold text-stone-400 uppercase tracking-wider hidden sm:block shrink-0">
+                                    {{ $workshopSessions->count() }} {{ $workshopSessions->count() === 1 ? 'fecha' : 'fechas' }}
+                                </span>
+                            </div>
 
-                        @endforeach
+                            <div class="mt-1 sm:ml-14 space-y-2 border-l-2 border-stone-100 pl-3 sm:pl-4">
+                                @foreach($workshopSessions as $session)
+                                    @php
+                                        $sessionAvailable = $session->available_spots ?? 99;
+                                        $pendingForUser = $session->pending_user_count ?? 0;
+                                        $isOverbooked = $pendingForUser > $sessionAvailable;
+                                        $isLowStock = $sessionAvailable <= 2 && $sessionAvailable > 0 && !$isOverbooked;
+                                    @endphp
+
+                                    @if($isSingleStudent)
+                                        @php
+                                            $st = $session->students->first();
+                                            if(!$st) continue;
+                                            $depId = 'null';
+                                        @endphp
+
+                                        <label class="flex items-center justify-between p-2.5 hover:bg-stone-50 rounded-xl transition-all duration-200 group/chk border border-transparent hover:border-stone-200 cursor-pointer">
+                                            <div class="flex items-center gap-3">
+                                                <input type="checkbox" 
+                                                    value="{{ $session->id }}-{{ $st->id }}" 
+                                                    data-studio-id="{{ $studio->id }}"
+                                                    onchange="calculateCart()"
+                                                    class="session-checkbox w-5 h-5 text-red-600 border-stone-300 rounded focus:ring-red-600 cursor-pointer transition-all duration-200 disabled:bg-stone-100 disabled:cursor-not-allowed"
+                                                    {{ !$hasMercadoPago ? 'disabled' : '' }}
+                                                    checked>
+                                                
+                                                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                                    <span class="text-sm font-bold text-stone-800 group-hover/chk:text-red-600 transition-colors capitalize">
+                                                        📅 {{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d M') }}
+                                                    </span>
+                                                    <span class="text-stone-300 font-light hidden sm:inline">|</span>
+                                                    <span class="text-xs font-semibold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+                                                        🕒 {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs
+                                                    </span>
+
+                                                    @if($isOverbooked)
+                                                        <span class="text-[10px] font-black bg-rose-50 text-rose-600 border border-rose-200 px-1.5 py-0.5 rounded">
+                                                            ⚠️ Solo {{ $sessionAvailable }} cupo(s)
+                                                        </span>
+                                                    @elseif($isLowStock)
+                                                        <span class="text-[10px] font-bold bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded">
+                                                            🔥 Quedan {{ $sessionAvailable }}
+                                                        </span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="flex items-center gap-4 shrink-0">
+                                                <span class="text-sm font-black text-stone-900">${{ number_format($basePrice, 0, ',', '.') }}</span>
+                                                
+                                                @if($st->is_locked_debt)
+                                                    <span class="inline-flex items-center px-2 py-1 rounded-md text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-200 cursor-help" title="Pago obligatorio por asistencia.">
+                                                        <svg class="w-3 h-3 mr-1 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                                                        Deuda
+                                                    </span>
+                                                @else
+                                                    <button type="button" onclick="removeCartItem({{ $session->id }}, {{ $depId }}, this)" class="p-1.5 text-stone-400 hover:text-rose-500 hover:bg-rose-100 rounded-lg transition-colors focus:outline-none" title="Remover reserva">
+                                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </label>
+                                    @else
+                                        <div class="p-3 bg-stone-50/50 rounded-2xl border border-stone-100 space-y-2">
+                                            <div class="flex flex-wrap items-center justify-between gap-2 pb-1 border-b border-stone-200/60">
+                                                <div class="flex items-center gap-2">
+                                                    <span class="text-xs font-black text-stone-800 capitalize">
+                                                        📅 {{ \Carbon\Carbon::parse($session->date)->translatedFormat('l d M') }}
+                                                    </span>
+                                                    <span class="text-xs font-semibold text-stone-500 bg-white border border-stone-200 px-1.5 py-0.5 rounded">
+                                                        🕒 {{ \Carbon\Carbon::parse($session->start_time)->format('H:i') }} hrs
+                                                    </span>
+                                                </div>
+
+                                                @if($isOverbooked)
+                                                    <span class="text-[10px] font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                                                        ⚠️ Solo {{ $sessionAvailable }} cupo(s) disponible(s)
+                                                    </span>
+                                                @elseif($isLowStock)
+                                                    <span class="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                                                        🔥 Quedan {{ $sessionAvailable }} cupos
+                                                    </span>
+                                                @endif
+                                            </div>
+
+                                            <div class="space-y-1 pl-1">
+                                                @foreach($session->students as $st)
+                                                    @php
+                                                        $isTitular = ($st->user_id === auth()->id());
+                                                        $depId = 'null';
+                                                        if (!$isTitular) {
+                                                            $dep = auth()->user()->dependents->where('national_id', $st->national_id)->first();
+                                                            $depId = $dep ? $dep->id : 'null';
+                                                        }
+                                                    @endphp
+
+                                                    <label class="flex items-center justify-between p-1.5 hover:bg-white rounded-xl transition-colors group/chk cursor-pointer">
+                                                        <div class="flex items-center gap-3">
+                                                            <input type="checkbox" 
+                                                                value="{{ $session->id }}-{{ $st->id }}" 
+                                                                data-studio-id="{{ $studio->id }}"
+                                                                onchange="calculateCart()"
+                                                                class="session-checkbox w-4 h-4 text-red-600 border-stone-300 rounded focus:ring-red-600 cursor-pointer transition-all duration-200 disabled:bg-stone-100"
+                                                                {{ !$hasMercadoPago ? 'disabled' : '' }}
+                                                                checked>
+                                                            <span class="text-sm font-bold text-stone-700 group-hover/chk:text-red-600 transition-colors">
+                                                                {{ $st->first_name }} {{ $st->last_name }}
+                                                                @if($isTitular) <span class="text-[9px] bg-indigo-100 text-indigo-700 font-black px-1.5 py-0.5 rounded uppercase tracking-widest ml-1">Titular</span> @endif
+                                                            </span>
+                                                        </div>
+                                                        
+                                                        <div class="flex items-center gap-3 shrink-0">
+                                                            <span class="text-xs font-black text-stone-900">${{ number_format($basePrice, 0, ',', '.') }}</span>
+                                                            @if($st->is_locked_debt)
+                                                                <span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-50 text-rose-700 border border-rose-200">Deuda</span>
+                                                            @else
+                                                                <button type="button" onclick="removeCartItem({{ $session->id }}, {{ $depId }}, this)" class="p-1 text-stone-400 hover:text-rose-500 rounded transition-colors focus:outline-none" title="Remover">
+                                                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                                                </button>
+                                                            @endif
+                                                        </div>
+                                                    </label>
+                                                @endforeach
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
+
+            {{-- ==================================================== --}}
+            {{-- CONTENEDOR DERECHO: Desglose y Pago (Pegajoso/Sticky) --}}
+            {{-- ==================================================== --}}
+            <div class="w-full lg:w-[420px] xl:w-[460px] shrink-0 bg-white rounded-3xl border border-stone-200 shadow-sm flex flex-col lg:sticky lg:top-8 overflow-hidden">
+                
+                {{-- Desglose Renderizado por JS --}}
+                <div class="p-6 bg-stone-50/50">
+                    <p class="text-xs font-black text-stone-400 uppercase tracking-widest mb-4">Resumen de tu Compra</p>
+                    <div id="breakdown-{{ $studio->id }}" class="text-sm text-stone-700 min-h-[100px]">
+                        <span class='text-stone-400 block text-center mt-6 font-medium'>0 clases seleccionadas</span>
                     </div>
-                </li>
-            @endforeach
-        </ul>
+                </div>
 
-        {{-- Footer de Total --}}
-        <div class="bg-stone-50 px-6 py-5 border-t border-stone-200 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div class="w-full md:w-auto">
-                <p class="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Desglose</p>
-                <div id="breakdown-{{ $studio->id }}" class="text-sm text-stone-700 min-h-[20px]">
-                    <span class='text-stone-400'>0 clases seleccionadas</span>
+                {{-- Sección Inferior: Total y Botón --}}
+                <div class="p-6 bg-white border-t border-stone-100 mt-auto">
+                    <div class="flex justify-between items-end mb-6">
+                        <p class="text-xs font-bold text-stone-400 uppercase tracking-widest">Total Estudio</p>
+                        <p class="text-4xl font-black text-stone-900 leading-none tracking-tight" id="total-{{ $studio->id }}">$0</p>
+                    </div>
+                    
+                    @if($hasMercadoPago)
+                        <button onclick="payStudio({{ $studio->id }})" disabled id="btn-pay-{{ $studio->id }}" class="w-full bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold h-14 rounded-2xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 active:scale-95 shadow-md text-lg">
+                            Pagar Selección
+                        </button>
+                    @else
+                        <button disabled class="w-full bg-stone-100 text-stone-400 font-bold h-14 rounded-2xl flex items-center justify-center cursor-not-allowed border border-stone-200 uppercase tracking-wider text-sm">
+                            Pagos Online Inactivos
+                        </button>
+                    @endif
                 </div>
             </div>
-            <div class="flex items-center gap-6 w-full md:w-auto justify-between md:justify-end">
-                <div class="text-right">
-                    <p class="text-xs font-bold text-stone-500 uppercase tracking-widest mb-1">Total Estudio</p>
-                    <p class="text-2xl font-black text-stone-900 leading-none" id="total-{{ $studio->id }}">$0</p>
-                </div>
-                @if($hasMercadoPago)
-                    <button onclick="payStudio({{ $studio->id }})" disabled id="btn-pay-{{ $studio->id }}" class="bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold w-36 h-12 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 active:scale-95 shadow-sm">
-                        Pagar Selección
-                    </button>
-                @else
-                    <button disabled class="bg-stone-200 text-stone-400 font-bold w-36 h-12 rounded-xl flex items-center justify-center cursor-not-allowed shadow-inner text-sm uppercase tracking-wider">
-                        No Disponible
-                    </button>
-                @endif
-            </div>
+            
         </div>
 
-        {{-- MODAL DE PROMOCIONES --}}
-        <div id="promo-modal-{{ $studio->id }}" class="fixed inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6">
+        {{-- MODAL DE PROMOCIONES (Mantenido intacto) --}}
+        <div id="promo-modal-{{ $studio->id }}" class="inset-0 z-[70] hidden flex items-center justify-center p-4 sm:p-6">
             <div class="absolute inset-0 bg-zinc-900/60 backdrop-blur-sm transition-opacity" onclick="closePromoModal('promo-modal-{{ $studio->id }}')"></div>
             
             <div class="modal-card relative bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform scale-95 opacity-0 transition-all duration-300 flex flex-col max-h-[90vh]">
@@ -291,7 +294,7 @@
                     </button>
                 </div>
 
-                {{-- Cuerpo del Modal (Enriquecido con Vigencia y Tiempos) --}}
+                {{-- Cuerpo del Modal --}}
                 <div class="p-6 overflow-y-auto bg-stone-50/50">
                     
                     {{-- 1. Promociones / Combos --}}
@@ -306,7 +309,6 @@
                                             <div class="flex items-start justify-between gap-2">
                                                 <p class="font-bold text-stone-900 text-lg leading-tight">{{ $promo->name }}</p>
                                                 
-                                                {{-- BADGE DE VIGENCIA DE LA PROMO --}}
                                                 @if(isset($promo->validity_months))
                                                     <span class="text-[10px] font-extrabold bg-teal-50 text-teal-700 border border-teal-200/60 px-2 py-0.5 rounded-md uppercase tracking-wider shrink-0">
                                                         🕒 {{ $promo->validity_months == 0 ? 'Sin límite' : $promo->validity_months . ($promo->validity_months == 1 ? ' mes' : ' meses') }}
@@ -346,7 +348,8 @@
                         <div>
                             <h4 class="text-xs font-black text-stone-400 uppercase tracking-widest mb-3">Packs por Disciplina</h4>
                             <div class="grid grid-cols-1 gap-3">
-                                @foreach($studioPacks as $workshopName => $packs)
+                                {{-- 🚀 CAMBIO AQUÍ: Cambiamos $packs por $workshopGroupedPacks --}}
+                                @foreach($studioPacks as $workshopName => $workshopGroupedPacks)
                                     <div class="bg-white border border-stone-200 p-4 rounded-2xl shadow-sm">
                                         <p class="font-bold text-stone-900 mb-2 border-b border-stone-100 pb-2 flex items-center gap-2">
                                             <svg class="w-4 h-4 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
@@ -354,12 +357,12 @@
                                         </p>
                                         
                                         <ul class="divide-y divide-stone-100">
-                                            @foreach($packs as $pack)
+                                            {{-- 🚀 CAMBIO AQUÍ: Iteramos sobre la nueva variable --}}
+                                            @foreach($workshopGroupedPacks as $pack)
                                                 <li class="flex justify-between items-center py-2.5 first:pt-1 last:pb-0">
                                                     <div class="flex flex-col pr-2">
                                                         <span class="text-stone-800 font-bold text-sm">Pack de {{ $pack->class_count }} clases</span>
                                                         
-                                                        {{-- DETALLE DE VIGENCIA DEL PACK --}}
                                                         <span class="text-[11px] text-stone-400 font-medium flex items-center gap-1 mt-0.5">
                                                             🕒 {{ $pack->validity_months == 0 ? 'Sin límite de tiempo' : 'Vigencia: ' . $pack->validity_months . ($pack->validity_months == 1 ? ' mes' : ' meses') }}
                                                             @if($pack->validity_months > 0)

@@ -16,7 +16,3 @@ Schedule::command('billing:generate')
     ->withoutOverlapping()
     ->runInBackground()
     ->appendOutputTo(storage_path('logs/billing-generate.log'));
-
-// ─── LIMPIEZA DE SUSCRIPCIONES (DESHABILITADA) ───
-// El sistema de suscripciones SaaS fue reemplazado por Facturación por Uso.
-// Schedule::command('saas:clean-subscriptions')->daily();

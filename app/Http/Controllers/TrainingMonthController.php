@@ -122,4 +122,24 @@ class TrainingMonthController extends Controller
 
         return view('trainingmonth.show', compact('sessionsByDate', 'monthDate', 'monthId'));
     }
+
+    // ---------------------------------------------------
+    // NUEVO MÉTODO: ELIMINACIÓN MASIVA
+    // ---------------------------------------------------
+    public function bulkDestroy(Request $request, $subdomain)
+    {
+        $request->validate([
+            'session_ids' => 'required|array',
+            'session_ids.*' => 'integer|exists:class_sessions,id'
+        ]);
+
+        $studio = Studio::where('subdomain', $subdomain)->firstOrFail();
+
+        // Seguridad: Garantizamos que las sesiones pertenezcan al estudio actual
+        $deletedCount = ClassSession::whereIn('id', $request->session_ids)
+            ->where('studio_id', $studio->id)
+            ->delete();
+
+        return redirect()->back()->with('success', "Se han eliminado $deletedCount clases seleccionadas correctamente.");
+    }
 }

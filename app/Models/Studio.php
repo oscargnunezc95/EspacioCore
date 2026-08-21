@@ -4,21 +4,22 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes; // 🚀 1. Importación obligatoria
 use App\Models\Promotion;
 
 class Studio extends Model
 {
-    use HasFactory;
+    // 🚀 2. Inyección del trait
+    use HasFactory, SoftDeletes;
 
     protected $fillable = [
-
         'user_id',
         'name',
         'country_id',
         'subdomain',
         'logo_path',
         'icon_path',
-        'cover_path',      // <-- NUEVO: Foto horizontal de portada/card
+        'cover_path',
         'address',
         'latitude',
         'longitude',
@@ -26,21 +27,17 @@ class Studio extends Model
         'region',
         'country',
         'description',
-        'email',           // <-- NUEVO: Correo de contacto del estudio
-        'whatsapp',        // <-- NUEVO: WhatsApp de contacto del estudio
-        'instagram_url',   // <-- NUEVO: Enlace específico de Instagram
-        'tiktok_url',      // <-- NUEVO: Enlace específico de TikTok
-        'youtube_url',     // <-- NUEVO: Enlace específico de YouTube
-
-
-        // --- CREDENCIALES DE MERCADO PAGO CONNECT ---
+        'email',
+        'whatsapp',
+        'instagram_url',
+        'tiktok_url',
+        'youtube_url',
         'mp_access_token',
         'mp_refresh_token',
         'mp_user_id',
         'mp_store_id',
         'mp_external_pos_id',
         'mp_pos_qr_url',
-        // --- CONTROL DE BENEFICIO FOUNDER ---
         'is_founder',
         'founder_cycles_remaining',
     ];
@@ -75,18 +72,10 @@ class Studio extends Model
         return $this->hasMany(ClassSession::class);
     }
 
-    /**
-     * Facturas mensuales del estudio (sistema Floor-Capped Usage Pricing).
-     */
     public function invoices()
     {
         return $this->hasMany(StudioInvoice::class);
     }
-
-    // ─── ACCESSORS DE MONEDA ───────────────────────────────────────
-    // Navegan a través de $this->user->country para obtener la moneda
-    // del país de residencia del dueño del estudio.
-    // Incluyen fallback seguro (CLP / $) en caso de relación nula.
 
     public function getCurrencyCodeAttribute(): string
     {
@@ -98,31 +87,46 @@ class Studio extends Model
         return $this->user?->country?->currency_symbol ?? '$';
     }
 
-    /**
-     * Determina si el beneficio Founder está activo en este momento.
-     */
     public function isFounderActive(): bool
     {
         return $this->is_founder && $this->founder_cycles_remaining > 0;
     }
 
-    // ─── ACCESSORS DE IMÁGENES ───────────────────────────────────────
-    // Jerarquía de fallback para portada y avatar, evitando lógica
-    // repetitiva en las vistas.
-
-    /**
-     * Imagen de portada con fallback al logo.
-     */
     public function getCoverImageUrlAttribute(): ?string
     {
         return $this->cover_path ?? $this->logo_path;
     }
 
-    /**
-     * Avatar / ícono con fallback al logo.
-     */
     public function getAvatarImageUrlAttribute(): ?string
     {
         return $this->icon_path ?? $this->logo_path;
+    }
+
+    // 🚀 3. Métodos financieros requeridos por el evento deleting
+    public function hasUnpaidPlatformInvoices(): bool
+    {
+        // Verifica si existe alguna factura emitida por la plataforma en estado pendiente
+        return $this->invoices()->where('status', 'unpaid')->exists();
+    }
+
+    public function currentMonthPendingDebt(): float
+    {
+        // 1. Resolvemos tu servicio de facturación a través del contenedor de Laravel
+        $billingService = app(\App\Services\BillingService::class);
+        
+        // 2. Obtenemos la proyección del mes en curso usando tu lógica Floor-Capped
+        $projection = $billingService->getCurrentMonthProjection($this);
+        
+        // 3. Retornamos el total proyectado que el estudio le debe a la plataforma
+        return (float) $projection['projected_total'];
+    }
+
+    protected static function booted()
+    {
+        static::deleting(function ($studio) {
+            if ($studio->hasUnpaidPlatformInvoices() || $studio->currentMonthPendingDebt() > 0) {
+                throw new \Exception('Operación denegada: El estudio tiene facturas o deudas pendientes con la plataforma. Debes saldarlas antes de cerrar la cuenta.');
+            }
+        });
     }
 }

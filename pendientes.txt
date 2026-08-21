@@ -4,3 +4,6 @@ recordar habilitar el inicio de sesión con google.
 testear pago retroactivo y mensual dfe pack y promoción
 Pensar en cómo registrar pago en portal de calendario de alumna cuando se quieren mas de un meses
 agregar excepción de pagos cuando el pago es 0$ y el precio no puede valen entre 0 y 101 peses ya que mercado pago genera error.
+
+poder eliminar estudiante de curso desde clase en poertal de estudio
+Revisar prioridad para promoción o pack en el carrito

@@ -131,6 +131,7 @@ Route::domain($baseDomain)->group(function () {
         Route::get('/mis-estudios', [StudioController::class, 'index'])->name('studios.index');
         Route::post('/mis-estudios', [StudioController::class, 'store'])->name('studios.store');
         Route::put('/studios/{studio}', [StudioController::class, 'update'])->name('studios.update');
+        Route::delete('/studios/{studio}', [StudioController::class, 'destroy'])->name('studios.destroy');
 
         // Suscripción a Planes (Mercado Pago) - SE AGREGA 'verified' SOLO AQUÍ
         Route::post('/studios/{studio}/subscribe', [SubscriptionController::class, 'subscribe'])
@@ -270,6 +271,7 @@ Route::domain('{subdomain}.' . $baseDomain)->group(function () {
         Route::get('/trainingmonth', [TrainingMonthController::class, 'index'])->name('trainingmonth.index');
         Route::post('/trainingmonth', [TrainingMonthController::class, 'store'])->name('trainingmonth.store');
         Route::get('/trainingmonth/{month}', [TrainingMonthController::class, 'show'])->name('trainingmonth.show');
+        Route::delete('/trainingmonth/bulk-destroy', [TrainingMonthController::class, 'bulkDestroy'])->name('trainingmonth.bulk_destroy');
 
         // Sesiones y Asistencias
         Route::get('/sessions/{session}', [ClassSessionController::class, 'show'])->name('sessions.show');

@@ -55,11 +55,10 @@ class Student extends Model
                     ->withTimestamps();
     }
     
-    // AQUÍ ESTÁ LA OPTIMIZACIÓN DEL CARRITO
     public function classSessions()
     {
         return $this->belongsToMany(ClassSession::class, 'class_session_student')
-                    ->withPivot('payment_status') // <-- Vínculo mágico para saber si pagó
+                    ->withPivot('payment_status', 'workshop_price_id') // <-- AÑADIDO
                     ->withTimestamps();
     }
 

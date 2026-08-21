@@ -97,7 +97,7 @@ class MercadoPagoService
         $baseUrl = rtrim(config('app.url'), '/');
 
         $request = [
-            'items'              => $items,
+            'items'               => $items,
             'statement_descriptor' => strtoupper(substr(preg_replace('/[^a-zA-Z0-9 ]/', '', $studio->name), 0, 20)),
             'external_reference' => json_encode([
                 'type'       => 'student_payment', // ✅ AGREGADO: Bandera obligatoria para el enrutador del webhook
@@ -328,7 +328,6 @@ class MercadoPagoService
                 Log::warning("Layer 4 bloqueo: sessions " . implode(',', $overIds) . " overbooked. Reembolsando payment {$dataId} completo.");
 
                 $firstSel = $selectionsPagadas[0];
-                // 🚀 ARREGLO 1: Cargamos explícitamente el usuario y el taller/studio
                 $firstSession = ClassSession::with('workshop.studio')->withoutGlobalScopes()->find($firstSel['session_id']);
                 $firstStudent = Student::with('user')->withoutGlobalScopes()->find($firstSel['student_id']);
                 $studio = $studioId ? Studio::withoutGlobalScopes()->find($studioId) : ($firstSession ? $firstSession->workshop->studio : null);
@@ -367,7 +366,6 @@ class MercadoPagoService
                     Log::error("Layer 4 error reembolso MP: payment {$dataId}, " . $e->getMessage());
                 }
 
-                // 🚀 ARREGLO 2: Envío de correo con verificación explícita y log de trazabilidad
                 try {
                     if ($firstStudent && $firstStudent->user && $firstSession) {
                         Mail::to($firstStudent->user->email)
@@ -400,10 +398,27 @@ class MercadoPagoService
             foreach ($selectionsByStudent as $studentId => $sels) {
                 $firstSel = $sels->first();
                 $sessionIds = $sels->pluck('session_id')->toArray();
-                // 🚀 ARREGLO 3: Eager loading obligatorio para evitar variables nulas en el post-proceso
                 $firstSession = ClassSession::with('workshop.studio')->withoutGlobalScopes()->find($firstSel['session_id']);
 
                 if (!$firstSession) continue;
+
+                // =========================================================
+                // 🧠 OBTENER EL MAPA DETERMINISTA DE TIERS DEL ALGORITMO
+                // =========================================================
+                $cartResult = $this->pricingService->calculateCart($firstSession->studio_id ?? $studioId, $sessionIds, $studentId);
+                $sessionTierMap = [];
+                
+                if (!empty($cartResult['breakdown'])) {
+                    foreach ($cartResult['breakdown'] as $bItem) {
+                        $tierId = $bItem['tier_id'] ?? null;
+                        if ($tierId && !empty($bItem['items'])) {
+                            foreach ($bItem['items'] as $sItem) {
+                                // Mapeamos cada session_id con el tier_id que lo tasó
+                                $sessionTierMap[$sItem['id']] = $tierId;
+                            }
+                        }
+                    }
+                }
 
                 $student = Student::with('user')->withoutGlobalScopes()->find($studentId);
                 if (!$student) continue;
@@ -448,10 +463,12 @@ class MercadoPagoService
                         if (!$session) continue;
 
                         $maxStudents = $session->max_students;
+                        $tierId = $sessionTierMap[$sid] ?? null; // ID del Pack asignado
 
+                        // 🚀 GUARDIA DETERMINISTA: Inyección de workshop_price_id
                         $updated = DB::update("
                             UPDATE class_session_student
-                            SET payment_status = 'paid', updated_at = ?
+                            SET payment_status = 'paid', workshop_price_id = ?, updated_at = ?
                             WHERE class_session_id = ?
                               AND student_id = ?
                               AND payment_status = 'pending'
@@ -462,7 +479,7 @@ class MercadoPagoService
                                         AND payment_status = 'paid'
                                   ) AS _cnt
                               ) < ?
-                        ", [now(), $sid, $studentId, $sid, $maxStudents]);
+                        ", [$tierId, now(), $sid, $studentId, $sid, $maxStudents]);
 
                         if ($updated === 0) {
                             $alreadyPaid = DB::table('class_session_student')
@@ -472,44 +489,42 @@ class MercadoPagoService
                                 ->exists();
 
                             if (!$alreadyPaid) {
-                                // El UPDATE falló. Puede ser por: (a) capacidad llena, o (b) el alumno
-                                // nunca fue inscrito en la sesión (no hay fila 'pending' que actualizar).
                                 $isEnrolled = DB::table('class_session_student')
                                     ->where('class_session_id', $sid)
                                     ->where('student_id', $studentId)
                                     ->exists();
 
                                 if (!$isEnrolled) {
-                                    // Caso (b): Alumno paga sin estar pre-inscrito (ej: link por email).
-                                    // Lo inscribimos directamente si hay cupo disponible.
                                     $paidCount = DB::table('class_session_student')
                                         ->where('class_session_id', $sid)
                                         ->where('payment_status', 'paid')
                                         ->count();
 
                                     if ($paidCount < $maxStudents) {
+                                        // 🚀 GUARDIA DETERMINISTA: Guardado de workshop_price_id en auto-enroll
                                         DB::table('class_session_student')->insert([
-                                            'class_session_id' => $sid,
-                                            'student_id'       => $studentId,
-                                            'payment_status'   => 'paid',
-                                            'created_at'       => now(),
-                                            'updated_at'       => now(),
+                                            'class_session_id'  => $sid,
+                                            'student_id'        => $studentId,
+                                            'payment_status'    => 'paid',
+                                            'workshop_price_id' => $tierId,
+                                            'created_at'        => now(),
+                                            'updated_at'        => now(),
                                         ]);
+                                        
                                         $session->attendances()->firstOrCreate([
                                             'student_id' => $studentId,
                                             'studio_id'  => $session->studio_id ?? $studioId,
                                         ]);
                                         Log::info("Alumno {$studentId} auto-inscrito y pagado en session {$sid} (pago sin pre-inscripción)", [
                                             'payment_id' => $dataId,
+                                            'tier_id'    => $tierId
                                         ]);
                                     } else {
-                                        // Realmente sin cupo
                                         $overbookedGroup = true;
                                         Log::warning("Overbooking real (sin cupo) en session {$sid}, student {$studentId}, payment {$dataId}");
                                         break;
                                     }
                                 } else {
-                                    // Caso (a): Está inscrito pero el UPDATE falló → capacidad llena
                                     $overbookedGroup = true;
                                     Log::warning("Overbooking detectado por concurrencia SQL: session {$sid}, student {$studentId}, payment {$dataId}");
                                     break;
@@ -555,7 +570,6 @@ class MercadoPagoService
                     Log::error("Error crítico de red: No se pudo emitir reembolso MP en BD para payment {$dataId}: " . $e->getMessage());
                 }
 
-                // 🚀 ARREGLO 4: Iterar limpiamente sobre las transacciones creadas para notificar el reembolso
                 foreach ($createdPayments as $item) {
                     try {
                         if ($item['student']->user && $item['firstSession']) {
@@ -603,13 +617,13 @@ class MercadoPagoService
                             $studioForMail->load('user');
                         }
 
-                        // 1️⃣ AL ALUMNO [Notificación In-App]: Alimenta la campana de alertas
+                        // 1️⃣ AL ALUMNO [Notificación In-App]
                         $item['student']->user->notify(
                             new \App\Notifications\StudentPaymentApprovedNotification($item['payment'])
                         );
                         Log::info("🔔 [Notificación In-App encolada] Campana actualizada para {$item['student']->user->email}.");
 
-                        // 2️⃣ AL ALUMNO [Correo Electrónico]: Envía 1 solo comprobante digital
+                        // 2️⃣ AL ALUMNO [Correo Electrónico]
                         if ($studioForMail) {
                             Mail::to($item['student']->user->email)
                                 ->queue(new \App\Mail\StudentPaymentReceiptMail(
@@ -620,7 +634,7 @@ class MercadoPagoService
                             Log::info("📧 [Mail Alumno encolado] StudentPaymentReceiptMail enviado a {$item['student']->user->email}.");
                         }
 
-                        // 3️⃣ AL ESTUDIO [Correo Electrónico]: Alerta de nueva venta al dueño
+                        // 3️⃣ AL ESTUDIO [Correo Electrónico]
                         if ($studioForMail && $studioForMail->user) {
                             Mail::to($studioForMail->user->email)
                                 ->queue(new \App\Mail\StudioPaymentNotificationMail(
@@ -730,7 +744,7 @@ class MercadoPagoService
                     Log::info("📧 Recibo de pago de factura encolado para Studio #{$studio->id}.");
                 }
 
-                // B) Alerta interna para la plataforma (TÚ)
+                // B) Alerta interna para la plataforma
                 $adminEmail = config('mail.support_email', env('ADMIN_EMAIL', 'contacto@estadoprisma.com'));
                 if ($adminEmail) {
                     Mail::to($adminEmail)

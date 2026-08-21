@@ -13,7 +13,7 @@ class DatabaseSeeder extends Seeder
             PaisSeeder::class,
             AreaDisciplineSeeder::class,
             SuperAdminSeeder::class,
-            SubscriptionPlanSeeder::class,
+            //SubscriptionPlanSeeder::class,
         ]);
 
         // 2. DATOS DE PRUEBA (Corren SOLO en tu computadora local)
