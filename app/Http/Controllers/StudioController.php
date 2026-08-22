@@ -20,26 +20,27 @@ class StudioController extends Controller
     }
 
     /**
-     * Crea un nuevo estudio con validación de imágenes, subdominio y redes.
+     * Crea un nuevo estudio con validación de imágenes, subdominio, redes y acuerdos.
      */
     public function store(Request $request)
     {
         $request->validate([
-            'name'          => 'required|string|max:255',
-            'logo'          => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:15360', 
-            'cover'         => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360', 
-            'address'       => 'nullable|string|max:255',
-            'latitude'      => 'nullable|numeric',
-            'longitude'     => 'nullable|numeric',
-            'city'          => 'nullable|string|max:255',
-            'region'        => 'nullable|string|max:255',
-            'country'       => 'nullable|string|max:255',
-            'description'   => 'nullable|string|max:1000',
-            'instagram_url' => 'nullable|url|max:255',
-            'tiktok_url'    => 'nullable|url|max:255',
-            'youtube_url'   => 'nullable|url|max:255',
-            'email'         => 'nullable|email|max:255',
-            'whatsapp'      => 'nullable|string|max:50',
+            'name'                        => 'required|string|max:255',
+            'logo'                        => 'nullable|image|mimes:jpeg,png,jpg,svg,webp|max:15360',
+            'cover'                       => 'nullable|image|mimes:jpeg,png,jpg,webp|max:15360',
+            'address'                     => 'nullable|string|max:255',
+            'latitude'                    => 'nullable|numeric',
+            'longitude'                   => 'nullable|numeric',
+            'city'                        => 'nullable|string|max:255',
+            'region'                      => 'nullable|string|max:255',
+            'country'                     => 'nullable|string|max:255',
+            'description'                 => 'nullable|string|max:1000',
+            'instagram_url'               => 'nullable|url|max:255',
+            'tiktok_url'                  => 'nullable|url|max:255',
+            'youtube_url'                 => 'nullable|url|max:255',
+            'email'                       => 'nullable|email|max:255',
+            'whatsapp'                    => 'nullable|string|max:50',
+            'data_processing_agreement'   => 'accepted', // 🚀 Rescatado del Computador A
         ]);
 
         $baseSlug = Str::slug($request->name);
@@ -100,24 +101,25 @@ class StudioController extends Controller
         }
 
         Studio::create([
-            'user_id'       => auth()->id(),
-            'name'          => $request->name,
-            'subdomain'     => $subdomain,
-            'logo_path'     => $logoPath,
-            'icon_path'     => $iconPath,
-            'cover_path'    => $coverPath,
-            'address'       => $request->address,
-            'latitude'      => $request->latitude,
-            'longitude'     => $request->longitude,
-            'city'          => $request->city,
-            'region'        => $request->region,
-            'country'       => $request->country,
-            'description'   => $request->description,
-            'instagram_url' => $request->instagram_url,
-            'tiktok_url'    => $request->tiktok_url,
-            'youtube_url'   => $request->youtube_url,
-            'email'         => $request->email,
-            'whatsapp'      => $request->whatsapp,
+            'user_id'                     => auth()->id(),
+            'name'                        => $request->name,
+            'subdomain'                   => $subdomain,
+            'logo_path'                   => $logoPath,
+            'icon_path'                   => $iconPath,
+            'cover_path'                  => $coverPath,
+            'address'                     => $request->address,
+            'latitude'                    => $request->latitude,
+            'longitude'                   => $request->longitude,
+            'city'                        => $request->city,
+            'region'                      => $request->region,
+            'country'                     => $request->country,
+            'description'                 => $request->description,
+            'instagram_url'               => $request->instagram_url,
+            'tiktok_url'                  => $request->tiktok_url,
+            'youtube_url'                 => $request->youtube_url,
+            'email'                       => $request->email,
+            'whatsapp'                    => $request->whatsapp,
+            'data_agreement_accepted_at'  => now(), // 🚀 Rescatado del Computador A
         ]);
 
         return back()->with('success', '¡Tu nuevo Espacio ha sido creado con éxito!');
@@ -221,14 +223,18 @@ class StudioController extends Controller
             abort(403, 'No tienes permiso para eliminar este espacio.');
         }
 
-        // 1. BARRERA DE UX (Validación Financiera)
-        // Evitamos que intente borrar si sabemos que tiene deuda, dándole un mensaje claro.
+        // 1. BARRERA DE UX (Validación Financiera del mes en curso)
         if (method_exists($studio, 'currentMonthPendingDebt') && $studio->currentMonthPendingDebt() > 0) {
             return back()->with('error', 'Operación denegada: Tienes una deuda pendiente con la plataforma por las transacciones de este mes. Debes saldarla antes de cerrar el espacio.');
         }
 
+        // 2. BARRERA ADICIONAL (Rescatada del Computador A: Facturas históricas pendientes)
+        if ($studio->invoices()->where('status', 'pending')->exists()) {
+            return back()->with('error', 'Operación denegada: Tienes facturas de meses anteriores pendientes de pago.');
+        }
+
         try {
-            // 2. ELIMINACIÓN DE SEGURIDAD (Soft Delete)
+            // 3. ELIMINACIÓN DE SEGURIDAD (Soft Delete)
             // ¡ATENCIÓN! Ya NO borramos los archivos con Storage::delete().
             // Los archivos deben conservarse en el disco para mantener la integridad visual 
             // de las boletas históricas o reportes vinculados a este estudio.
@@ -238,9 +244,7 @@ class StudioController extends Controller
             return back()->with('success', 'Tu espacio ha sido cerrado y ocultado exitosamente. El historial financiero se mantendrá resguardado por ley.');
             
         } catch (\Exception $e) {
-            // 3. CAPTURA DEL ESCUDO DEL MODELO
-            // Si pusiste la validación en el evento "deleting" del Modelo Studio, 
-            // capturamos la excepción aquí para que la pantalla no explote con un error 500.
+            // 4. CAPTURA DEL ESCUDO DEL MODELO
             return back()->with('error', $e->getMessage());
         }
     }

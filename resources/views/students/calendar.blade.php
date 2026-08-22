@@ -42,6 +42,8 @@
         @endphp
 
         @if (session('success'))
+            {{-- Limpieza automática del carrito al concretar un pago exitoso --}}
+            <script>localStorage.removeItem('studio_cart_student_{{ $student->id }}');</script>
             <div class="mb-6 p-4 bg-emerald-50 text-emerald-700 rounded-xl text-sm font-bold border border-emerald-200 flex items-center gap-2">
                 <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
                 {{ session('success') }}
@@ -256,7 +258,10 @@
             <div class="max-w-7xl mx-auto w-full px-2 sm:px-6 lg:px-8 flex items-center justify-between gap-3 flex-wrap">
                 <div class="flex items-center gap-2 sm:gap-3">
                     <div class="bg-emerald-100 text-emerald-600 font-black h-8 w-8 sm:h-9 sm:w-9 rounded-full flex items-center justify-center text-xs sm:text-sm shadow-inner" id="selectedCount">0</div>
-                    <span class="text-xs sm:text-sm font-bold text-stone-700 hidden sm:inline">Seleccionadas</span>
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2">
+                        <span class="text-xs sm:text-sm font-bold text-stone-700 hidden sm:inline">Seleccionadas</span>
+                        <button onclick="clearCart()" class="text-[10px] sm:text-xs font-bold text-stone-400 hover:text-stone-700 underline underline-offset-2 transition-colors">Vaciar</button>
+                    </div>
                     <div id="gatewayPriceContainer" class="hidden sm:flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 px-2 sm:px-3 py-1 rounded-lg">
                         <span class="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Total</span>
                         <span id="gatewayPrice" class="text-sm sm:text-base font-black text-emerald-700">--</span>
@@ -276,7 +281,7 @@
             </div>
         </div>
 
-        {{-- 🚀 MODAL DE PAGO MANUAL (Refactorizado con valor read-only automático) --}}
+        {{-- MODAL DE PAGO MANUAL --}}
         <div id="paymentModal" class="fixed inset-0 z-[80] hidden flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm transition-opacity">
             <div class="bg-white rounded-3xl max-w-md w-full shadow-xl border border-stone-100 transform transition-all relative max-h-[90vh] flex flex-col">
                 
@@ -311,7 +316,6 @@
                         </select>
                     </div>
 
-                    {{-- 🚀 BLOQUE NUEVO: Monto Calculado Automáticamente --}}
                     <div class="mb-4">
                         <label class="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Monto a Cobrar</label>
                         <div class="w-full bg-stone-100 border border-stone-200 rounded-xl px-4 py-3 flex items-center justify-between shadow-inner">
@@ -475,65 +479,109 @@
             const gatewayStaticQrUrl = "{{ route('gateway.static-qr', ['subdomain' => request()->route('subdomain'), 'student' => $student->id]) }}";
             const gatewayDynamicQrUrl = "{{ route('gateway.dynamic-qr', ['subdomain' => request()->route('subdomain'), 'student' => $student->id]) }}";
             const gatewaySendEmailUrl = "{{ route('gateway.send-email', ['subdomain' => request()->route('subdomain'), 'student' => $student->id]) }}";
+            
             @if(!empty($studio->mp_access_token))
                 document.getElementById('btnPasarela').disabled = false;
             @endif
 
             // ==========================================
-            // LÓGICA DE CHECKBOXES Y BARRA DE PAGO GLOBAL
+            // LÓGICA DE CARRITO PERSISTENTE (Cross-Month)
             // ==========================================
-            let selectedPaymentIds = new Set();
-            let calculatedTotal = 0;      // Almacena el total numérico calculado
-            let calculatedSymbol = '$';   // Almacena el símbolo de moneda
+            const cartStorageKey = 'studio_cart_student_{{ $student->id }}';
+            let calculatedTotal = 0;
+            let calculatedSymbol = '$';
+
+            // Obtener carrito del localStorage
+            function getCart() {
+                return JSON.parse(localStorage.getItem(cartStorageKey)) || {};
+            }
+
+            // Guardar carrito en localStorage
+            function saveCart(cart) {
+                localStorage.setItem(cartStorageKey, JSON.stringify(cart));
+            }
+
+            // Limpiar carrito por completo (Botón Vaciar)
+            function clearCart() {
+                localStorage.removeItem(cartStorageKey);
+                syncUIWithCart();
+            }
+
+            // Al cargar la página, restaurar el estado desde el Storage
+            document.addEventListener('DOMContentLoaded', () => {
+                syncUIWithCart();
+            });
 
             function handlePaymentSelection(element = null) {
+                let cart = getCart();
+
                 if (element) {
-                    const id = parseInt(element.value);
+                    const id = element.value;
                     if (element.checked) {
-                        selectedPaymentIds.add(id);
+                        cart[id] = {
+                            id: id,
+                            name: element.getAttribute('data-class-name'),
+                            date: element.getAttribute('data-class-date')
+                        };
                     } else {
-                        selectedPaymentIds.delete(id);
+                        delete cart[id];
                     }
                 } else {
                     document.querySelectorAll('.payment-cb').forEach(cb => {
-                        const id = parseInt(cb.value);
-                        if (cb.checked) selectedPaymentIds.add(id);
-                        else selectedPaymentIds.delete(id);
+                        const id = cb.value;
+                        if (cb.checked) {
+                            cart[id] = {
+                                id: id,
+                                name: cb.getAttribute('data-class-name'),
+                                date: cb.getAttribute('data-class-date')
+                            };
+                        } else {
+                            delete cart[id];
+                        }
                     });
                 }
 
+                saveCart(cart);
+                syncUIWithCart();
+            }
+
+            function syncUIWithCart() {
+                let cart = getCart();
+                let selectedCount = Object.keys(cart).length;
+
+                // 1. Restaurar visualmente los checkboxes del mes actual
                 document.querySelectorAll('.payment-cb, .payment-cb-modal').forEach(cb => {
-                    cb.checked = selectedPaymentIds.has(parseInt(cb.value));
+                    cb.checked = cart.hasOwnProperty(cb.value);
                 });
 
                 updateMobileDayButtons();
 
+                // 2. Controlar la barra flotante
                 let bar = document.getElementById('bulkPaymentBar');
                 let countSpan = document.getElementById('selectedCount');
 
-                if(selectedPaymentIds.size > 0) {
+                if (selectedCount > 0) {
                     bar.classList.remove('translate-y-full');
-                    countSpan.innerText = selectedPaymentIds.size;
+                    countSpan.innerText = selectedCount;
                 } else {
                     bar.classList.add('translate-y-full');
                 }
 
-                updatePriceDisplay();
+                // 3. Recalcular precio
+                updatePriceDisplay(cart);
             }
 
-            // ==========================================
-            // ACTUALIZAR PRECIO EN BARRA FLOTANTE Y MODAL
-            // ==========================================
-            async function updatePriceDisplay() {
+            async function updatePriceDisplay(cart = getCart()) {
+                const ids = Object.keys(cart);
+                
                 const priceEl = document.getElementById('gatewayPrice');
                 const priceMobileEl = document.getElementById('gatewayPriceMobile');
                 const priceContainer = document.getElementById('gatewayPriceContainer');
                 
-                // Referencias al bloque del modal manual
                 const modalDisplayEl = document.getElementById('modalDisplayAmount');
                 const modalHiddenEl = document.getElementById('modalHiddenAmount');
 
-                if (selectedPaymentIds.size === 0) {
+                if (ids.length === 0) {
                     priceEl.innerText = '--';
                     priceMobileEl.innerText = '--';
                     if (priceContainer) priceContainer.classList.add('hidden');
@@ -543,10 +591,13 @@
                     return;
                 }
 
-                const ids = Array.from(selectedPaymentIds);
                 try {
                     if (modalDisplayEl) modalDisplayEl.innerText = 'Calculando...';
-                    const url = gatewayCalculateUrl + '?' + ids.map(id => 'session_ids[]=' + id).join('&');
+                    
+                    const params = new URLSearchParams();
+                    ids.forEach(id => params.append('session_ids[]', id));
+                    const url = gatewayCalculateUrl + '?' + params.toString();
+                    
                     const resp = await fetch(url);
                     const data = await resp.json();
                     
@@ -569,9 +620,14 @@
             }
 
             function updateMobileDayButtons() {
+                let cart = getCart();
                 const activeDates = new Set();
-                document.querySelectorAll('.payment-cb:checked').forEach(cb => {
-                    activeDates.add(cb.getAttribute('data-date'));
+                
+                // Mapear solo los checkboxes visibles de la vista actual
+                document.querySelectorAll('.payment-cb').forEach(cb => {
+                    if (cart.hasOwnProperty(cb.value)) {
+                        activeDates.add(cb.getAttribute('data-date'));
+                    }
                 });
 
                 document.querySelectorAll('.day-btn').forEach(btn => {
@@ -599,13 +655,16 @@
             // LÓGICA DEL MODAL DE PAGO MANUAL FINAL
             // ==========================================
             function openPaymentModal() {
-                if(selectedPaymentIds.size === 0) return;
+                let cart = getCart();
+                let ids = Object.keys(cart);
+                
+                if(ids.length === 0) return;
 
-                document.getElementById('modalClassCountText').innerText = selectedPaymentIds.size === 1 ? '1 Clase' : `${selectedPaymentIds.size} Clases`;
+                document.getElementById('modalClassCountText').innerText = ids.length === 1 ? '1 Clase' : `${ids.length} Clases`;
 
-                // Sincronizar el monto visual y el input oculto al abrir por seguridad
                 const displayAmountEl = document.getElementById('modalDisplayAmount');
                 const hiddenAmountEl = document.getElementById('modalHiddenAmount');
+                
                 if (displayAmountEl && hiddenAmountEl && calculatedTotal > 0) {
                     displayAmountEl.innerText = calculatedSymbol + ' ' + calculatedTotal.toLocaleString('es-CL');
                     hiddenAmountEl.value = calculatedTotal;
@@ -617,19 +676,18 @@
                 hiddenContainer.innerHTML = ''; 
                 let listHtml = '<ul class="text-[11px] text-stone-600 text-left bg-white p-3 rounded-lg border border-emerald-100 space-y-1.5 list-none">';
                 
-                document.querySelectorAll('.payment-cb:checked').forEach(cb => {
+                // Construir lista leyendo exclusivamente el localStorage
+                Object.values(cart).forEach(item => {
                     let input = document.createElement('input');
                     input.type = 'hidden';
                     input.name = 'session_ids[]';
-                    input.value = cb.value;
+                    input.value = item.id;
                     hiddenContainer.appendChild(input);
 
-                    const className = cb.getAttribute('data-class-name');
-                    const classDate = cb.getAttribute('data-class-date');
                     listHtml += `
                         <li class="flex items-start gap-1.5">
                             <svg class="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path></svg>
-                            <span class="font-bold text-stone-900">${className} <span class="font-normal text-stone-500 block sm:inline">(${classDate})</span></span>
+                            <span class="font-bold text-stone-900">${item.name} <span class="font-normal text-stone-500 block sm:inline">(${item.date})</span></span>
                         </li>
                     `;
                 });
@@ -654,6 +712,7 @@
             const listContainer = document.getElementById('modalClassesList');
 
             function openDayClasses(dateStr, classesArray) {
+                let cart = getCart();
                 document.getElementById('modalDayDate').innerText = dateStr;
                 listContainer.innerHTML = '';
 
@@ -683,7 +742,7 @@
                     if (!cls.isPaid && !cls.isCancelled) {
                         wrapperTag = 'label';
                         cursorClass = 'cursor-pointer hover:border-stone-400 hover:shadow-md transition-all duration-200';
-                        const isChecked = selectedPaymentIds.has(cls.id) ? 'checked' : '';
+                        const isChecked = cart.hasOwnProperty(cls.id) ? 'checked' : '';
                         checkboxHtml = `<input type="checkbox" value="${cls.id}" data-date="${cls.dateRaw}" data-class-name="${cls.name}" data-class-date="${cls.dateFormatted}" onchange="handlePaymentSelection(this)" class="payment-cb-modal w-5 h-5 text-emerald-600 border-stone-300 rounded focus:ring-emerald-500 cursor-pointer relative z-10" ${isChecked}>`;
                     }
 
@@ -732,7 +791,9 @@
             let currentGatewayOption = null;
 
             function openGatewayModal() {
-                if (selectedPaymentIds.size === 0) return;
+                let cart = getCart();
+                let ids = Object.keys(cart);
+                if (ids.length === 0) return;
 
                 document.getElementById('gatewayError').classList.add('hidden');
                 document.getElementById('gatewayLoading').classList.add('hidden');
@@ -763,7 +824,9 @@
                 document.getElementById('gatewayLoading').classList.remove('hidden');
                 document.getElementById('gatewayError').classList.add('hidden');
 
-                const ids = Array.from(selectedPaymentIds);
+                let cart = getCart();
+                let ids = Object.keys(cart);
+
                 try {
                     const url = gatewayCalculateUrl + '?' + ids.map(id => 'session_ids[]=' + id).join('&');
                     const resp = await fetch(url);
@@ -819,7 +882,8 @@
                 document.getElementById('gatewayLoading').classList.remove('hidden');
                 document.getElementById('gatewaySuccess').classList.add('hidden');
 
-                const ids = Array.from(selectedPaymentIds);
+                let cart = getCart();
+                let ids = Object.keys(cart);
                 try {
                     const resp = await fetch(gatewayStaticQrUrl, {
                         method: 'POST',
@@ -852,7 +916,8 @@
                 qrContainer.classList.add('hidden');
                 qrContainer.innerHTML = '';
 
-                const ids = Array.from(selectedPaymentIds);
+                let cart = getCart();
+                let ids = Object.keys(cart);
                 try {
                     const resp = await fetch(gatewayDynamicQrUrl, {
                         method: 'POST',
@@ -896,7 +961,8 @@
                 document.getElementById('gatewayLoading').classList.remove('hidden');
                 document.getElementById('gatewaySuccess').classList.add('hidden');
 
-                const ids = Array.from(selectedPaymentIds);
+                let cart = getCart();
+                let ids = Object.keys(cart);
                 try {
                     const resp = await fetch(gatewaySendEmailUrl, {
                         method: 'POST',

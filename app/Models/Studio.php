@@ -40,6 +40,7 @@ class Studio extends Model
         'mp_pos_qr_url',
         'is_founder',
         'founder_cycles_remaining',
+        'data_agreement_accepted_at',
     ];
 
     public function user()
