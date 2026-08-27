@@ -132,7 +132,8 @@ Route::domain($baseDomain)->group(function () {
         Route::post('/mis-estudios', [StudioController::class, 'store'])->name('studios.store');
         Route::put('/studios/{studio}', [StudioController::class, 'update'])->name('studios.update');
         Route::delete('/studios/{studio}', [StudioController::class, 'destroy'])->name('studios.destroy');
-
+    Route::post('/studios/{studio}/early-close', [StudioController::class, 'earlyCloseCheckout'])->name('studios.early-close');
+    
         // Suscripción a Planes (Mercado Pago) - SE AGREGA 'verified' SOLO AQUÍ
         Route::post('/studios/{studio}/subscribe', [SubscriptionController::class, 'subscribe'])
             ->middleware('verified')

@@ -188,4 +188,47 @@ class BillingService
             'projected_total'       => $projectedTotal,
         ];
     }
+    /**
+     * Genera la Factura de Cierre Anticipado (Peaje de Salida)
+     */
+    public function generateEarlyClosingInvoice(Studio $studio): StudioInvoice
+    {
+        $now = Carbon::now();
+        $billingPeriod = $now->format('Y-m'); // Formato estricto '2026-08' para evitar SQL Truncation
+        $projection = $this->getCurrentMonthProjection($studio);
+
+        if ($projection['projected_total'] <= 0) {
+            throw new \Exception("No hay deuda pendiente para generar una factura de cierre.");
+        }
+
+        // Buscamos si ya le generamos una factura flotante este mismo mes
+        $existing = StudioInvoice::where('studio_id', $studio->id)
+            ->where('billing_period', $billingPeriod)
+            ->where('status', 'pending')
+            ->first();
+
+        if ($existing) {
+            // Actualizamos los montos con la foto del último segundo
+            $existing->update([
+                'gross_sales'           => $projection['gross_sales'],
+                'calculated_commission' => $projection['projected_commission'],
+                'minimum_floor'         => $projection['projected_minimum_floor'],
+                'founder_savings'       => $projection['projected_savings'],
+                'total_due'             => $projection['projected_total'],
+            ]);
+            return $existing;
+        }
+
+        return StudioInvoice::create([
+            'studio_id'             => $studio->id,
+            'billing_period'        => $billingPeriod, // Usamos los 7 caracteres permitidos
+            'gross_sales'           => $projection['gross_sales'],
+            'calculated_commission' => $projection['projected_commission'],
+            'minimum_floor'         => $projection['projected_minimum_floor'],
+            'founder_savings'       => $projection['projected_savings'],
+            'total_due'             => $projection['projected_total'],
+            'status'                => 'pending',
+            'due_date'              => $now->copy()->addDay(),
+        ]);
+    }
 }

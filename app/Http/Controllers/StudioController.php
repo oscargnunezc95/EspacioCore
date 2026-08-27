@@ -248,4 +248,23 @@ class StudioController extends Controller
             return back()->with('error', $e->getMessage());
         }
     }
+    /**
+     * Checkout para el Peaje de Salida.
+     */
+    public function earlyCloseCheckout(Studio $studio, \App\Services\BillingService $billingService, \App\Services\MercadoPagoService $mpService)
+    {
+        if ($studio->user_id !== auth()->id()) {
+            abort(403);
+        }
+
+        try {
+            $invoice = $billingService->generateEarlyClosingInvoice($studio);
+            $initPoint = $mpService->createEarlyClosingPreference($invoice, $studio);
+            
+            // Redirige directamente a la pasarela de Mercado Pago
+            return redirect()->away($initPoint);
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error al procesar el cierre: ' . $e->getMessage());
+        }
+    }
 }

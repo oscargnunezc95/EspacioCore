@@ -757,7 +757,13 @@ class MercadoPagoService
             }
 
             Log::info("✅ Factura #{$invoice->id} marcada como pagada. Studio #{$studio->id} liberado del bloqueo.");
-
+            
+            // 🚨 GATILLO FINAL: Si era una factura de cierre anticipado, ejecutamos la guillotina.
+            if (!empty($meta['is_early_close'])) {
+                $studio->delete(); // Soft Delete mágico
+                Log::info("🚀 [Early Close] Studio #{$studio->id} eliminado automáticamente tras el pago del peaje de salida.");
+            }
+            
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Cache::forget($lockKey);
             Log::error("Error procesando pago de factura {$dataId}: " . $e->getMessage());
@@ -1336,5 +1342,49 @@ class MercadoPagoService
         }
 
         return $preferenceData;
+    }
+    /**
+     * Genera el link de pago para la plataforma (Comisiones)
+     */
+    public function createEarlyClosingPreference(\App\Models\StudioInvoice $invoice, Studio $studio): string
+    {
+        // 🚀 ¡CLAVE! Se usa el token de LA PLATAFORMA, no el del estudio, porque este dinero es para ti.
+        $this->setToken(config('services.mercadopago.token'));
+
+        $client = new PreferenceClient();
+        $baseUrl = rtrim(config('app.url'), '/');
+        $webhookDomain = config('services.mercadopago.webhook_domain') ?: rtrim(config('app.url'), '/');
+
+        $request = [
+            'items' => [
+                [
+                    'title'       => 'Liquidación y Cierre de Espacio - ' . $studio->name,
+                    'quantity'    => 1,
+                    'unit_price'  => (float) $invoice->total_due,
+                    'currency_id' => 'CLP',
+                ]
+            ],
+            'external_reference' => json_encode([
+                'type'           => 'platform_invoice_payment',
+                'invoice_id'     => $invoice->id,
+                'studio_id'      => $studio->id,
+                'is_early_close' => true, // 🚨 Bandera para el Webhook
+            ]),
+            'back_urls' => [
+                'success' => $baseUrl . '/mis-estudios',
+                'failure' => $baseUrl . '/mis-estudios',
+                'pending' => $baseUrl . '/mis-estudios',
+            ],
+            'auto_return'      => 'approved',
+            'notification_url' => rtrim($webhookDomain, '/') . '/api/webhooks/mercadopago',
+        ];
+
+        $preference = $client->create($request);
+
+        if (!$preference->init_point) {
+            throw new \Exception("Error al generar el link de pago con Mercado Pago.");
+        }
+
+        return $preference->init_point;
     }
 }

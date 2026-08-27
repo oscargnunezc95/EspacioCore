@@ -393,7 +393,7 @@
             </form>
 
             {{-- ========================================== --}}
-            {{-- ZONA DE PELIGRO (Rescatada del Computador B)--}}
+            {{-- ZONA DE PELIGRO Y PEAJE DE SALIDA          --}}
             {{-- ========================================== --}}
             <div class="mt-8 pt-6 border-t border-rose-100">
                 <h4 class="text-xs font-black uppercase tracking-wider text-rose-600 mb-4">Zona de Peligro</h4>
@@ -404,18 +404,28 @@
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
                         No puedes eliminar este espacio.
                     </p>
-                    <p class="mt-1">Tienes una deuda pendiente de <span id="e_debt_amount" class="font-black"></span> por el uso de la plataforma. Paga tu saldo para habilitar el cierre de cuenta.</p>
+                    <p class="mt-1">Tienes una deuda pendiente de <span id="e_debt_amount" class="font-black"></span> por el uso de la plataforma en este mes parcial. Paga tu saldo para habilitar el cierre de cuenta y eliminar tus datos.</p>
                 </div>
 
-                {{-- Formulario de Eliminación --}}
+                {{-- Contenedor de Botones Dinámicos --}}
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                    <p class="text-xs text-stone-500 max-w-sm">Al eliminar el estudio, este se ocultará de la plataforma pero mantendrá su historial financiero de forma segura.</p>
+                    <p class="text-xs text-stone-500 max-w-sm">Al eliminar el estudio, este se ocultará de la plataforma pero mantendrá su historial financiero y boletas de forma segura para fines tributarios.</p>
                     
-                    <form id="deleteStudioForm" method="POST" onsubmit="return confirm('¿Estás absolutamente seguro de que deseas cerrar este espacio? Esta acción ocultará el estudio y no podrás acceder a su panel.');">
+                    {{-- Formulario de Eliminación Normal (Oculto si hay deuda) --}}
+                    <form id="deleteStudioForm" method="POST" class="w-full sm:w-auto" onsubmit="return confirm('¿Estás absolutamente seguro de que deseas cerrar este espacio? Esta acción ocultará el estudio y no podrás acceder a su panel.');">
                         @csrf
                         @method('DELETE')
                         <button type="submit" id="e_delete_btn" class="w-full sm:w-auto px-4 py-2 bg-white border border-rose-200 text-rose-600 hover:bg-rose-600 hover:text-white font-bold rounded-xl transition-colors text-sm shrink-0">
                             Eliminar Espacio
+                        </button>
+                    </form>
+
+                    {{-- Formulario de Peaje de Salida (Oculto si NO hay deuda) --}}
+                    <form id="earlyCloseForm" method="POST" class="w-full sm:w-auto hidden">
+                        @csrf
+                        <button type="submit" id="e_early_close_btn" class="w-full sm:w-auto px-4 py-2 bg-gradient-to-r from-stone-800 to-stone-900 hover:from-stone-700 hover:to-stone-800 text-white font-bold rounded-xl transition-all shadow-md active:scale-95 text-sm shrink-0 flex items-center justify-center gap-2">
+                            Pagar Saldo y Cerrar
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                         </button>
                     </form>
                 </div>
@@ -625,25 +635,29 @@
             updateUrl = updateUrl.replace(':id', studio.id);
             document.getElementById('editStudioForm').action = updateUrl;
 
-            // Ruta para eliminar (Zona de Peligro)
+            // Ruta para eliminar (Zona de Peligro normal)
             let deleteUrl = "{{ route('studios.destroy', ':id') }}";
             document.getElementById('deleteStudioForm').action = deleteUrl.replace(':id', studio.id);
 
+            // Ruta para Peaje de Salida (Early Close Checkout)
+            let earlyCloseUrl = "{{ route('studios.early-close', ':id') }}";
+            document.getElementById('earlyCloseForm').action = earlyCloseUrl.replace(':id', studio.id);
+
             const debtContainer = document.getElementById('e_danger_debt');
-            const deleteBtn = document.getElementById('e_delete_btn');
+            const deleteForm = document.getElementById('deleteStudioForm');
+            const earlyCloseForm = document.getElementById('earlyCloseForm');
 
             if (hasDebt) {
                 debtContainer.classList.remove('hidden');
                 document.getElementById('e_debt_amount').innerText = '$' + Math.round(debtAmount).toLocaleString('es-CL');
                 
-                deleteBtn.disabled = true;
-                deleteBtn.classList.add('opacity-50', 'cursor-not-allowed');
-                deleteBtn.classList.remove('hover:bg-rose-600', 'hover:text-white');
+                deleteForm.classList.add('hidden'); // Escondemos el borrar normal
+                earlyCloseForm.classList.remove('hidden'); // Mostramos el peaje
             } else {
                 debtContainer.classList.add('hidden');
-                deleteBtn.disabled = false;
-                deleteBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                deleteBtn.classList.add('hover:bg-rose-600', 'hover:text-white');
+                
+                deleteForm.classList.remove('hidden'); // Mostramos borrar normal
+                earlyCloseForm.classList.add('hidden'); // Escondemos el peaje
             }
 
             document.getElementById('e_name').value = studio.name;
