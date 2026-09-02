@@ -65,11 +65,14 @@
         {{-- ============================================================ --}}
         {{-- CONTENEDOR PRINCIPAL: Ocupa el espacio restante del Flex     --}}
         {{-- ============================================================ --}}
-        <div class="flex-1 min-w-0">
-            <div class="py-8 md:py-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-24">
+        <div class="flex-1 min-w-0 flex flex-col">
+            
+            {{-- BLOQUE 1: HERO, BREADCRUMBS Y FILTROS MÓVILES --}}
+            {{-- Vuelve a max-w-7xl (tamaño original) --}}
+            <div class="pt-8 pb-6 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
                 {{-- HERO: Vibrante, con personalidad --}}
-                <div class="text-center mb-8 md:mb-12 relative">
+                <div class="text-center mb-8 relative">
                     <h1 class="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight leading-tight">
                         <span>
                             @if($seo['city'] && $seo['discipline'])
@@ -90,12 +93,11 @@
 
                     <div class="flex items-center justify-center gap-2 mt-4 mb-5"></div>
 
-                    <p class="text-base md:text-lg font-medium max-w-2xl mx-auto leading-relaxed
-                              @if($seo['total'] > 0) text-stone-600 @else text-stone-500 @endif">
+                    <p class="text-base md:text-lg font-medium max-w-2xl mx-auto leading-relaxed @if($seo['total'] > 0) text-stone-600 @else text-stone-500 @endif">
                         @if($seo['total'] > 0)
                             <span class="font-black text-red-700">{{ $seo['total'] }}</span>
                             {{ $seo['total'] == 1 ? 'clase encontrada' : 'clases encontradas' }}.
-                            <span class="text-stone-500">Encuentra y reserva sesiones en los mejores estudios cerca de ti.</span>
+                            <span class="text-stone-500">Encuentra y reserva sesiones cerca de ti.</span>
                         @else
                             Intenta ajustando los filtros de búsqueda para ver más opciones.
                         @endif
@@ -105,18 +107,14 @@
                 {{-- BREADCRUMBS --}}
                 @if(count($breadcrumbs) > 0)
                 <nav class="mb-6" aria-label="Breadcrumb">
-                    <ol class="flex flex-wrap items-center gap-1 text-xs font-medium text-stone-400" itemscope itemtype="https://schema.org/BreadcrumbList">
+                    <ol class="flex flex-wrap items-center gap-1 text-xs font-medium text-stone-400">
                         @foreach($breadcrumbs as $index => $crumb)
-                            <li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="flex items-center">
+                            <li class="flex items-center">
                                 @if(!$loop->last)
-                                    <a itemprop="item" href="{{ $crumb['url'] }}" class="hover:text-red-600 transition-colors">
-                                        <span itemprop="name">{{ $crumb['label'] }}</span>
-                                    </a>
-                                    <meta itemprop="position" content="{{ $index + 1 }}" />
+                                    <a href="{{ $crumb['url'] }}" class="hover:text-red-600 transition-colors">{{ $crumb['label'] }}</a>
                                     <span class="mx-1 text-stone-300">/</span>
                                 @else
-                                    <span itemprop="name" class="text-stone-700 font-bold" aria-current="page">{{ $crumb['label'] }}</span>
-                                    <meta itemprop="position" content="{{ $index + 1 }}" />
+                                    <span class="text-stone-700 font-bold" aria-current="page">{{ $crumb['label'] }}</span>
                                 @endif
                             </li>
                         @endforeach
@@ -124,61 +122,52 @@
                 </nav>
                 @endif
 
-                {{-- ============================================================ --}}
                 {{-- BOTÓN DE FILTROS MÓVIL + DRAWER OFF-CANVAS --}}
-                {{-- ============================================================ --}}
-                <div x-data="{ openFilters: false }" class="mb-6 lg:hidden">
+                <div x-data="{ openFilters: false }" class="mb-2 lg:hidden">
                     <div class="flex justify-end mb-4">
-                        <button @click="openFilters = true" type="button"
-                            class="w-full bg-white border border-red-200 text-red-700 font-black py-3.5 px-4 rounded-2xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all duration-200 hover:bg-red-50">
+                        <button @click="openFilters = true" type="button" class="w-full bg-white border border-red-200 text-red-700 font-black py-3.5 px-4 rounded-2xl shadow-sm flex items-center justify-center gap-2 active:scale-95 transition-all duration-200 hover:bg-red-50">
                             <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"></path></svg>
                             Filtros de Búsqueda
                         </button>
                     </div>
 
-                    {{-- Overlay --}}
-                    <div x-show="openFilters" x-transition.opacity.duration.300ms @click="openFilters = false"
-                        class="fixed inset-0 bg-stone-900/60 z-[60]" style="display: none;"></div>
-
-                    {{-- Drawer --}}
-                    <div :class="openFilters ? 'translate-x-0' : 'translate-x-full'"
-                        class="fixed inset-y-0 right-0 z-[70] w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-in-out flex flex-col"
-                        x-cloak>
-
+                    {{-- Overlay y Drawer --}}
+                    <div x-show="openFilters" x-transition.opacity.duration.300ms @click="openFilters = false" class="fixed inset-0 bg-stone-900/60 z-[60]" style="display: none;"></div>
+                    <div :class="openFilters ? 'translate-x-0' : 'translate-x-full'" class="fixed inset-y-0 right-0 z-[70] w-[85%] max-w-sm bg-white shadow-2xl transition-transform duration-300 ease-in-out flex flex-col" x-cloak>
                         <div class="flex items-center justify-between p-5 border-b border-red-50 shrink-0">
                             <h2 class="text-xl font-black text-stone-900">Filtros</h2>
-                            <button type="button" @click="openFilters = false"
-                                class="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-50 rounded-full transition-colors">
+                            <button type="button" @click="openFilters = false" class="p-2 text-stone-400 hover:text-stone-700 hover:bg-stone-50 rounded-full transition-colors">
                                 <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
                         </div>
-
                         <div class="p-5 overflow-y-auto flex-1 custom-scrollbar">
                             @include('explore.partials._filters')
                         </div>
                     </div>
                 </div>
 
-                {{-- ============================================================ --}}
-                {{-- MAPA CONTENEDOR LEAFLET (SIEMPRE VISIBLE E INTEGRADO) --}}
-                {{-- ============================================================ --}}
-                <div id="mapContainer" class="relative mb-10 w-full rounded-3xl overflow-hidden shadow-sm border border-stone-200 bg-white">
-                    
-                    {{-- Botón flotante integrado dentro del mapa --}}
-                    <div class="absolute top-4 right-4 z-[69]">
-                        <button type="button" onclick="toggleAllPopups()" id="btnToggleAllPopups"
-                            class="text-xs font-black uppercase tracking-widest text-stone-800 bg-white/95 hover:bg-white backdrop-blur-md px-4 py-2.5 rounded-xl border border-stone-200 shadow-md hover:shadow-lg transition-all active:scale-95">
-                            Cerrar Todas las Tarjetas
-                        </button>
-                    </div>
+            </div>{{-- Fin Bloque 1 --}}
 
-                    {{-- Lienzo del Mapa --}}
-                    <div id="exploreMap" class="w-full h-[480px] z-10 bg-stone-100"></div>
+            {{-- ============================================================ --}}
+            {{-- BLOQUE 2: MAPA LEAFLET FULL WIDTH (Sin bordes redondeados)   --}}
+            {{-- ============================================================ --}}
+            <div id="mapContainer" class="relative w-full border-y border-stone-200 bg-white z-20 shadow-sm">
+                {{-- Botón flotante integrado --}}
+                <div class="absolute top-4 right-4 z-[69]">
+                    <button type="button" onclick="toggleAllPopups()" id="btnToggleAllPopups" class="text-xs font-black uppercase tracking-widest text-stone-800 bg-white/95 hover:bg-white backdrop-blur-md px-4 py-2.5 rounded-xl border border-stone-200 shadow-md hover:shadow-lg transition-all active:scale-95">
+                        Cerrar Todas las Tarjetas
+                    </button>
                 </div>
+                {{-- Lienzo del Mapa --}}
+                <div id="exploreMap" class="w-full h-[400px] md:h-[480px] z-10 bg-stone-100"></div>
+            </div>
 
-                {{-- ============================================================ --}}
-                {{-- CONTADOR DE RESULTADOS --}}
-                {{-- ============================================================ --}}
+            {{-- ============================================================ --}}
+            {{-- BLOQUE 3: GRID DE CLASES Y PAGINACIÓN                        --}}
+            {{-- ============================================================ --}}
+            {{-- Vuelve a max-w-7xl (tamaño original) --}}
+            <div class="pt-8 pb-24 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                
                 <div class="flex items-center justify-between mb-6">
                     <p class="text-xs font-bold text-stone-400 uppercase tracking-wider">
                         @if($seo['total'] > 0)
@@ -187,10 +176,8 @@
                     </p>
                 </div>
 
-                {{-- ============================================================ --}}
-                {{-- GRID DE CLASES: Cards con alma artística --}}
-                {{-- ============================================================ --}}
-                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6">
+                {{-- Mantenemos grid-cols-4 en xl --}}
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
                     @forelse($sessions as $session)
                         @php
                             $maxSpots     = $session->max_spots ?? 99;
@@ -237,7 +224,6 @@
                                 ]);
                             @endphp
 
-                            {{-- Imagen con overlay artístico --}}
                             <div class="h-44 bg-stone-100 relative overflow-hidden cursor-pointer transform-gpu" onclick="openDetailModal({{ $modalData }})">
                                 <img src="{{ $imageUrl }}"
                                      alt="Clase"
@@ -253,7 +239,6 @@
                                      class="w-full h-full object-cover {{ $isFull ? 'opacity-50' : 'opacity-90' }} group-hover/card:opacity-100 group-hover/card:scale-110 transition-all duration-700 ease-out">
                                 <div class="absolute inset-0 bg-gradient-to-t from-red-900/70 via-red-900/10 to-transparent {{ $isFull ? 'opacity-80' : 'opacity-50 group-hover/card:opacity-70' }} transition-opacity duration-500"></div>
 
-                                {{-- Ribbon "Clase Llena" --}}
                                 @if ($isFull)
                                 <div class="absolute top-0 right-0 w-28 h-28 overflow-hidden z-10 pointer-events-none">
                                     <div class="absolute top-[13px] -right-[32px] w-40 bg-gradient-to-r from-rose-500 to-rose-600 text-white text-[9px] font-black uppercase tracking-[0.2em] py-1 text-center rotate-45 shadow-lg">
@@ -262,7 +247,6 @@
                                 </div>
                                 @endif
 
-                                {{-- Badge de categoría --}}
                                 <div class="absolute top-3 left-3 z-10">
                                     <span class="inline-block px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest
                                          {{ $isFull ? 'bg-white/60 text-stone-500' : 'bg-white/90 backdrop-blur-sm text-red-600 shadow-sm' }}
@@ -271,7 +255,6 @@
                                     </span>
                                 </div>
 
-                                {{-- Logo del estudio --}}
                                 <div class="absolute bottom-3 right-3 {{ $isFull ? '' : 'group-hover/card:scale-110 group-hover/card:rotate-3' }} transition-all duration-500 z-10">
                                     <div class="relative w-11 h-11 rounded-2xl bg-white shadow-lg border-2 {{ $isFull ? 'border-stone-200 opacity-70' : 'border-white' }} overflow-hidden transform -rotate-2 group-hover/card:rotate-0 transition-transform duration-500" title="{{ $session->workshop->studio->name }}">
                                         <img src="{{ $studioImageUrl }}" alt="Logo Estudio" class="w-full h-full object-cover">
@@ -279,7 +262,6 @@
                                 </div>
                             </div>
 
-                            {{-- Contenido de la card --}}
                             <div class="p-5 flex-1 flex flex-col relative z-20">
                                 <div class="flex justify-between items-start mb-3 cursor-pointer" onclick="openDetailModal({{ $modalData }})">
                                     <h3 class="text-base md:text-lg font-black text-stone-900 leading-tight group-hover/card:text-red-700 transition-colors duration-300 line-clamp-2">
@@ -302,7 +284,6 @@
                                     </div>
                                 </div>
 
-                                {{-- Indicador de cupos --}}
                                 <div class="mt-4 pt-4 border-t border-stone-100">
                                     <div class="flex items-center justify-between text-xs">
                                         <div class="flex items-center gap-2">
@@ -334,7 +315,6 @@
                                     </div>
                                 </div>
 
-                                {{-- Precio + Botón de acción --}}
                                 @php
                                     $dbSelections = $dbSelectionsBySession[$session->id] ?? [];
                                     $enrolledCount = count($dbSelections);
@@ -394,7 +374,6 @@
                             </div>
                         </div>
                     @empty
-                        {{-- Estado vacío --}}
                         <div class="col-span-full py-20 text-center">
                             <div class="inline-flex flex-col items-center">
                                 <div class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-rose-100 mb-6 shadow-inner">
@@ -413,10 +392,10 @@
                     @endforelse
                 </div>
 
-                {{-- Paginación --}}
                 <div class="mt-10">{{ $sessions->links() }}</div>
 
-            </div>{{-- Fin max-w-7xl --}}
+            </div>{{-- Fin Bloque 3 --}}
+            
         </div>{{-- Fin Flex-1 min-w-0 --}}
     </div>{{-- Fin Nuevo Layout Flexbox --}}
 
@@ -715,7 +694,9 @@
             const centerPos = [mapLocations[0].lat, mapLocations[0].lng];
 
             // 1. Inicializar mapa
-            mapInstance = L.map('exploreMap').setView(centerPos, 13);
+            mapInstance = L.map('exploreMap', {
+    scrollWheelZoom: false // <-- Esto desactiva el zoom con la rueda del ratón
+}).setView(centerPos, 13);
 
             L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
